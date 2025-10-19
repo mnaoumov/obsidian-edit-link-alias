@@ -65,7 +65,6 @@ class EditLinkAliasCommandInvocation extends EditorCommandInvocationBase<Plugin>
 
 export class EditCommand extends EditorCommandBase<Plugin> {
   protected override editorMenuItemName = 'Edit link alias';
-
   protected override editorMenuSection = 'selection';
 
   public constructor(plugin: Plugin) {
@@ -81,7 +80,7 @@ export class EditCommand extends EditorCommandBase<Plugin> {
     return new EditLinkAliasCommandInvocation(this.plugin, editor, ctx);
   }
 
-  protected override shouldAddToEditorMenu(_editor: Editor, _ctx: MarkdownFileInfo | MarkdownView): boolean {
+  protected override shouldAddToEditorMenu(): boolean {
     return true;
   }
 }
