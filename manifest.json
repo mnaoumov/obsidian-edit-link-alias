@@ -6,5 +6,6 @@
   "id": "edit-link-alias",
   "isDesktopOnly": false,
   "name": "Edit Link Alias",
-  "version": "0.0.0"
+  "version": "1.0.0",
+  "minAppVersion": "1.9.14"
 }
