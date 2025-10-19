@@ -1,0 +1,10 @@
+{
+  "author": "mnaoumov",
+  "authorUrl": "https://github.com/mnaoumov/",
+  "description": "Adds edit link alias command.",
+  "fundingUrl": "https://www.buymeacoffee.com/mnaoumov",
+  "id": "edit-link-alias",
+  "isDesktopOnly": false,
+  "name": "Edit Link Alias",
+  "version": "0.0.0"
+}
