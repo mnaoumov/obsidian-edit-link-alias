@@ -21,8 +21,14 @@
     "version": "obsidian-dev-utils version"
   },
   "devDependencies": {
+    "@commitlint/cli": "^20.2.0",
+    "@commitlint/config-conventional": "^20.2.0",
+    "@commitlint/types": "^20.2.0",
     "@tsconfig/strictest": "latest",
     "@types/node": "latest",
+    "commitizen": "^4.3.1",
+    "cz-conventional-changelog": "^3.3.0",
+    "husky": "^9.1.7",
     "jiti": "latest",
     "obsidian": "latest",
     "obsidian-dev-utils": "latest",
@@ -32,5 +38,8 @@
     "@antfu/utils": "9.2.0",
     "boolean": "npm:dry-uninstall",
     "dompurify": "3.0.1"
+  },
+  "dependencies": {
+    "type-fest": "^5.3.1"
   }
 }
