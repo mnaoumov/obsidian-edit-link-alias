@@ -6,7 +6,7 @@ This is a plugin for [Obsidian](https://obsidian.md/) that adds edit link alias 
 
 ## Installation
 
-The plugin is not available in [the official Community Plugins repository](https://obsidian.md/plugins) yet.
+The plugin is available in [the official Community Plugins repository](https://obsidian.md/plugins?id=edit-link-alias).
 
 ### Beta versions
 
