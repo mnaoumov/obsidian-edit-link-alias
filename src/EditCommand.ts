@@ -64,11 +64,10 @@ class EditLinkAliasCommandInvocation extends EditorCommandInvocationBase<Plugin>
 }
 
 export class EditCommand extends EditorCommandBase<Plugin> {
-  protected override editorMenuItemName = 'Edit link alias';
-  protected override editorMenuSection = 'selection';
-
   public constructor(plugin: Plugin) {
     super({
+      editorMenuItemName: 'Edit link alias',
+      editorMenuSection: 'selection',
       icon: 'text-cursor-input',
       id: 'edit-link-alias',
       name: 'Edit',
