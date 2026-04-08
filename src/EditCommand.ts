@@ -3,7 +3,7 @@ import type {
   MarkdownFileInfo,
   MarkdownView
 } from 'obsidian';
-import type { CommandInvocationBase } from 'obsidian-dev-utils/obsidian/Commands/CommandBase';
+import type { CommandInvocationBase } from 'obsidian-dev-utils/obsidian/commands/command-base';
 
 import {
   EditorCommandBase,
