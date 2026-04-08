@@ -8,12 +8,12 @@ import type { CommandInvocationBase } from 'obsidian-dev-utils/obsidian/commands
 import {
   EditorCommandBase,
   EditorCommandInvocationBase
-} from 'obsidian-dev-utils/obsidian/Commands/EditorCommandBase';
+} from 'obsidian-dev-utils/obsidian/commands/editor-command-base';
 import {
   generateRawMarkdownLink,
   parseLinks
-} from 'obsidian-dev-utils/obsidian/Link';
-import { prompt } from 'obsidian-dev-utils/obsidian/Modals/Prompt';
+} from 'obsidian-dev-utils/obsidian/link';
+import { prompt } from 'obsidian-dev-utils/obsidian/modals/prompt';
 
 import type { Plugin } from './Plugin.ts';
 
