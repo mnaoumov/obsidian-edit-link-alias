@@ -28,10 +28,12 @@
   },
   "include": [
     "./.markdownlint-cli2.mts",
+    "./commitlint.config.ts",
     "./eslint.config.*ts",
     "./src/**/*.svelte",
     "./src/**/*.ts",
     "./src/**/*.tsx",
-    "./scripts/**/*.ts"
+    "./scripts/**/*.ts",
+    "./vitest.config.ts"
   ]
 }
