@@ -49,7 +49,7 @@
     "obsidian-dev-utils": "latest",
     "obsidian-integration-testing": "latest",
     "obsidian-test-mocks": "latest",
-    "obsidian-typings": "obsidian-public-latest",
+    "obsidian-typings": "^5.21.0",
     "type-fest": "latest",
     "vitest": "latest"
   },
