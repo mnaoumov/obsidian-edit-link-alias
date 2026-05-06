@@ -1,8 +1,8 @@
 import { PluginBase } from 'obsidian-dev-utils/obsidian/plugin/plugin-base';
 
-import type { PluginTypes } from './PluginTypes.ts';
+import type { PluginTypes } from './plugin-types.ts';
 
-import { EditCommand } from './EditCommand.ts';
+import { EditCommand } from './edit-command.ts';
 
 export class Plugin extends PluginBase<PluginTypes> {
   protected override async onloadImpl(): Promise<void> {

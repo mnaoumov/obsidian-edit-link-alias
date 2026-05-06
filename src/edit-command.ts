@@ -15,7 +15,7 @@ import {
 } from 'obsidian-dev-utils/obsidian/link';
 import { prompt } from 'obsidian-dev-utils/obsidian/modals/prompt';
 
-import type { Plugin } from './Plugin.ts';
+import type { Plugin } from './plugin.ts';
 
 class EditLinkAliasCommandInvocation extends EditorCommandInvocationBase<Plugin> {
   public override canExecute(): boolean {
