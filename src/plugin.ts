@@ -1,13 +1,28 @@
-import { PluginBase } from 'obsidian-dev-utils/obsidian/plugin/plugin-base';
+import type {
+  App,
+  PluginManifest
+} from 'obsidian';
 
-import type { PluginTypes } from './plugin-types.ts';
+import { AppActiveFileProvider } from 'obsidian-dev-utils/obsidian/active-file-provider';
+import { CommandHandlerComponent } from 'obsidian-dev-utils/obsidian/command-handlers/command-handler-component';
+import { PluginCommandRegistrar } from 'obsidian-dev-utils/obsidian/command-registrar';
+import { AppMenuEventRegistrar } from 'obsidian-dev-utils/obsidian/menu-event-registrar';
+import { PluginBase } from 'obsidian-dev-utils/obsidian/plugin/plugin';
 
-import { EditCommand } from './edit-command.ts';
+import { EditCommandHandler } from './edit-command-handler.ts';
 
-export class Plugin extends PluginBase<PluginTypes> {
-  protected override async onloadImpl(): Promise<void> {
-    await super.onloadImpl();
+export class Plugin extends PluginBase {
+  public constructor(app: App, manifest: PluginManifest) {
+    super(app, manifest);
 
-    new EditCommand(this).register();
+    this.addChild(
+      new CommandHandlerComponent({
+        activeFileProvider: new AppActiveFileProvider(app),
+        commandHandlers: [new EditCommandHandler(app)],
+        commandRegistrar: new PluginCommandRegistrar(this),
+        menuEventRegistrar: new AppMenuEventRegistrar(app, this),
+        pluginName: manifest.name
+      })
+    );
   }
 }
