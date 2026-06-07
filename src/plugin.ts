@@ -21,7 +21,7 @@ export class Plugin extends PluginBase {
         activeFileProvider: new AppActiveFileProvider(app),
         commandHandlers: [new EditCommandHandler(app)],
         commandRegistrar: new PluginCommandRegistrar(this),
-        menuEventRegistrar: new AppMenuEventRegistrar(app, this),
+        menuEventRegistrar,
         pluginName: manifest.name
       })
     );

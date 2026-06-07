@@ -36,10 +36,10 @@ const mockGenerateRawMarkdownLink = vi.mocked(generateRawMarkdownLink);
 const mockPrompt = vi.mocked(prompt);
 
 interface CreateMockEditorParams {
-  clickableToken?: MockClickableToken | null;
-  cursor?: EditorPosition;
-  line?: string;
-  replaceRange?: Editor['replaceRange'];
+  readonly clickableToken?: MockClickableToken | null;
+  readonly cursor?: EditorPosition;
+  readonly line?: string;
+  readonly replaceRange?: Editor['replaceRange'];
 }
 
 interface MockClickableToken {

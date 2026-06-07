@@ -5,6 +5,7 @@ import type {
 
 import { Component } from 'obsidian';
 import { CommandHandlerComponent } from 'obsidian-dev-utils/obsidian/command-handlers/command-handler-component';
+import { MenuEventRegistrarComponent } from 'obsidian-dev-utils/obsidian/components/menu-event-registrar-component';
 import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
 import {
   describe,
@@ -37,8 +38,9 @@ describe('Plugin', () => {
 
     new Plugin(app, createMockManifest());
 
-    expect(addChildSpy).toHaveBeenCalledOnce();
-    expect(addChildSpy.mock.calls[0]?.[0]).toBeInstanceOf(CommandHandlerComponent);
+    expect(addChildSpy).toHaveBeenCalledTimes(2);
+    expect(addChildSpy.mock.calls[0]?.[0]).toBeInstanceOf(MenuEventRegistrarComponent);
+    expect(addChildSpy.mock.calls[1]?.[0]).toBeInstanceOf(CommandHandlerComponent);
 
     addChildSpy.mockRestore();
   });
