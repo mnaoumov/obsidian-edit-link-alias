@@ -6,8 +6,7 @@
 - chore: upgrade dependencies and green up all checks
 - chore: update libs
 - refactor: migrate to @obsidian-typings/obsidian-public-latest - Replace obsidian-typings with @obsidian-typings/obsidian-public-latest - Update vitest config: replace ssr.noExternal with server.deps.inline - Add DOM.Iterable to tsconfig lib - Remove obsolete overrides (@antfu/utils, boolean, dompurify) - Upgrade dependencies via npm-check-updates
-- build: replace commitizen with czg Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
-- build: replace commitizen with czg Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+- build: replace commitizen with czg
 - chore: release 1.0.5
 
 ## 1.0.5
