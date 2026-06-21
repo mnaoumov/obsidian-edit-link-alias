@@ -4,6 +4,7 @@ import type {
   MarkdownFileInfo
 } from 'obsidian';
 
+import { castTo } from 'obsidian-dev-utils/object-utils';
 import { EditorCommandHandler } from 'obsidian-dev-utils/obsidian/command-handlers/editor-command-handler';
 import {
   generateRawMarkdownLink,
@@ -40,6 +41,10 @@ interface CreateMockEditorParams {
   readonly cursor?: EditorPosition;
   readonly line?: string;
   readonly replaceRange?: Editor['replaceRange'];
+}
+
+interface EditorCommandHandlerProtected {
+  canExecuteEditor(editor: Editor, ctx: MarkdownFileInfo): boolean;
 }
 
 interface MockClickableToken {
@@ -117,14 +122,12 @@ describe('EditCommandHandler', () => {
 
   describe('canExecuteEditor', () => {
     it('should return false when super.canExecuteEditor returns false', () => {
-      const original = EditorCommandHandler.prototype['canExecuteEditor'];
-      EditorCommandHandler.prototype['canExecuteEditor'] = (): boolean => false;
+      vi.spyOn(castTo<EditorCommandHandlerProtected>(EditorCommandHandler.prototype), 'canExecuteEditor').mockReturnValue(false);
 
       const editor = createMockEditor({ clickableToken: { type: 'internal-link' } });
       const result = handler.testCanExecuteEditor(editor, createMockCtx());
 
       expect(result).toBe(false);
-      EditorCommandHandler.prototype['canExecuteEditor'] = original;
     });
 
     it('should return false when no clickable token at cursor', () => {
