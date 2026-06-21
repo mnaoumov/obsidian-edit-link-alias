@@ -3,8 +3,8 @@
 ## 1.0.8
 
 - chore: keep skipLibCheck true
-- build: restore skipLibCheck to false after upstream type conflict resolved The @types/css-font-loading-module TS2403 conflict is gone in the current obsidian-typings, so the skipLibCheck workaround no longer suppresses any upstream diagnostics (tsc --skipLibCheck false reports 0 errors). Restore the canonical skipLibCheck: false and drop the stale Known Issue note. Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
-- test: reuse real PluginBase and EditorCommandHandler base in unit tests Replace the PluginBase shadow mock (PluginBase: Component) with the real dev-utils base driven through the real onload() lifecycle, and swap the manual EditorCommandHandler.prototype save/overwrite/restore for a vi.spyOn return-value stub. Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+- build: restore skipLibCheck to false after upstream type conflict resolved
+- test: reuse real PluginBase and EditorCommandHandler base in unit tests
 - refactor: update template
 - chore: update version script
 
