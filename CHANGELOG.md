@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 1.0.9
+
+- refactor: new template
+
 ## 1.0.8
 
 - chore: keep skipLibCheck true
