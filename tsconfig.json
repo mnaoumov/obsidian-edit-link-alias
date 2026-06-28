@@ -8,7 +8,6 @@
     "importHelpers": true,
     "inlineSourceMap": true,
     "inlineSources": true,
-    "jsx": "react-jsx",
     "lib": [
       "DOM",
       "DOM.Iterable",
@@ -21,9 +20,9 @@
     "skipLibCheck": true,
     "target": "es2022",
     "types": [
+      "@obsidian-typings/obsidian-public-latest",
       "@total-typescript/ts-reset",
-      "node",
-      "svelte"
+      "node"
     ],
     "verbatimModuleSyntax": true
   },
@@ -31,9 +30,7 @@
     "./.markdownlint-cli2.mts",
     "./commitlint.config.ts",
     "./eslint.config.*ts",
-    "./src/**/*.svelte",
     "./src/**/*.ts",
-    "./src/**/*.tsx",
     "./scripts/**/*.ts",
     "./vitest.config.ts"
   ]
