@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 1.0.10
+
+- chore: update libs
+- chore: update obsidian-dev-utils to 85.0.0
+- build: lock typescript to 6.0.3
+- test: wire integration-testing vitest-setup into integration projects
+- chore: update libs
+- chore: clean up tsconfig
+
 ## 1.0.9
 
 - refactor: new template
