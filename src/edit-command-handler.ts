@@ -5,11 +5,9 @@ import type {
 } from 'obsidian';
 
 import { EditorCommandHandler } from 'obsidian-dev-utils/obsidian/command-handlers/editor-command-handler';
-import {
-  generateRawMarkdownLink,
-  parseLinks
-} from 'obsidian-dev-utils/obsidian/link';
+import { generateRawMarkdownLink } from 'obsidian-dev-utils/obsidian/link';
 import { prompt } from 'obsidian-dev-utils/obsidian/modals/prompt';
+import { parseLinks } from 'obsidian-dev-utils/obsidian/parse-link';
 
 export class EditCommandHandler extends EditorCommandHandler {
   public constructor(private readonly app: App) {

@@ -6,11 +6,9 @@ import type {
 
 import { castTo } from 'obsidian-dev-utils/object-utils';
 import { EditorCommandHandler } from 'obsidian-dev-utils/obsidian/command-handlers/editor-command-handler';
-import {
-  generateRawMarkdownLink,
-  parseLinks
-} from 'obsidian-dev-utils/obsidian/link';
+import { generateRawMarkdownLink } from 'obsidian-dev-utils/obsidian/link';
 import { prompt } from 'obsidian-dev-utils/obsidian/modals/prompt';
+import { parseLinks } from 'obsidian-dev-utils/obsidian/parse-link';
 import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
 import {
   afterEach,
@@ -24,12 +22,15 @@ import {
 import { EditCommandHandler } from './edit-command-handler.ts';
 
 vi.mock('obsidian-dev-utils/obsidian/link', () => ({
-  generateRawMarkdownLink: vi.fn(),
-  parseLinks: vi.fn()
+  generateRawMarkdownLink: vi.fn()
 }));
 
 vi.mock('obsidian-dev-utils/obsidian/modals/prompt', () => ({
   prompt: vi.fn()
+}));
+
+vi.mock('obsidian-dev-utils/obsidian/parse-link', () => ({
+  parseLinks: vi.fn()
 }));
 
 const mockParseLinks = vi.mocked(parseLinks);
@@ -174,6 +175,7 @@ describe('EditCommandHandler', () => {
         endOffset: 20,
         isEmbed: false,
         isExternal: false,
+        isFileUrl: false,
         isWikilink: true,
         raw: '[[target|alias]]',
         startOffset: 0,
@@ -197,6 +199,7 @@ describe('EditCommandHandler', () => {
         endOffset: 24,
         isEmbed: false,
         isExternal: false,
+        isFileUrl: false,
         isWikilink: true,
         raw: '[[target|old alias]]',
         startOffset: 0,
@@ -240,6 +243,7 @@ describe('EditCommandHandler', () => {
         endOffset: 10,
         isEmbed: false,
         isExternal: false,
+        isFileUrl: false,
         isWikilink: true,
         raw: '[[target]]',
         startOffset: 0,
@@ -268,6 +272,7 @@ describe('EditCommandHandler', () => {
         hasAngleBrackets: false,
         isEmbed: false,
         isExternal: true,
+        isFileUrl: false,
         isWikilink: false,
         raw: '[click here](https://example.com)',
         startOffset: 0,
@@ -302,6 +307,7 @@ describe('EditCommandHandler', () => {
         endOffset: 20,
         isEmbed: true,
         isExternal: false,
+        isFileUrl: false,
         isWikilink: true,
         raw: '![[image.png|image]]',
         startOffset: 0,
@@ -330,6 +336,7 @@ describe('EditCommandHandler', () => {
         hasAngleBrackets: true,
         isEmbed: false,
         isExternal: true,
+        isFileUrl: false,
         isWikilink: false,
         raw: '[link](<https://example.com>)',
         startOffset: 0,
@@ -358,6 +365,7 @@ describe('EditCommandHandler', () => {
           endOffset: 15,
           isEmbed: false,
           isExternal: false,
+          isFileUrl: false,
           isWikilink: true,
           raw: '[[page1|first]]',
           startOffset: 0,
@@ -368,6 +376,7 @@ describe('EditCommandHandler', () => {
           endOffset: 40,
           isEmbed: false,
           isExternal: false,
+          isFileUrl: false,
           isWikilink: true,
           raw: '[[page2|second]]',
           startOffset: 20,
