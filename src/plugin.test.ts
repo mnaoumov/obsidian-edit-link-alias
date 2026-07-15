@@ -15,10 +15,13 @@ import {
   vi
 } from 'vitest';
 
+// The shared command handler component is now constructed and registered by PluginBase itself, so the mock exposes the registerCommandHandlers spy the base (and the plugin) call at load.
+const { registerCommandHandlers } = vi.hoisted(() => ({ registerCommandHandlers: vi.fn() }));
+
 vi.mock('obsidian-dev-utils/obsidian/command-handlers/command-handler-component', () => ({
-  // eslint-disable-next-line prefer-arrow-callback, func-names -- mock must be constructable with `new` and return a loadable Component.
+  // eslint-disable-next-line prefer-arrow-callback, func-names -- mock must be constructable with `new` and return a loadable Component exposing registerCommandHandlers.
   CommandHandlerComponent: vi.fn(function (): Component {
-    return new Component();
+    return Object.assign(new Component(), { registerCommandHandlers });
   })
 }));
 
@@ -40,11 +43,6 @@ vi.mock('obsidian-dev-utils/obsidian/command-registrar', () => ({
 vi.mock('./edit-command-handler.ts', () => ({
   EditCommandHandler: vi.fn()
 }));
-
-// eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
-import { CommandHandlerComponent } from 'obsidian-dev-utils/obsidian/command-handlers/command-handler-component';
-// eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
-import { MenuEventRegistrarComponent } from 'obsidian-dev-utils/obsidian/components/menu-event-registrar-component';
 
 // eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
 import { EditCommandHandler } from './edit-command-handler.ts';
@@ -94,33 +92,16 @@ beforeEach(() => {
 });
 
 describe('Plugin', () => {
-  it('should wire up the command handler once on load', async () => {
+  it('should register the edit command handler on the shared command handler component on load', async () => {
     await createLoadedPlugin();
 
-    expect(vi.mocked(CommandHandlerComponent)).toHaveBeenCalledOnce();
+    const editCommandHandler = vi.mocked(EditCommandHandler).mock.instances[0];
+    expect(registerCommandHandlers).toHaveBeenCalledWith([editCommandHandler]);
   });
 
-  it('should register the single edit command handler constructed with the app', async () => {
+  it('should construct the single edit command handler with the app', async () => {
     await createLoadedPlugin();
 
-    const params = vi.mocked(CommandHandlerComponent).mock.calls[0]?.[0];
-    expect(params?.commandHandlers.length).toBe(1);
-    expect(vi.mocked(EditCommandHandler)).toHaveBeenCalledWith(app);
-  });
-
-  it('should register the command handler with the plugin name', async () => {
-    await createLoadedPlugin();
-
-    const params = vi.mocked(CommandHandlerComponent).mock.calls[0]?.[0];
-    expect(params?.pluginName).toBe('Edit Link Alias');
-  });
-
-  it('should wire the menu event registrar into the command handler', async () => {
-    await createLoadedPlugin();
-
-    expect(vi.mocked(MenuEventRegistrarComponent)).toHaveBeenCalledWith(app);
-    const menuEventRegistrar: unknown = vi.mocked(MenuEventRegistrarComponent).mock.results[0]?.value;
-    const params = vi.mocked(CommandHandlerComponent).mock.calls[0]?.[0];
-    expect(params?.menuEventRegistrar).toBe(menuEventRegistrar);
+    expect(vi.mocked(EditCommandHandler)).toHaveBeenCalledExactlyOnceWith(app);
   });
 });

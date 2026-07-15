@@ -31,7 +31,7 @@ To show them, run the following command in the `DevTools Console`:
 window.DEBUG.enable('edit-link-alias');
 ```
 
-For more details, refer to the [documentation](https://github.com/mnaoumov/obsidian-dev-utils/blob/main/docs/debugging.md).
+For more details, refer to the [documentation](https://mnaoumov.dev/obsidian-dev-utils/guides/debugging/).
 
 ## Support
 
