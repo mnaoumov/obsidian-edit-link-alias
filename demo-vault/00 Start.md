@@ -4,7 +4,7 @@ Welcome to the [Edit Link Alias](https://github.com/mnaoumov/obsidian-edit-link-
 
 > [!TIP] Interactive buttons
 >
-> The two setup notes have **Run** buttons, powered by [`CodeScript Toolkit`](https://github.com/mnaoumov/obsidian-codescript-toolkit/), which this vault installs for you automatically on first open (see [[04 CodeScript Toolkit prerequisite]]). Editing a link alias itself is a manual editor action, so the feature notes have no buttons - just links to try.
+> The two setup notes have **Run** buttons, powered by [`CodeScript Toolkit`](https://github.com/mnaoumov/obsidian-codescript-toolkit/), which this vault installs for you automatically on first open (see [[CodeScript Toolkit prerequisite]]). Editing a link alias itself is a manual editor action, so the feature notes have no buttons - just links to try.
 
 ## Feature
 
@@ -13,5 +13,5 @@ Welcome to the [Edit Link Alias](https://github.com/mnaoumov/obsidian-edit-link-
 
 ## Setup
 
-- [[03 Code buttons check]]
-- [[04 CodeScript Toolkit prerequisite]]
+- [[Code buttons check]]
+- [[CodeScript Toolkit prerequisite]]
