@@ -2,4 +2,4 @@
 
 # Second target
 
-Another destination note for the links in [[Edit link alias]]. Nothing to do here.
+Another destination note for the links in [[01 Edit link alias]]. Nothing to do here.
