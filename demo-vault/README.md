@@ -1,9 +1,8 @@
-# Edit Link Alias demo vault
+This is an [Obsidian](https://obsidian.md/) vault demonstrating features of the [Edit Link Alias](https://github.com/mnaoumov/obsidian-edit-link-alias) plugin.
 
-A small Obsidian vault that demonstrates the [Edit Link Alias](https://github.com/mnaoumov/obsidian-edit-link-alias) plugin - an **Edit link alias** command (and editor right-click menu item) that changes the display text of the link under your cursor without hand-editing the link syntax.
+## Opening this vault
 
-Open [00 Start](<./00 Start.md>) and work through the notes. Place your cursor inside a link, run **Edit link alias**, and type a new alias.
+- **If you already have the plugin installed**, run the **Edit Link Alias: Open demo vault** command — it downloads and opens the latest demo vault automatically.
+- **Otherwise**, download `edit-link-alias.demo-vault.zip` from the [plugin releases](https://github.com/mnaoumov/obsidian-edit-link-alias/releases), unzip it, and in Obsidian choose `Manage vaults...` → `Open folder as vault` → select the unzipped folder.
 
-## First open
-
-The first time you open this vault, Obsidian treats it as **untrusted**, so the bundled plugins are listed but not loaded until you **Trust author and enable plugins** and reload. After that, the Demo Vault Helper installs [CodeScript Toolkit](https://github.com/mnaoumov/obsidian-codescript-toolkit) and opens the start note for you.
+On first open, Obsidian treats the vault as untrusted — choose **Trust author and enable plugins** (or enable Community plugins manually), then open [00 Start](<./00 Start.md>).
