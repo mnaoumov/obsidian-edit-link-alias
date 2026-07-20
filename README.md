@@ -9,6 +9,14 @@ This is a plugin for [Obsidian](https://obsidian.md/) that adds edit link alias 
 
 ![Prompt](./images/prompt.png)
 
+## Demo vault
+
+A demo vault with usage examples ships with every release. You can access it via any of the following:
+
+1. Running the **Edit Link Alias: Open demo vault** command.
+2. Downloading `edit-link-alias.demo-vault.zip` from the [Releases](https://github.com/mnaoumov/obsidian-edit-link-alias/releases).
+3. Browsing its source in [`demo-vault/`](./demo-vault/README.md) in this repository.
+
 ## Installation
 
 The plugin is available in [the official Community Plugins repository](https://community.obsidian.md/plugins/edit-link-alias).
