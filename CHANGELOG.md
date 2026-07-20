@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 1.0.11
+
+- docs: standardize demo-vault README
+- docs: drop per-plugin demo-vault setup notes (bootstrap covered by ODU harness)
+- docs: unnumber demo-vault setup notes
+- Merge branch 'T106-renumber': number Edit Link Alias demo vault example notes (S2)
+- Merge branch 'T106': create the Edit Link Alias demo vault (S2)
+- chore: update libs
+- docs: migrate to AGENTS.md
+
 ## 1.0.10
 
 - chore: update libs
