@@ -48,11 +48,26 @@ vi.mock('./edit-command-handler.ts', () => ({
   EditCommandHandler: vi.fn()
 }));
 
+const { register } = vi.hoisted(() => ({ register: vi.fn() }));
+
+interface MockLinkMenuHandler {
+  register(): void;
+}
+
+vi.mock('./link-menu-handler.ts', () => ({
+  // eslint-disable-next-line prefer-arrow-callback, func-names -- mock must be constructable with `new` and expose register.
+  LinkMenuHandler: vi.fn(function (): MockLinkMenuHandler {
+    return { register };
+  })
+}));
+
 // eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
 import { OpenDemoVaultCommandHandler } from 'obsidian-dev-utils/obsidian/command-handlers/open-demo-vault-command-handler';
 
 // eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
 import { EditCommandHandler } from './edit-command-handler.ts';
+// eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
+import { LinkMenuHandler } from './link-menu-handler.ts';
 // eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
 import { Plugin } from './plugin.ts';
 
@@ -122,5 +137,15 @@ describe('Plugin', () => {
     expect(params?.app).toBe(app);
     expect(params?.pluginId).toBe(manifest.id);
     expect(params?.pluginVersion).toBe(manifest.version);
+  });
+
+  it('should construct the link menu handler with the app and register it on load', async () => {
+    const plugin = await createLoadedPlugin();
+
+    expect(vi.mocked(LinkMenuHandler)).toHaveBeenCalledOnce();
+    const params = vi.mocked(LinkMenuHandler).mock.calls[0]?.[0];
+    expect(params?.app).toBe(app);
+    expect(params?.plugin).toBe(plugin);
+    expect(register).toHaveBeenCalledOnce();
   });
 });
