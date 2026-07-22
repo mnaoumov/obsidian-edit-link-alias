@@ -5,9 +5,9 @@ import type {
 } from 'obsidian';
 
 import { EditorCommandHandler } from 'obsidian-dev-utils/obsidian/command-handlers/editor-command-handler';
-import { generateRawMarkdownLink } from 'obsidian-dev-utils/obsidian/link';
-import { prompt } from 'obsidian-dev-utils/obsidian/modals/prompt';
 import { parseLinks } from 'obsidian-dev-utils/obsidian/parse-link';
+
+import { editParsedLinkAlias } from './edit-link.ts';
 
 export class EditCommandHandler extends EditorCommandHandler {
   public constructor(private readonly app: App) {
@@ -46,26 +46,13 @@ export class EditCommandHandler extends EditorCommandHandler {
       return;
     }
 
-    const newAlias = await prompt({
+    await editParsedLinkAlias({
       app: this.app,
-      defaultValue: parsedLink.alias ?? parsedLink.url,
-      title: 'Edit link alias'
+      applyReplacement: (newRawLink) => {
+        editor.replaceRange(newRawLink, { ch: parsedLink.startOffset, line: cursor.line }, { ch: parsedLink.endOffset, line: cursor.line });
+      },
+      parsedLink
     });
-
-    if (newAlias === null) {
-      return;
-    }
-
-    const newLink = generateRawMarkdownLink({
-      alias: newAlias,
-      isEmbed: parsedLink.isEmbed,
-      isWikilink: parsedLink.isWikilink,
-      shouldUseAngleBrackets: parsedLink.hasAngleBrackets ?? false,
-      title: parsedLink.title ?? '',
-      url: parsedLink.url
-    });
-
-    editor.replaceRange(newLink, { ch: parsedLink.startOffset, line: cursor.line }, { ch: parsedLink.endOffset, line: cursor.line });
   }
 
   protected override shouldAddToEditorMenu(editor: Editor, ctx: MarkdownFileInfo): boolean {
