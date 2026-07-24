@@ -5,7 +5,7 @@
 [![GitHub downloads](https://img.shields.io/github/downloads/mnaoumov/obsidian-edit-link-alias/total)](https://github.com/mnaoumov/obsidian-edit-link-alias/releases)
 [![Coverage: 100%](https://img.shields.io/badge/coverage-100%25-brightgreen)](https://github.com/mnaoumov/obsidian-edit-link-alias)
 
-This is a plugin for [Obsidian](https://obsidian.md/) that adds edit link alias command.
+This is a plugin for [Obsidian](https://obsidian.md/) that adds an **Edit link alias** command (changes only the display text of the link under your cursor) and an **Edit link (URL and alias)** command (a two-field pop-up that edits the link's target and display text together). Both are available from the Command Palette, the editor right-click menu, and the link long-press / Reading-view context menu, and work on internal wikilinks, markdown links, and external links alike.
 
 ![Prompt](./images/prompt.png)
 

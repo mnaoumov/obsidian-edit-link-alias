@@ -7,16 +7,16 @@ import type {
 import { EditorCommandHandler } from 'obsidian-dev-utils/obsidian/command-handlers/editor-command-handler';
 
 import { editLinkAtEditorCursor } from './edit-in-editor.ts';
-import { editParsedLinkAlias } from './edit-link.ts';
+import { editParsedLinkUrlAndAlias } from './edit-link.ts';
 
-export class EditCommandHandler extends EditorCommandHandler {
+export class EditUrlAndAliasCommandHandler extends EditorCommandHandler {
   public constructor(private readonly app: App) {
     super({
-      editorMenuItemName: 'Edit link alias',
+      editorMenuItemName: 'Edit link (URL and alias)',
       editorMenuSection: 'selection',
-      icon: 'text-cursor-input',
-      id: 'edit-link-alias',
-      name: 'Edit'
+      icon: 'link',
+      id: 'edit-link',
+      name: 'Edit link (URL and alias)'
     });
   }
 
@@ -38,7 +38,7 @@ export class EditCommandHandler extends EditorCommandHandler {
   }
 
   protected override async executeEditor(editor: Editor): Promise<void> {
-    await editLinkAtEditorCursor(this.app, editor, editParsedLinkAlias);
+    await editLinkAtEditorCursor(this.app, editor, editParsedLinkUrlAndAlias);
   }
 
   protected override shouldAddToEditorMenu(editor: Editor, ctx: MarkdownFileInfo): boolean {

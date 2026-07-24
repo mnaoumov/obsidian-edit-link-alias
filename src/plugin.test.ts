@@ -48,6 +48,10 @@ vi.mock('./edit-command-handler.ts', () => ({
   EditCommandHandler: vi.fn()
 }));
 
+vi.mock('./edit-url-and-alias-command-handler.ts', () => ({
+  EditUrlAndAliasCommandHandler: vi.fn()
+}));
+
 const { register } = vi.hoisted(() => ({ register: vi.fn() }));
 
 interface MockLinkMenuHandler {
@@ -66,6 +70,8 @@ import { OpenDemoVaultCommandHandler } from 'obsidian-dev-utils/obsidian/command
 
 // eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
 import { EditCommandHandler } from './edit-command-handler.ts';
+// eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
+import { EditUrlAndAliasCommandHandler } from './edit-url-and-alias-command-handler.ts';
 // eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
 import { LinkMenuHandler } from './link-menu-handler.ts';
 // eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
@@ -115,18 +121,25 @@ beforeEach(() => {
 });
 
 describe('Plugin', () => {
-  it('should register the edit and open-demo-vault command handlers on the shared command handler component on load', async () => {
+  it('should register the edit, edit-url-and-alias, and open-demo-vault command handlers on the shared command handler component on load', async () => {
     await createLoadedPlugin();
 
     const editCommandHandler = vi.mocked(EditCommandHandler).mock.instances[0];
+    const editUrlAndAliasCommandHandler = vi.mocked(EditUrlAndAliasCommandHandler).mock.instances[0];
     const openDemoVaultCommandHandler = vi.mocked(OpenDemoVaultCommandHandler).mock.instances[0];
-    expect(registerCommandHandlers).toHaveBeenCalledWith([editCommandHandler, openDemoVaultCommandHandler]);
+    expect(registerCommandHandlers).toHaveBeenCalledWith([editCommandHandler, editUrlAndAliasCommandHandler, openDemoVaultCommandHandler]);
   });
 
   it('should construct the edit command handler with the app', async () => {
     await createLoadedPlugin();
 
     expect(vi.mocked(EditCommandHandler)).toHaveBeenCalledExactlyOnceWith(app);
+  });
+
+  it('should construct the edit-url-and-alias command handler with the app', async () => {
+    await createLoadedPlugin();
+
+    expect(vi.mocked(EditUrlAndAliasCommandHandler)).toHaveBeenCalledExactlyOnceWith(app);
   });
 
   it('should construct the open-demo-vault command handler with the app, plugin id, and version', async () => {

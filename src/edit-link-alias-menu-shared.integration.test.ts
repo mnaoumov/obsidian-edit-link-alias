@@ -156,3 +156,134 @@ export function registerEditAliasMenuSuite(platform: string): void {
     });
   });
 }
+
+const URL_AND_ALIAS_MENU_ITEM_TITLE = 'Edit link (URL and alias)';
+const NEW_URL_LINK_TEXT = 'edit-link-alias-target-renamed';
+const URL_AND_ALIAS_EXPECTED_SOURCE_CONTENT = `[[${NEW_URL_LINK_TEXT}|${NEW_ALIAS}]]`;
+
+/**
+ * Registers the "Edit link (URL and alias)" link-context-menu integration test for the given platform. It
+ * mirrors {@link registerEditAliasMenuSuite} but exercises the two-field editor, editing both the URL
+ * (target) and the alias, and asserts the source link is rewritten with both new values.
+ *
+ * @param platform - Human-readable platform label used in the test name (e.g. `'Desktop'`).
+ */
+export function registerEditUrlAndAliasMenuSuite(platform: string): void {
+  describe(`Edit link URL and alias via link context menu (${platform})`, () => {
+    it('adds the url-and-alias menu item on a link long-press and rewrites both url and alias when invoked', async () => {
+      const result = await evalInObsidian({
+        args: {
+          expectedSourceContent: URL_AND_ALIAS_EXPECTED_SOURCE_CONTENT,
+          initialSourceContent: INITIAL_SOURCE_CONTENT,
+          menuItemTitle: URL_AND_ALIAS_MENU_ITEM_TITLE,
+          newAlias: NEW_ALIAS,
+          newUrl: NEW_URL_LINK_TEXT,
+          sourcePath: SOURCE_PATH,
+          targetContent: TARGET_CONTENT,
+          targetLinkText: TARGET_LINK_TEXT,
+          targetPath: TARGET_PATH,
+          waitTimeoutInMilliseconds: WAIT_TIMEOUT_IN_MILLISECONDS
+        },
+        async fn({
+          app,
+          expectedSourceContent,
+          initialSourceContent,
+          lib: { waitUntil },
+          menuItemTitle,
+          newAlias,
+          newUrl,
+          obsidianModule,
+          sourcePath,
+          targetContent,
+          targetLinkText,
+          targetPath,
+          waitTimeoutInMilliseconds
+        }) {
+          for (const path of [sourcePath, targetPath]) {
+            const existing = app.vault.getAbstractFileByPath(path);
+            if (existing) {
+              await app.fileManager.trashFile(existing);
+            }
+          }
+
+          await app.vault.create(targetPath, targetContent);
+          const sourceFile = await app.vault.create(sourcePath, initialSourceContent);
+
+          const leaf = app.workspace.getLeaf(true);
+          await leaf.openFile(sourceFile, { state: { mode: 'preview' } });
+
+          await waitUntil({
+            message: 'source note did not become the active reading view',
+            predicate: () => app.workspace.getActiveViewOfType(obsidianModule.MarkdownView)?.file?.path === sourcePath,
+            timeoutInMilliseconds: waitTimeoutInMilliseconds
+          });
+
+          await waitUntil({
+            message: 'link target did not resolve',
+            predicate: () => app.metadataCache.getFirstLinkpathDest(targetLinkText, sourcePath) !== null,
+            timeoutInMilliseconds: waitTimeoutInMilliseconds
+          });
+
+          const menu = new obsidianModule.Menu();
+          app.workspace.handleLinkContextMenu(menu, targetLinkText, sourcePath);
+
+          const menuItem = menu.items.find((item): item is MenuItem => 'titleEl' in item && item.titleEl.textContent === menuItemTitle);
+          if (!menuItem) {
+            return {
+              itemFound: false,
+              sourceContent: ''
+            };
+          }
+
+          menuItem.callback?.();
+
+          await waitUntil({
+            message: 'link editor modal did not open',
+            predicate: () => document.querySelector('.link-editor-url-input') !== null && document.querySelector('.link-editor-alias-input') !== null,
+            timeoutInMilliseconds: waitTimeoutInMilliseconds
+          });
+
+          const urlInputEl = document.querySelector<HTMLInputElement>('.link-editor-url-input');
+          const aliasInputEl = document.querySelector<HTMLInputElement>('.link-editor-alias-input');
+          const okButtonEl = document.querySelector<HTMLElement>('.link-editor-ok-button');
+          if (!urlInputEl || !aliasInputEl || !okButtonEl) {
+            return {
+              itemFound: true,
+              sourceContent: ''
+            };
+          }
+
+          urlInputEl.value = newUrl;
+          urlInputEl.dispatchEvent(new Event('input', { bubbles: true }));
+          aliasInputEl.value = newAlias;
+          aliasInputEl.dispatchEvent(new Event('input', { bubbles: true }));
+          okButtonEl.click();
+
+          await waitUntil({
+            message: 'source note url and alias were not rewritten',
+            predicate: async () => (await app.vault.read(sourceFile)) === expectedSourceContent,
+            timeoutInMilliseconds: waitTimeoutInMilliseconds
+          });
+
+          const sourceContent = await app.vault.read(sourceFile);
+
+          for (const path of [sourcePath, targetPath]) {
+            const existing = app.vault.getAbstractFileByPath(path);
+            if (existing) {
+              await app.fileManager.trashFile(existing);
+            }
+          }
+
+          return {
+            itemFound: true,
+            sourceContent
+          };
+        },
+        vaultPath: getTempVault().path
+      });
+
+      expect(result.itemFound).toBe(true);
+      expect(result.sourceContent).toBe(URL_AND_ALIAS_EXPECTED_SOURCE_CONTENT);
+    });
+  });
+}
