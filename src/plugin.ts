@@ -2,12 +2,14 @@ import { OpenDemoVaultCommandHandler } from 'obsidian-dev-utils/obsidian/command
 import { PluginBase } from 'obsidian-dev-utils/obsidian/plugin/plugin';
 
 import { EditCommandHandler } from './edit-command-handler.ts';
+import { EditUrlAndAliasCommandHandler } from './edit-url-and-alias-command-handler.ts';
 import { LinkMenuHandler } from './link-menu-handler.ts';
 
 export class Plugin extends PluginBase {
   protected override onloadImpl(): void {
     this.commandHandlerComponent.registerCommandHandlers([
       new EditCommandHandler(this.app),
+      new EditUrlAndAliasCommandHandler(this.app),
       new OpenDemoVaultCommandHandler({
         app: this.app,
         pluginId: this.manifest.id,

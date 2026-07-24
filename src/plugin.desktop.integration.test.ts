@@ -5,7 +5,10 @@ import {
   it
 } from 'vitest';
 
-import { registerEditAliasMenuSuite } from './edit-link-alias-menu-shared.integration.test.ts';
+import {
+  registerEditAliasMenuSuite,
+  registerEditUrlAndAliasMenuSuite
+} from './edit-link-alias-menu-shared.integration.test.ts';
 
 describe('Smoke test', () => {
   it('should load plugin on Desktop', () => {
@@ -15,3 +18,4 @@ describe('Smoke test', () => {
 });
 
 registerEditAliasMenuSuite('Desktop');
+registerEditUrlAndAliasMenuSuite('Desktop');

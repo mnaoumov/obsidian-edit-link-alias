@@ -1,8 +1,9 @@
-Welcome to the [Edit Link Alias](https://github.com/mnaoumov/obsidian-edit-link-alias/) demo vault. This plugin adds an **Edit link alias** command (and a matching editor right-click menu item) that changes the **display text** of the link under your cursor - internal, markdown, or external - without hand-editing the link syntax.
+Welcome to the [Edit Link Alias](https://github.com/mnaoumov/obsidian-edit-link-alias/) demo vault. This plugin adds an **Edit link alias** command that changes the **display text** of the link under your cursor - internal, markdown, or external - without hand-editing the link syntax, plus an **Edit link (URL and alias)** command that edits the target and the display text together. Both are available from the Command Palette, the editor right-click menu, and the link long-press / Reading-view context menu.
 
-**How to try it:** open a note below, place your cursor anywhere inside a link, then run **Edit link alias** from the Command Palette (or right-click and choose **Edit link alias**). A prompt appears pre-filled with the current alias; type a new one and confirm. Only the display text changes - the link keeps pointing at the same target.
+**How to try it:** open a note below, place your cursor anywhere inside a link (or long-press / right-click a rendered link), then run **Edit link alias** for an alias-only prompt, or **Edit link (URL and alias)** for a two-field pop-up that edits the target and the alias at once.
 
-## Feature
+## Features
 
 - [[01 Edit link alias]]
 - [[02 External links]]
+- [[03 Edit link URL and alias]]

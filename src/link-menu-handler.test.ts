@@ -33,15 +33,19 @@ import {
 
 import type { LinkTarget } from './link-menu-handler.ts';
 
-import { editParsedLinkAlias } from './edit-link.ts';
+import {
+  editParsedLinkAlias,
+  editParsedLinkUrlAndAlias
+} from './edit-link.ts';
 import { LinkMenuHandler } from './link-menu-handler.ts';
 
-vi.mock('./edit-link.ts', () => ({ editParsedLinkAlias: vi.fn() }));
+vi.mock('./edit-link.ts', () => ({ editParsedLinkAlias: vi.fn(), editParsedLinkUrlAndAlias: vi.fn() }));
 vi.mock('obsidian-dev-utils/obsidian/parse-link', () => ({ parseLinks: vi.fn() }));
 vi.mock('obsidian-dev-utils/obsidian/modals/select-item', () => ({ selectItem: vi.fn() }));
 vi.mock('obsidian-dev-utils/obsidian/file-system', () => ({ isFile: vi.fn() }));
 
 const mockEditParsedLinkAlias = vi.mocked(editParsedLinkAlias);
+const mockEditParsedLinkUrlAndAlias = vi.mocked(editParsedLinkUrlAndAlias);
 const mockParseLinks = vi.mocked(parseLinks);
 const mockSelectItem = vi.mocked(selectItem);
 const mockIsFile = vi.mocked(isFile);
@@ -75,7 +79,11 @@ class TestableLinkMenuHandler extends LinkMenuHandler {
   }
 
   public async testResolveAndEdit(linkTarget: LinkTarget, leaf?: WorkspaceLeaf): Promise<void> {
-    return this.resolveAndEdit(linkTarget, leaf);
+    return this.resolveAndEdit(editParsedLinkAlias, linkTarget, leaf);
+  }
+
+  public async testResolveAndEditUrlAndAlias(linkTarget: LinkTarget, leaf?: WorkspaceLeaf): Promise<void> {
+    return this.resolveAndEdit(editParsedLinkUrlAndAlias, linkTarget, leaf);
   }
 }
 
@@ -220,6 +228,7 @@ beforeEach(() => {
   mockParseLinks.mockReset().mockReturnValue([]);
   mockSelectItem.mockReset();
   mockEditParsedLinkAlias.mockReset().mockResolvedValue();
+  mockEditParsedLinkUrlAndAlias.mockReset().mockResolvedValue();
 });
 
 afterEach(() => {
@@ -244,11 +253,11 @@ describe('LinkMenuHandler', () => {
 
       const fileMenu = createMockMenu();
       fileMenuCallback(fileMenu.menu, strictProxy<TAbstractFile>({}), 'link-context-menu');
-      expect(fileMenu.items).toHaveLength(1);
+      expect(fileMenu.items).toHaveLength(2);
 
       const urlMenu = createMockMenu();
       urlMenuCallback(urlMenu.menu, 'https://example.com');
-      expect(urlMenu.items).toHaveLength(1);
+      expect(urlMenu.items).toHaveLength(2);
     });
   });
 
@@ -266,26 +275,32 @@ describe('LinkMenuHandler', () => {
       expect(items).toHaveLength(0);
     });
 
-    it('should add the edit-link-alias item for an internal link context menu', () => {
+    it('should add the edit-link-alias and edit-url-and-alias items for an internal link context menu', () => {
       const { items, menu } = createMockMenu();
       handler.testHandleFileMenu(menu, strictProxy<TAbstractFile>({}), 'link-context-menu');
 
-      expect(items).toHaveLength(1);
+      expect(items).toHaveLength(2);
       expect(items[0]).toMatchObject({
         icon: 'text-cursor-input',
         section: 'action',
         title: 'Edit link alias'
       });
+      expect(items[1]).toMatchObject({
+        icon: 'link',
+        section: 'action',
+        title: 'Edit link (URL and alias)'
+      });
     });
   });
 
   describe('handleUrlMenu', () => {
-    it('should add the edit-link-alias item for a url menu', () => {
+    it('should add the edit-link-alias and edit-url-and-alias items for a url menu', () => {
       const { items, menu } = createMockMenu();
       handler.testHandleUrlMenu(menu, 'https://example.com');
 
-      expect(items).toHaveLength(1);
+      expect(items).toHaveLength(2);
       expect(items[0]).toMatchObject({ title: 'Edit link alias' });
+      expect(items[1]).toMatchObject({ title: 'Edit link (URL and alias)' });
     });
   });
 
@@ -308,21 +323,21 @@ describe('LinkMenuHandler', () => {
       mockActiveView('source', createMockEditor({ clickableTokenType: 'tag' }));
       const { items, menu } = createMockMenu();
       handler.testHandleFileMenu(menu, strictProxy<TAbstractFile>({}), 'link-context-menu');
-      expect(items).toHaveLength(1);
+      expect(items).toHaveLength(2);
     });
 
     it('should add the item on desktop when there is no clickable token at the cursor', () => {
       mockActiveView('source', createMockEditor({ clickableTokenType: null }));
       const { items, menu } = createMockMenu();
       handler.testHandleFileMenu(menu, strictProxy<TAbstractFile>({}), 'link-context-menu');
-      expect(items).toHaveLength(1);
+      expect(items).toHaveLength(2);
     });
 
     it('should add the item on desktop in reading mode', () => {
       mockActiveView('preview', createMockEditor({ clickableTokenType: 'internal-link' }));
       const { items, menu } = createMockMenu();
       handler.testHandleFileMenu(menu, strictProxy<TAbstractFile>({}), 'link-context-menu');
-      expect(items).toHaveLength(1);
+      expect(items).toHaveLength(2);
     });
 
     it('should add the item on mobile even in an editing view with the cursor on a link', () => {
@@ -330,7 +345,7 @@ describe('LinkMenuHandler', () => {
       mockActiveView('source', createMockEditor({ clickableTokenType: 'internal-link' }));
       const { items, menu } = createMockMenu();
       handler.testHandleFileMenu(menu, strictProxy<TAbstractFile>({}), 'link-context-menu');
-      expect(items).toHaveLength(1);
+      expect(items).toHaveLength(2);
     });
   });
 
@@ -359,6 +374,27 @@ describe('LinkMenuHandler', () => {
       expect(mockEditParsedLinkAlias).toHaveBeenCalledOnce();
       expect(replaceRange).toHaveBeenCalledWith('[[target|new]]', { ch: 0, line: 0 }, { ch: 14, line: 0 });
       expect(read).not.toHaveBeenCalled();
+    });
+
+    it('should edit via the url-and-alias editor when that action is chosen', async () => {
+      const replaceRange = vi.fn<Editor['replaceRange']>();
+      const editor = createMockEditor({
+        cursor: { ch: 5, line: 0 },
+        line: '[[target|old]]',
+        replaceRange
+      });
+      mockActiveView('source', editor);
+      mockParseLinks.mockReturnValue([parsedLink()]);
+      getFirstLinkpathDest.mockReturnValue(strictProxy<TFile>({ path: 'target.md' }));
+      mockEditParsedLinkUrlAndAlias.mockImplementation(async (params) => {
+        await params.applyReplacement('[[new-target|new]]');
+      });
+
+      await handler.testResolveAndEditUrlAndAlias({ target: strictProxy<TFile>({ path: 'target.md' }) });
+
+      expect(mockEditParsedLinkUrlAndAlias).toHaveBeenCalledOnce();
+      expect(mockEditParsedLinkAlias).not.toHaveBeenCalled();
+      expect(replaceRange).toHaveBeenCalledWith('[[new-target|new]]', { ch: 0, line: 0 }, { ch: 14, line: 0 });
     });
 
     it('should fall back to the source scan when the editor cursor is not on the target link', async () => {
@@ -590,10 +626,19 @@ describe('LinkMenuHandler', () => {
   });
 
   describe('menu item click', () => {
-    it('should invoke resolution when the menu item is clicked', async () => {
+    it('should invoke resolution when the edit-link-alias menu item is clicked', async () => {
       const { items, menu } = createMockMenu();
       handler.testHandleUrlMenu(menu, 'https://example.com');
       items[0]?.onClick?.();
+      await waitForAllAsyncOperations();
+
+      expect(getActiveViewOfType).toHaveBeenCalled();
+    });
+
+    it('should invoke resolution when the edit-url-and-alias menu item is clicked', async () => {
+      const { items, menu } = createMockMenu();
+      handler.testHandleUrlMenu(menu, 'https://example.com');
+      items[1]?.onClick?.();
       await waitForAllAsyncOperations();
 
       expect(getActiveViewOfType).toHaveBeenCalled();
