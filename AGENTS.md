@@ -21,7 +21,7 @@
   resolves with the same `LinkUrlAndAlias | null` as the modal, and reaches the `EditParsedLink`
   signature through the factory `createEditParsedLinkUrlAndAliasInPopover(anchorEl)` — a factory because
   the anchor is known only at click time and no other caller has one to pass. Whether it should be
-  promoted into `obsidian-dev-utils` is tracked centrally as a G61 candidate (`T201-P1`); it stays here
+  promoted into `obsidian-dev-utils` is tracked centrally as a G61 candidate (`T204-P1`); it stays here
   while it has a single consumer.
 - **Occurrence resolution is shared, not duplicated (`src/resolve-link-occurrence.ts`).** Neither a
   context menu nor a click tells you *where* in the note the link was written — only what it points at.
