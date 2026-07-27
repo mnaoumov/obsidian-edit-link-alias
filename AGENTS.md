@@ -20,9 +20,9 @@
   positioned by Obsidian, neither of which suits an editor that must appear *at* a clicked link. It
   resolves with the same `LinkUrlAndAlias | null` as the modal, and reaches the `EditParsedLink`
   signature through the factory `createEditParsedLinkUrlAndAliasInPopover(anchorEl)` — a factory because
-  the anchor is known only at click time and no other caller has one to pass. It is a **G61 candidate**:
-  if a second plugin needs an anchored field editor, promote it to `obsidian-dev-utils` next to
-  `obsidian/modals/`.
+  the anchor is known only at click time and no other caller has one to pass. Whether it should be
+  promoted into `obsidian-dev-utils` is tracked centrally as a G61 candidate (`T201-P1`); it stays here
+  while it has a single consumer.
 - **Occurrence resolution is shared, not duplicated (`src/resolve-link-occurrence.ts`).** Neither a
   context menu nor a click tells you *where* in the note the link was written — only what it points at.
   `resolveAndEditLink` therefore tries the editor caret first (in an editing view the click has already

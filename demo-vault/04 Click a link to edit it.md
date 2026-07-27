@@ -13,6 +13,10 @@ This is **off by default** - installing the plugin never changes how your links 
    - **Open the link editor on click** - a plain click edits the link; `Ctrl` + click (`Cmd` + click on macOS) still opens it.
    - **Open the link editor on Ctrl + click** - the reverse: a plain click still opens the link, and `Ctrl` + click edits it.
 
+## Settings
+
+- `linkClickAction` - what clicking a link does: open the link as Obsidian normally does (the default), open the link editor on a plain click, or open it on `Ctrl` + click.
+
 ## Try it
 
 1. Turn the setting on as above.

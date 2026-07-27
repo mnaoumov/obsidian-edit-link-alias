@@ -89,7 +89,11 @@ beforeEach(() => {
   viewMode = 'source';
   showNotice = vi.fn();
 
-  // The obsidian-test-mocks Keymap is a stub that always reports no modifier; give it the real meaning of Mod.
+  /*
+   * The obsidian-test-mocks Keymap is a stub that always reports no modifier, so without this spy the
+   * Mod-click cases would exercise the plain-click branch and still pass.
+   */
+  // TODO(T200): Drop this spy once obsidian-test-mocks implements Keymap.isModifier against the event (T199).
   vi.spyOn(Keymap, 'isModifier').mockImplementation((evt) => 'ctrlKey' in evt && evt.ctrlKey);
   getFirstLinkpathDest = vi.fn().mockReturnValue(strictProxy<TFile>({ path: TARGET_PATH }));
 

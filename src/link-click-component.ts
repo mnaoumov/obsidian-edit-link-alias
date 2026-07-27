@@ -58,6 +58,10 @@ export interface LinkClickComponentConstructorParams {
   readonly pluginSettingsComponent: PluginSettingsComponentBase<PluginSettings>;
 }
 
+interface ContainingViewState {
+  view: MarkdownView | null;
+}
+
 /**
  * Opens the link editor popover when a link is clicked with the configured gesture, instead of letting
  * Obsidian open the link.
@@ -157,7 +161,7 @@ export class LinkClickComponent extends AllWindowsEventComponent {
   }
 
   private getViewContaining(el: HTMLElement): MarkdownView | null {
-    const state = { view: null as MarkdownView | null };
+    const state: ContainingViewState = { view: null };
     this.app.workspace.iterateAllLeaves((leaf) => {
       if (leaf.view instanceof MarkdownView && leaf.view.containerEl.contains(el)) {
         state.view = leaf.view;

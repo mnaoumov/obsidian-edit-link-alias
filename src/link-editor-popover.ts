@@ -76,6 +76,10 @@ export async function editLinkUrlAndAliasInPopover(params: EditLinkUrlAndAliasIn
    * Resolved from the anchor rather than the globals so a link inside a pop-out window gets its
    * popover appended to — and clamped against — that window, not the main one. The document of a
    * rendered, clicked link always has a view.
+   *
+   * TODO(T200): Simplify to `anchorEl.doc` / `anchorEl.win` — the idiomatic Obsidian form, and correct
+   * against the real typings — once obsidian-test-mocks exposes them as getters rather than methods
+   * (T199) and the bump lands here. Until then the idiomatic form throws in unit tests.
    */
   const doc = anchorEl.ownerDocument;
   const win = ensureNonNullable(doc.defaultView, 'The clicked link belongs to a document with no window');
