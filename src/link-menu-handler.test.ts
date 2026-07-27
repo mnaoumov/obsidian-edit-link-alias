@@ -31,7 +31,7 @@ import {
   vi
 } from 'vitest';
 
-import type { LinkTarget } from './link-menu-handler.ts';
+import type { LinkTarget } from './resolve-link-occurrence.ts';
 
 import {
   editParsedLinkAlias,

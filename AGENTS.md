@@ -14,6 +14,47 @@
   `editLinkAtEditorCursor` (`src/edit-in-editor.ts`), parameterized by which `EditParsedLink` to invoke.
   The link rebuild (`generateRawMarkdownLink`, preserving embed/wikilink/angle-bracket/title flags) lives
   once in `src/edit-link.ts`.
+
+  A third presentation of the URL+alias editor is the **anchored popover**
+  (`src/link-editor-popover.ts`), built on plain DOM rather than `Modal` — a modal dims the screen and is
+  positioned by Obsidian, neither of which suits an editor that must appear *at* a clicked link. It
+  resolves with the same `LinkUrlAndAlias | null` as the modal, and reaches the `EditParsedLink`
+  signature through the factory `createEditParsedLinkUrlAndAliasInPopover(anchorEl)` — a factory because
+  the anchor is known only at click time and no other caller has one to pass. It is a **G61 candidate**:
+  if a second plugin needs an anchored field editor, promote it to `obsidian-dev-utils` next to
+  `obsidian/modals/`.
+- **Occurrence resolution is shared, not duplicated (`src/resolve-link-occurrence.ts`).** Neither a
+  context menu nor a click tells you *where* in the note the link was written — only what it points at.
+  `resolveAndEditLink` therefore tries the editor caret first (in an editing view the click has already
+  put the caret inside the clicked link, which pins the exact occurrence and edits through the editor so
+  the change joins the undo history), verifies the match against the target so a stale caret cannot edit
+  the wrong link, and otherwise falls back to `editLinkOccurrenceViaSourceScan` — a `vault.read` +
+  `parseLinks` scan with a `selectItem` picker when a note links to the same destination more than once.
+  Both `LinkMenuHandler` and `LinkClickComponent` go through it.
+
+  Note there is no coordinate-based resolution: Obsidian exposes no public "position at these
+  coordinates" API on `Editor`, and the caret-plus-verified-fallback path makes one unnecessary.
+- **Click interception (`src/link-click-component.ts`) — a second deliberate G51 deviation.** Obsidian
+  raises no event for "a link was clicked", and `openLinkText` is shared with the backlinks pane, search
+  and the graph, so patching it would intercept far more than a click in a note. The component therefore
+  registers a raw **capture-phase** `click` listener (via the dev-utils `AllWindowsEventComponent`, so
+  pop-out windows are covered) — the capture phase is the only point where Obsidian's own navigation can
+  still be stopped. It is gated on the `linkClickAction` setting and only fires for events whose target
+  `closest()`-matches a rendered link, in Reading view (`a.internal-link` / `a.external-link`) or Live
+  Preview (`.cm-hmd-internal-link` / `.cm-link` / `.cm-underline`).
+  - The gesture that is NOT assigned to the editor is passed through untouched, so `Mod`+click keeps
+    Obsidian's native meaning (open in a **new tab**). Forcing a same-tab open would fight core behavior;
+    this is documented in the README and the demo vault instead.
+  - `evt.defaultPrevented` is NOT usable as evidence that interception happened — Obsidian calls
+    `preventDefault()` on link clicks itself. The integration suite asserts on whether navigation
+    actually occurred (which file ends up active) instead. This cost one red integration run; do not
+    reintroduce that assertion.
+- **Settings.** `PluginSettings` holds a single `linkClickAction` enum (`src/link-click-action.ts`),
+  defaulting to `Disabled` so the plugin changes nothing about link behavior until the user opts in. The
+  plugin uses the dev-utils `PluginSettingsComponentBase` directly rather than subclassing it — there is
+  nothing to validate, and an empty subclass would be untested code against the 100% coverage gate.
+- **Styles** live in `src/styles/main.scss` and reach `dist/build/styles.css` only because `src/main.ts`
+  imports the stylesheet; a `styles.css` at the repo root is silently ignored by the build.
 - **Link/url context menu integration (`src/link-menu-handler.ts`) — deliberate G51 deviation.** The
   editors are normal `EditorCommandHandler`s (command palette + `editor-menu`). But on mobile,
   long-pressing a link (and right-clicking a rendered link in Reading view) does **not** fire

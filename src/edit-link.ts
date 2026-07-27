@@ -6,6 +6,7 @@ import { generateRawMarkdownLink } from 'obsidian-dev-utils/obsidian/link';
 import { prompt } from 'obsidian-dev-utils/obsidian/modals/prompt';
 
 import { editLinkUrlAndAlias } from './link-editor-modal.ts';
+import { editLinkUrlAndAliasInPopover } from './link-editor-popover.ts';
 
 /**
  * A function that edits a parsed link and applies the replacement. Both {@link editParsedLinkAlias} and
@@ -37,6 +38,38 @@ export interface EditParsedLinkParams {
    * The parsed link being edited.
    */
   readonly parsedLink: ParseLinkResult;
+}
+
+/**
+ * Builds an {@link EditParsedLink} that edits the URL and alias in a popover anchored at the given
+ * element, rather than in a centered modal.
+ *
+ * A factory rather than another exported {@link EditParsedLink} because the anchor is only known at
+ * click time, and threading it through {@link EditParsedLinkParams} would burden every other caller
+ * with an anchor it has no use for.
+ *
+ * @param anchorEl - The element to anchor the popover at — the clicked link.
+ * @returns An {@link EditParsedLink} that edits the link in an anchored popover.
+ */
+export function createEditParsedLinkUrlAndAliasInPopover(anchorEl: HTMLElement): EditParsedLink {
+  return async (params: EditParsedLinkParams): Promise<void> => {
+    const {
+      applyReplacement,
+      parsedLink
+    } = params;
+
+    const edited = await editLinkUrlAndAliasInPopover({
+      anchorEl,
+      defaultAlias: parsedLink.alias ?? '',
+      defaultUrl: parsedLink.url
+    });
+
+    if (edited === null) {
+      return;
+    }
+
+    await applyReplacement(rebuildRawLink(parsedLink, edited.url, edited.alias));
+  };
 }
 
 /**

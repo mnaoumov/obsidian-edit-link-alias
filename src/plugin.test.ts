@@ -67,13 +67,23 @@ vi.mock('./link-menu-handler.ts', () => ({
 
 // eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
 import { OpenDemoVaultCommandHandler } from 'obsidian-dev-utils/obsidian/command-handlers/open-demo-vault-command-handler';
+// eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
+import { PluginSettingsComponentBase } from 'obsidian-dev-utils/obsidian/components/plugin-settings-component';
+// eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
+import { PluginSettingsTabComponent } from 'obsidian-dev-utils/obsidian/components/plugin-settings-tab-component';
 
 // eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
 import { EditCommandHandler } from './edit-command-handler.ts';
 // eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
 import { EditUrlAndAliasCommandHandler } from './edit-url-and-alias-command-handler.ts';
 // eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
+import { LinkClickAction } from './link-click-action.ts';
+// eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
+import { LinkClickComponent } from './link-click-component.ts';
+// eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
 import { LinkMenuHandler } from './link-menu-handler.ts';
+// eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
+import { PluginSettings } from './plugin-settings.ts';
 // eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
 import { Plugin } from './plugin.ts';
 
@@ -88,6 +98,10 @@ const manifest = strictProxy<PluginManifest>({
   name: 'Edit Link Alias',
   version: '1.0.0'
 });
+
+interface ComponentChildrenHolder {
+  readonly _children: readonly Component[];
+}
 
 let app: AppOriginal;
 
@@ -161,4 +175,47 @@ describe('Plugin', () => {
     expect(params?.plugin).toBe(plugin);
     expect(register).toHaveBeenCalledOnce();
   });
+
+  it('should load the plugin settings with the default link click action', async () => {
+    const plugin = await createLoadedPlugin();
+
+    const settingsComponent = findAddedChild(plugin, PluginSettingsComponentBase<PluginSettings>);
+    expect(settingsComponent.settings.linkClickAction).toBe(LinkClickAction.Disabled);
+  });
+
+  it('should register the link click component on load', async () => {
+    const plugin = await createLoadedPlugin();
+
+    expect(findAddedChild(plugin, LinkClickComponent)).toBeInstanceOf(LinkClickComponent);
+  });
+
+  it('should register the settings tab on load', async () => {
+    const plugin = await createLoadedPlugin();
+
+    expect(findAddedChild(plugin, PluginSettingsTabComponent)).toBeInstanceOf(PluginSettingsTabComponent);
+  });
 });
+
+/**
+ * Finds a component the plugin added, at any depth — `PluginBase` nests the components added by
+ * `onloadImpl` under an internal container component rather than attaching them to itself directly.
+ *
+ * @param plugin - The loaded plugin to search.
+ * @param componentClass - The component class to look for.
+ * @returns The matching component.
+ */
+function findAddedChild<T>(plugin: Plugin, componentClass: abstract new (...args: never[]) => T): T {
+  const queue: Component[] = [...castTo<ComponentChildrenHolder>(plugin)._children];
+  while (queue.length > 0) {
+    const candidate = queue.shift();
+    if (!candidate) {
+      continue;
+    }
+    if (candidate instanceof componentClass) {
+      return candidate;
+    }
+    queue.push(...castTo<ComponentChildrenHolder>(candidate)._children);
+  }
+
+  throw new Error(`No child of type ${componentClass.name} was added`);
+}

@@ -14,10 +14,12 @@ import {
 } from 'vitest';
 
 import {
+  createEditParsedLinkUrlAndAliasInPopover,
   editParsedLinkAlias,
   editParsedLinkUrlAndAlias
 } from './edit-link.ts';
 import { editLinkUrlAndAlias } from './link-editor-modal.ts';
+import { editLinkUrlAndAliasInPopover } from './link-editor-popover.ts';
 
 vi.mock('obsidian-dev-utils/obsidian/link', () => ({
   generateRawMarkdownLink: vi.fn()
@@ -31,9 +33,14 @@ vi.mock('./link-editor-modal.ts', () => ({
   editLinkUrlAndAlias: vi.fn()
 }));
 
+vi.mock('./link-editor-popover.ts', () => ({
+  editLinkUrlAndAliasInPopover: vi.fn()
+}));
+
 const mockGenerateRawMarkdownLink = vi.mocked(generateRawMarkdownLink);
 const mockPrompt = vi.mocked(prompt);
 const mockEditLinkUrlAndAlias = vi.mocked(editLinkUrlAndAlias);
+const mockEditLinkUrlAndAliasInPopover = vi.mocked(editLinkUrlAndAliasInPopover);
 
 function createMockApp(): App {
   return strictProxy<App>({});
@@ -267,5 +274,88 @@ describe('editParsedLinkUrlAndAlias', () => {
       url: 'https://new.example.com'
     });
     expect(applyReplacement).toHaveBeenCalledWith('[visit](https://new.example.com)');
+  });
+});
+
+describe('createEditParsedLinkUrlAndAliasInPopover', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('should open the popover anchored at the given element, pre-filled with the current url and alias', async () => {
+    mockEditLinkUrlAndAliasInPopover.mockResolvedValue(null);
+    const anchorEl = document.body.createEl('a');
+
+    await createEditParsedLinkUrlAndAliasInPopover(anchorEl)({
+      app: createMockApp(),
+      applyReplacement: vi.fn(),
+      parsedLink: createParsedLink({ alias: 'current', url: 'target' })
+    });
+
+    expect(mockEditLinkUrlAndAliasInPopover).toHaveBeenCalledWith({
+      anchorEl,
+      defaultAlias: 'current',
+      defaultUrl: 'target'
+    });
+  });
+
+  it('should default the alias field to empty when there is no alias', async () => {
+    mockEditLinkUrlAndAliasInPopover.mockResolvedValue(null);
+
+    await createEditParsedLinkUrlAndAliasInPopover(document.body.createEl('a'))({
+      app: createMockApp(),
+      applyReplacement: vi.fn(),
+      parsedLink: createParsedLink({ url: 'target' })
+    });
+
+    expect(mockEditLinkUrlAndAliasInPopover).toHaveBeenCalledWith(
+      expect.objectContaining({ defaultAlias: '', defaultUrl: 'target' })
+    );
+  });
+
+  it('should not apply a replacement when the popover is dismissed', async () => {
+    mockEditLinkUrlAndAliasInPopover.mockResolvedValue(null);
+    const applyReplacement = vi.fn();
+
+    await createEditParsedLinkUrlAndAliasInPopover(document.body.createEl('a'))({
+      app: createMockApp(),
+      applyReplacement,
+      parsedLink: createParsedLink()
+    });
+
+    expect(mockGenerateRawMarkdownLink).not.toHaveBeenCalled();
+    expect(applyReplacement).not.toHaveBeenCalled();
+  });
+
+  it('should rebuild the link with the new url and alias preserving its flags and apply the replacement', async () => {
+    mockEditLinkUrlAndAliasInPopover.mockResolvedValue({ alias: 'new alias', url: 'new-target' });
+    mockGenerateRawMarkdownLink.mockReturnValue('[[new-target|new alias]]');
+    const applyReplacement = vi.fn();
+
+    await createEditParsedLinkUrlAndAliasInPopover(document.body.createEl('a'))({
+      app: createMockApp(),
+      applyReplacement,
+      parsedLink: createParsedLink({
+        hasAngleBrackets: true,
+        isEmbed: true,
+        isWikilink: true,
+        title: 'the title',
+        url: 'target'
+      })
+    });
+
+    expect(mockGenerateRawMarkdownLink).toHaveBeenCalledWith({
+      alias: 'new alias',
+      isEmbed: true,
+      isWikilink: true,
+      shouldUseAngleBrackets: true,
+      title: 'the title',
+      url: 'new-target'
+    });
+    expect(applyReplacement).toHaveBeenCalledWith('[[new-target|new alias]]');
   });
 });
