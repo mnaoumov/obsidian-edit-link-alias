@@ -1,0 +1,29 @@
+/* The anchored link editor opened by clicking a link (see src/link-editor-popover.ts). */
+.link-editor-popover {
+  position: absolute;
+  z-index: var(--layer-menu);
+  min-width: 320px;
+  max-width: min(420px, calc(100vw - 16px));
+  padding: 8px 12px;
+}
+
+/* Settings rows are built for a full-width settings tab; compact them for a popover. */
+.link-editor-popover .setting-item {
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  border-top: none;
+}
+
+.link-editor-popover .setting-item-info {
+  margin-right: 0;
+}
+
+.link-editor-popover .setting-item-control {
+  flex-grow: 1;
+  justify-content: flex-end;
+}
+
+.link-editor-popover input[type='text'] {
+  width: 100%;
+}
