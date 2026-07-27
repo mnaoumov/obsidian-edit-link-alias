@@ -18,7 +18,6 @@ import {
   vi
 } from 'vitest';
 
-import { LinkClickAction } from './link-click-action.ts';
 import { PluginSettingsTab } from './plugin-settings-tab.ts';
 import { PluginSettings } from './plugin-settings.ts';
 
@@ -34,29 +33,30 @@ afterEach(() => {
 });
 
 describe('PluginSettingsTab', () => {
-  it('should bind the linkClickAction setting when displayLegacy() is called', () => {
-    const tab = createSettingsTab(LinkClickAction.Disabled);
+  it('should bind the Alt-click setting when displayLegacy() is called', () => {
+    const tab = createSettingsTab(true);
 
     tab.displayLegacy();
 
-    expect(getBoundKeys()).toContain('linkClickAction');
+    expect(getBoundKeys()).toContain('shouldOpenLinkEditorOnAltClick');
   });
 
-  it('should offer a choice for every link click action', () => {
-    const tab = createSettingsTab(LinkClickAction.Disabled);
+  it('should explain the gesture and that other clicks are untouched', () => {
+    const tab = createSettingsTab(true);
 
     tab.displayLegacy();
 
-    const optionValues = Array.from(tab.containerEl.querySelectorAll('select option')).map((option) => option.getAttribute('value'));
-    expect(optionValues).toStrictEqual(Object.values(LinkClickAction));
+    const renderedText = tab.containerEl.textContent;
+    expect(renderedText).toContain('Alt + click');
+    expect(renderedText).toContain('Ctrl + click');
   });
 
-  it('should render when an editor-opening action is selected', () => {
-    const tab = createSettingsTab(LinkClickAction.OpenEditorOnClick);
+  it('should render when the setting is turned off', () => {
+    const tab = createSettingsTab(false);
 
     tab.displayLegacy();
 
-    expect(getBoundKeys()).toContain('linkClickAction');
+    expect(getBoundKeys()).toContain('shouldOpenLinkEditorOnAltClick');
   });
 });
 
@@ -67,9 +67,9 @@ function createMockPlugin(appInstance: AppOriginal): Plugin {
   });
 }
 
-function createMockSettingsComponent(linkClickAction: LinkClickAction): PluginSettingsComponentBase<PluginSettings> {
+function createMockSettingsComponent(shouldOpenLinkEditorOnAltClick: boolean): PluginSettingsComponentBase<PluginSettings> {
   const settings = new PluginSettings();
-  settings.linkClickAction = linkClickAction;
+  settings.shouldOpenLinkEditorOnAltClick = shouldOpenLinkEditorOnAltClick;
   const defaultSettings = new PluginSettings();
   return strictProxy<PluginSettingsComponentBase<PluginSettings>>({
     defaultSettings,
@@ -90,9 +90,9 @@ function createMockSettingsComponent(linkClickAction: LinkClickAction): PluginSe
   });
 }
 
-function createSettingsTab(linkClickAction: LinkClickAction): PluginSettingsTab {
+function createSettingsTab(shouldOpenLinkEditorOnAltClick: boolean): PluginSettingsTab {
   const plugin = createMockPlugin(app);
-  const pluginSettingsComponent = createMockSettingsComponent(linkClickAction);
+  const pluginSettingsComponent = createMockSettingsComponent(shouldOpenLinkEditorOnAltClick);
   return new PluginSettingsTab({ plugin, pluginSettingsComponent });
 }
 

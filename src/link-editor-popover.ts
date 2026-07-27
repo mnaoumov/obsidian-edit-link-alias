@@ -1,16 +1,17 @@
 /**
  * @file
  *
- * A small floating editor anchored at a link, editing its URL (target) and alias (display text).
+ * A small floating editor anchored near a link, editing its URL (target) and alias (display text).
  *
- * This is the popover form of the two-field editor: same contract as {@link editLinkUrlAndAlias} (it
- * resolves with the edited {@link LinkUrlAndAlias} or `null` when dismissed), so both can be handed to
- * the same call sites, but it renders next to the clicked link instead of as a centered modal. It is
- * what the click-interception path opens, where a modal in the middle of the screen would be a jarring
- * answer to "I clicked this link".
+ * This is the plugin's only presentation of the two-field editor — the click, the link context menu and
+ * the editor command all open it, so the feature looks the same however it is reached. It deliberately
+ * does NOT use the Obsidian `Modal` machinery: a modal dims the screen and is positioned by Obsidian,
+ * neither of which suits an editor that should appear where the link is.
  *
- * It deliberately does NOT use the Obsidian `Modal` machinery: a modal grabs focus with a dimmed
- * backdrop and is positioned by Obsidian, neither of which suits an inline anchored editor.
+ * The three entry points know the position in three different ways, so the popover takes a resolved
+ * {@link PopoverAnchor} rather than an element: a clicked link has a rect, a context menu has the
+ * pointer that opened it, and a command has the caret. {@link createAnchorFromElement},
+ * {@link createAnchorFromPoint} and {@link createAnchorFromSelection} build one for each case.
  */
 
 import {
@@ -19,8 +20,6 @@ import {
 } from 'obsidian';
 import { ensureNonNullable } from 'obsidian-dev-utils/type-guards';
 
-import type { LinkUrlAndAlias } from './link-editor-modal.ts';
-
 const ALIAS_INPUT_CSS_CLASS = 'link-editor-popover-alias-input';
 const CANCEL_BUTTON_CSS_CLASS = 'link-editor-popover-cancel-button';
 const OK_BUTTON_CSS_CLASS = 'link-editor-popover-ok-button';
@@ -28,7 +27,7 @@ const POPOVER_CSS_CLASS = 'link-editor-popover';
 const URL_INPUT_CSS_CLASS = 'link-editor-popover-url-input';
 
 /**
- * The gap in pixels between the anchored link and the popover.
+ * The gap in pixels between the anchor and the popover.
  */
 const ANCHOR_GAP_IN_PIXELS = 4;
 
@@ -39,13 +38,18 @@ const ANCHOR_GAP_IN_PIXELS = 4;
 const VIEWPORT_MARGIN_IN_PIXELS = 8;
 
 /**
+ * The fraction of the window used to place a centered anchor.
+ */
+const CENTER_FRACTION = 0.5;
+
+/**
  * Parameters for {@link editLinkUrlAndAliasInPopover}.
  */
 export interface EditLinkUrlAndAliasInPopoverParams {
   /**
-   * The element the popover is positioned at — the clicked link.
+   * Where to place the popover.
    */
-  readonly anchorEl: HTMLElement;
+  readonly anchor: PopoverAnchor;
 
   /**
    * The alias to pre-fill the alias field with.
@@ -59,30 +63,128 @@ export interface EditLinkUrlAndAliasInPopoverParams {
 }
 
 /**
- * Displays the two-field link editor anchored at the given element and resolves with the edited URL and
- * alias, or `null` if it was dismissed without confirming.
+ * The URL (target) and alias (display text) captured by {@link editLinkUrlAndAliasInPopover}.
+ */
+export interface LinkUrlAndAlias {
+  /**
+   * The alias (display text) of the link. Empty when the link has no alias.
+   */
+  readonly alias: string;
+
+  /**
+   * The URL (target) of the link.
+   */
+  readonly url: string;
+}
+
+/**
+ * Where the popover is placed: viewport coordinates plus the document they belong to.
+ *
+ * Carrying the document explicitly is what makes a link inside a pop-out window work — the popover is
+ * appended to, and clamped against, that window rather than the main one.
+ */
+export interface PopoverAnchor {
+  /**
+   * The viewport `y` coordinate the popover is placed below.
+   */
+  readonly bottom: number;
+
+  /**
+   * The document the coordinates belong to.
+   */
+  readonly doc: Document;
+
+  /**
+   * The viewport `x` coordinate the popover is aligned to.
+   */
+  readonly left: number;
+}
+
+/**
+ * Anchors the popover in the middle of the document, for the cases where nothing better is known.
+ *
+ * @param doc - The document to anchor in.
+ * @returns The anchor.
+ */
+export function createAnchorFromDocumentCenter(doc: Document): PopoverAnchor {
+  const win = getWindow(doc);
+  return {
+    bottom: win.innerHeight * CENTER_FRACTION,
+    doc,
+    left: win.innerWidth * CENTER_FRACTION
+  };
+}
+
+/**
+ * Anchors the popover just below an element — used for a clicked link, whose rect is exactly where the
+ * user is looking.
+ *
+ * @param el - The element to anchor at.
+ * @returns The anchor.
+ */
+export function createAnchorFromElement(el: HTMLElement): PopoverAnchor {
+  const rect = el.getBoundingClientRect();
+  return {
+    bottom: rect.bottom,
+    doc: el.ownerDocument,
+    left: rect.left
+  };
+}
+
+/**
+ * Anchors the popover at a pointer position — used for the link context menu, which is raised by a
+ * right-click or a long-press whose coordinates are where the link is.
+ *
+ * @param x - The viewport `x` coordinate.
+ * @param y - The viewport `y` coordinate.
+ * @param doc - The document the coordinates belong to.
+ * @returns The anchor.
+ */
+export function createAnchorFromPoint(x: number, y: number, doc: Document): PopoverAnchor {
+  return {
+    bottom: y,
+    doc,
+    left: x
+  };
+}
+
+/**
+ * Anchors the popover at the caret — used by the editor command, which is invoked from the keyboard
+ * with the cursor already inside the link being edited.
+ *
+ * @param doc - The document holding the selection.
+ * @returns The anchor, or a centered one when there is no caret to read.
+ */
+export function createAnchorFromSelection(doc: Document): PopoverAnchor {
+  const range = doc.getSelection()?.rangeCount ? doc.getSelection()?.getRangeAt(0) : null;
+  const rect = range?.getBoundingClientRect();
+  if (!rect || (rect.bottom === 0 && rect.left === 0)) {
+    return createAnchorFromDocumentCenter(doc);
+  }
+
+  return {
+    bottom: rect.bottom,
+    doc,
+    left: rect.left
+  };
+}
+
+/**
+ * Displays the two-field link editor at the given anchor and resolves with the edited URL and alias, or
+ * `null` if it was dismissed without confirming.
  *
  * @param params - The parameters for the popover.
  * @returns A {@link Promise} that resolves with the edited {@link LinkUrlAndAlias}, or `null` if dismissed.
  */
 export async function editLinkUrlAndAliasInPopover(params: EditLinkUrlAndAliasInPopoverParams): Promise<LinkUrlAndAlias | null> {
   const {
-    anchorEl,
+    anchor,
     defaultAlias,
     defaultUrl
   } = params;
 
-  /*
-   * Resolved from the anchor rather than the globals so a link inside a pop-out window gets its
-   * popover appended to — and clamped against — that window, not the main one. The document of a
-   * rendered, clicked link always has a view.
-   *
-   * TODO(T203): Simplify to `anchorEl.doc` / `anchorEl.win` — the idiomatic Obsidian form, and correct
-   * against the real typings — once obsidian-test-mocks exposes them as getters rather than methods
-   * (T202) and the bump lands here. Until then the idiomatic form throws in unit tests.
-   */
-  const doc = anchorEl.ownerDocument;
-  const win = ensureNonNullable(doc.defaultView, 'The clicked link belongs to a document with no window');
+  const doc = anchor.doc;
+  const win = getWindow(doc);
   const popoverEl = doc.body.createDiv({ cls: ['menu', POPOVER_CSS_CLASS] });
 
   const urlText = addField(popoverEl, 'URL', defaultUrl, URL_INPUT_CSS_CLASS);
@@ -153,7 +255,7 @@ export async function editLinkUrlAndAliasInPopover(params: EditLinkUrlAndAliasIn
     });
 
     doc.addEventListener('pointerdown', handlePointerDown, true);
-    positionAtAnchor(popoverEl, anchorEl, win);
+    positionAtAnchor(popoverEl, anchor, win);
     urlText.inputEl.focus();
     urlText.inputEl.select();
   });
@@ -167,23 +269,30 @@ function addField(containerEl: HTMLElement, name: string, value: string, cssClas
   return textComponent;
 }
 
+function getWindow(doc: Document): Window {
+  /*
+   * TODO(T203): Simplify to the `win` node extension — the idiomatic Obsidian form, and correct against
+   * the real typings — once obsidian-test-mocks exposes it as a getter rather than a method (T202) and
+   * the bump lands here. Until then the idiomatic form throws in unit tests.
+   */
+  return ensureNonNullable(doc.defaultView, 'The link belongs to a document with no window');
+}
+
 /**
  * Places the popover just below the anchor, pulling it back inside the window when it would otherwise
  * overflow — a link near the right or bottom edge is exactly where an unclamped popover would render
  * off-screen.
  *
  * @param popoverEl - The popover to position.
- * @param anchorEl - The element to anchor it to.
+ * @param anchor - Where the popover belongs.
  * @param win - The window the anchor lives in (a pop-out window has its own).
  */
-function positionAtAnchor(popoverEl: HTMLElement, anchorEl: HTMLElement, win: Window): void {
-  const anchorRect = anchorEl.getBoundingClientRect();
-
+function positionAtAnchor(popoverEl: HTMLElement, anchor: PopoverAnchor, win: Window): void {
   const maxLeft = Math.max(VIEWPORT_MARGIN_IN_PIXELS, win.innerWidth - popoverEl.offsetWidth - VIEWPORT_MARGIN_IN_PIXELS);
   const maxTop = Math.max(VIEWPORT_MARGIN_IN_PIXELS, win.innerHeight - popoverEl.offsetHeight - VIEWPORT_MARGIN_IN_PIXELS);
 
-  const left = Math.min(Math.max(anchorRect.left, VIEWPORT_MARGIN_IN_PIXELS), maxLeft);
-  const top = Math.min(Math.max(anchorRect.bottom + ANCHOR_GAP_IN_PIXELS, VIEWPORT_MARGIN_IN_PIXELS), maxTop);
+  const left = Math.min(Math.max(anchor.left, VIEWPORT_MARGIN_IN_PIXELS), maxLeft);
+  const top = Math.min(Math.max(anchor.bottom + ANCHOR_GAP_IN_PIXELS, VIEWPORT_MARGIN_IN_PIXELS), maxTop);
 
   popoverEl.style.left = `${String(Math.round(left + win.scrollX))}px`;
   popoverEl.style.top = `${String(Math.round(top + win.scrollY))}px`;

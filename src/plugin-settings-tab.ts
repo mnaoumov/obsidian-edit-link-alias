@@ -15,29 +15,20 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
       .setHeading('Link click')
       .addSettingEx((setting) => {
         setting
-          .setName('Link click action')
+          .setName('Should open link editor on Alt + click')
           .setDesc(createFragment((f) => {
-            f.appendText('What clicking a link in a note does.');
-            f.createEl('br');
-            f.appendText('With ');
-            appendCodeBlock(f, 'Open the link editor on click');
-            f.appendText(', a plain click opens an editor popover at the link instead of opening the link, and ');
-            appendCodeBlock(f, 'Ctrl + click');
+            f.appendText('Whether ');
+            appendCodeBlock(f, 'Alt + click');
             f.appendText(' (');
-            appendCodeBlock(f, 'Cmd + click');
-            f.appendText(' on macOS) keeps its usual meaning of opening the link in a new tab.');
+            appendCodeBlock(f, 'Option + click');
+            f.appendText(' on macOS) on a link opens the link editor at the link, instead of opening the link.');
             f.createEl('br');
-            f.appendText('With ');
-            appendCodeBlock(f, 'Open the link editor on Ctrl + click');
-            f.appendText(', the two are swapped: a plain click still opens the link.');
+            f.appendText('Every other gesture is left alone: a plain click still opens the link, and ');
+            appendCodeBlock(f, 'Ctrl + click');
+            f.appendText(' still opens it in a new tab.');
           }))
-          .addDropdown((dropdown) => {
-            dropdown.addOptions({
-              Disabled: 'Open the link, as Obsidian does by default',
-              OpenEditorOnClick: 'Open the link editor on click',
-              OpenEditorOnModClick: 'Open the link editor on Ctrl + click (Cmd + click on macOS)'
-            });
-            this.bind({ propertyName: 'linkClickAction', valueComponent: dropdown });
+          .addToggle((toggle) => {
+            this.bind({ propertyName: 'shouldOpenLinkEditorOnAltClick', valueComponent: toggle });
           });
       });
   }

@@ -238,14 +238,14 @@ export function registerEditUrlAndAliasMenuSuite(platform: string): void {
           menuItem.callback?.();
 
           await waitUntil({
-            message: 'link editor modal did not open',
-            predicate: () => document.querySelector('.link-editor-url-input') !== null && document.querySelector('.link-editor-alias-input') !== null,
+            message: 'link editor popover did not open',
+            predicate: () => document.querySelector('.link-editor-popover-url-input') !== null && document.querySelector('.link-editor-popover-alias-input') !== null,
             timeoutInMilliseconds: waitTimeoutInMilliseconds
           });
 
-          const urlInputEl = document.querySelector<HTMLInputElement>('.link-editor-url-input');
-          const aliasInputEl = document.querySelector<HTMLInputElement>('.link-editor-alias-input');
-          const okButtonEl = document.querySelector<HTMLElement>('.link-editor-ok-button');
+          const urlInputEl = document.querySelector<HTMLInputElement>('.link-editor-popover-url-input');
+          const aliasInputEl = document.querySelector<HTMLInputElement>('.link-editor-popover-alias-input');
+          const okButtonEl = document.querySelector<HTMLElement>('.link-editor-popover-ok-button');
           if (!urlInputEl || !aliasInputEl || !okButtonEl) {
             return {
               itemFound: true,

@@ -10,6 +10,7 @@ import { LinkClickComponent } from './link-click-component.ts';
 import { LinkMenuHandler } from './link-menu-handler.ts';
 import { PluginSettingsTab } from './plugin-settings-tab.ts';
 import { PluginSettings } from './plugin-settings.ts';
+import { PointerPositionComponent } from './pointer-position-component.ts';
 
 export class Plugin extends PluginBase {
   protected override onloadImpl(): void {
@@ -30,6 +31,8 @@ export class Plugin extends PluginBase {
         })
       })
     );
+
+    const pointerPositionComponent = this.addChild(new PointerPositionComponent(this.app));
 
     this.addChild(
       new LinkClickComponent(this.app, {
@@ -52,7 +55,8 @@ export class Plugin extends PluginBase {
     new LinkMenuHandler({
       app: this.app,
       plugin: this,
-      pluginNoticeComponent: this.pluginNoticeComponent
+      pluginNoticeComponent: this.pluginNoticeComponent,
+      pointerPositionComponent
     }).register();
   }
 }

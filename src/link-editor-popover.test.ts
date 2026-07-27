@@ -18,9 +18,15 @@ import {
   vi
 } from 'vitest';
 
-import type { LinkUrlAndAlias } from './link-editor-modal.ts';
+import type { LinkUrlAndAlias } from './link-editor-popover.ts';
 
-import { editLinkUrlAndAliasInPopover } from './link-editor-popover.ts';
+import {
+  createAnchorFromDocumentCenter,
+  createAnchorFromElement,
+  createAnchorFromPoint,
+  createAnchorFromSelection,
+  editLinkUrlAndAliasInPopover
+} from './link-editor-popover.ts';
 
 const ANCHOR_RECT_BOTTOM = 100;
 const ANCHOR_RECT_LEFT = 40;
@@ -68,7 +74,7 @@ function getPopoverEl(): HTMLElement {
 
 function openPopover(): Promise<LinkUrlAndAlias | null> {
   return editLinkUrlAndAliasInPopover({
-    anchorEl,
+    anchor: createAnchorFromElement(anchorEl),
     defaultAlias: 'old alias',
     defaultUrl: 'target'
   });
@@ -223,3 +229,63 @@ interface TestableButtonComponent {
 function castToTestable(button: ButtonComponentType | undefined): TestableButtonComponent {
   return castTo<TestableButtonComponent>(button);
 }
+
+describe('anchor builders', () => {
+  it('should anchor below and aligned to an element', () => {
+    const anchor = createAnchorFromElement(anchorEl);
+
+    expect(anchor).toStrictEqual({
+      bottom: ANCHOR_RECT_BOTTOM,
+      doc: document,
+      left: ANCHOR_RECT_LEFT
+    });
+  });
+
+  it('should anchor at a point', () => {
+    expect(createAnchorFromPoint(11, 22, document)).toStrictEqual({
+      bottom: 22,
+      doc: document,
+      left: 11
+    });
+  });
+
+  it('should anchor at the middle of the document', () => {
+    expect(createAnchorFromDocumentCenter(document)).toStrictEqual({
+      bottom: window.innerHeight / 2,
+      doc: document,
+      left: window.innerWidth / 2
+    });
+  });
+
+  it('should anchor at the caret when there is a selection', () => {
+    const range = document.createRange();
+    range.selectNodeContents(anchorEl);
+    range.getBoundingClientRect = (): DOMRect => castTo<DOMRect>({ bottom: 55, left: 66 });
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+
+    expect(createAnchorFromSelection(document)).toStrictEqual({
+      bottom: 55,
+      doc: document,
+      left: 66
+    });
+  });
+
+  it('should fall back to the middle of the document when the caret has no position', () => {
+    window.getSelection()?.removeAllRanges();
+
+    expect(createAnchorFromSelection(document)).toStrictEqual(createAnchorFromDocumentCenter(document));
+  });
+
+  it('should fall back to the middle of the document when the caret rect is empty', () => {
+    const range = document.createRange();
+    range.selectNodeContents(anchorEl);
+    range.getBoundingClientRect = (): DOMRect => castTo<DOMRect>({ bottom: 0, left: 0 });
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+
+    expect(createAnchorFromSelection(document)).toStrictEqual(createAnchorFromDocumentCenter(document));
+  });
+});

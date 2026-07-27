@@ -1,17 +1,20 @@
 /**
  * @file
  *
- * Shared integration suite for the click-to-edit behavior: clicking a rendered link opens the anchored
- * URL + alias popover instead of opening the link.
+ * Shared integration suite for the Alt-click-to-edit behavior: `Alt` + clicking a rendered link opens
+ * the anchored URL + alias popover instead of opening the link.
  *
  * It runs against a real Obsidian: it creates a note containing `[[target|old alias]]`, opens it in
- * Reading view, dispatches a real click on the rendered anchor, fills the popover and confirms, then
- * asserts the source note was rewritten AND that the navigation was suppressed (the click stayed
- * `defaultPrevented` and the source note is still the active file).
+ * Reading view, dispatches a real `Alt` click on the rendered anchor, fills the popover and confirms,
+ * then asserts the source note was rewritten AND that the navigation was suppressed (the source note is
+ * still the active file).
  *
- * The control case matters as much as the happy path: with the setting left at its default the same
- * click must render no popover and change nothing, which is what proves installing the plugin does not
- * alter how links behave until the user opts in.
+ * The two control cases matter as much as the happy path: a PLAIN click must still open the link, which
+ * is what proves the feature takes no existing gesture away; and with the setting turned off even the
+ * `Alt` click must be left alone.
+ *
+ * Note that `defaultPrevented` is NOT usable as evidence here — Obsidian calls `preventDefault()` on
+ * link clicks itself — so the assertions are on which note ends up active.
  *
  * Registered by the platform entry points (`plugin.desktop.integration.test.ts`,
  * `plugin.android.integration.test.ts`) so the same flow runs on Desktop and Android.
@@ -45,21 +48,21 @@ interface ClickScenarioResult {
 }
 
 interface RunClickScenarioParams {
-  readonly linkClickAction: string;
-  readonly shouldUseModifier: boolean;
+  readonly shouldOpenLinkEditorOnAltClick: boolean;
+  readonly shouldUseAlt: boolean;
 }
 
 /**
- * Registers the click-to-edit integration suite for the given platform.
+ * Registers the Alt-click-to-edit integration suite for the given platform.
  *
  * @param platform - Human-readable platform label used in the test names (e.g. `'Desktop'`).
  */
 export function registerLinkClickPopoverSuite(platform: string): void {
-  describe(`Edit a link by clicking it (${platform})`, () => {
-    it('opens the popover on a plain click, rewrites the link, and does not open it', async () => {
+  describe(`Edit a link by Alt + clicking it (${platform})`, () => {
+    it('opens the popover on an Alt click, rewrites the link, and does not open it', async () => {
       const result = await runClickScenario({
-        linkClickAction: 'OpenEditorOnClick',
-        shouldUseModifier: false
+        shouldOpenLinkEditorOnAltClick: true,
+        shouldUseAlt: true
       });
 
       expect(result.wasPopoverShown).toBe(true);
@@ -68,25 +71,24 @@ export function registerLinkClickPopoverSuite(platform: string): void {
       expect(result.sourceContent).toBe(EXPECTED_SOURCE_CONTENT);
     });
 
-    it('opens the popover on a Mod click when configured that way', async () => {
+    it('leaves a plain click alone, so the link still opens', async () => {
       const result = await runClickScenario({
-        linkClickAction: 'OpenEditorOnModClick',
-        shouldUseModifier: true
-      });
-
-      expect(result.wasPopoverShown).toBe(true);
-      expect(result.sourceContent).toBe(EXPECTED_SOURCE_CONTENT);
-    });
-
-    it('leaves the click alone with the default setting', async () => {
-      const result = await runClickScenario({
-        linkClickAction: 'Disabled',
-        shouldUseModifier: false
+        shouldOpenLinkEditorOnAltClick: true,
+        shouldUseAlt: false
       });
 
       expect(result.wasPopoverShown).toBe(false);
-      // The link opened, exactly as it does without the plugin, and nothing was rewritten.
       expect(result.activePath).toBe(TARGET_PATH);
+      expect(result.sourceContent).toBe(INITIAL_SOURCE_CONTENT);
+    });
+
+    it('leaves the Alt click alone when the setting is turned off', async () => {
+      const result = await runClickScenario({
+        shouldOpenLinkEditorOnAltClick: false,
+        shouldUseAlt: true
+      });
+
+      expect(result.wasPopoverShown).toBe(false);
       expect(result.sourceContent).toBe(INITIAL_SOURCE_CONTENT);
     });
   });
@@ -96,12 +98,12 @@ async function runClickScenario(params: RunClickScenarioParams): Promise<ClickSc
   return await evalInObsidian({
     args: {
       initialSourceContent: INITIAL_SOURCE_CONTENT,
-      linkClickAction: params.linkClickAction,
       newAlias: NEW_ALIAS,
       newUrl: NEW_URL_LINK_TEXT,
       pluginId: PLUGIN_ID,
       popoverSettleTimeoutInMilliseconds: POPOVER_SETTLE_TIMEOUT_IN_MILLISECONDS,
-      shouldUseModifier: params.shouldUseModifier,
+      shouldOpenLinkEditorOnAltClick: params.shouldOpenLinkEditorOnAltClick,
+      shouldUseAlt: params.shouldUseAlt,
       sourcePath: SOURCE_PATH,
       targetContent: TARGET_CONTENT,
       targetLinkText: TARGET_LINK_TEXT,
@@ -112,13 +114,13 @@ async function runClickScenario(params: RunClickScenarioParams): Promise<ClickSc
       app,
       initialSourceContent,
       lib: { waitUntil },
-      linkClickAction,
       newAlias,
       newUrl,
       obsidianModule,
       pluginId,
       popoverSettleTimeoutInMilliseconds,
-      shouldUseModifier,
+      shouldOpenLinkEditorOnAltClick,
+      shouldUseAlt,
       sourcePath,
       targetContent,
       targetLinkText,
@@ -143,7 +145,7 @@ async function runClickScenario(params: RunClickScenarioParams): Promise<ClickSc
             continue;
           }
           const settings = (candidate as Partial<SettingsHolder>).settings;
-          if (settings && typeof settings === 'object' && 'linkClickAction' in settings) {
+          if (settings && typeof settings === 'object' && 'shouldOpenLinkEditorOnAltClick' in settings) {
             return candidate as SettingsHolder;
           }
           queue.push(...((candidate as ChildrenHolder)._children ?? []));
@@ -166,11 +168,11 @@ async function runClickScenario(params: RunClickScenarioParams): Promise<ClickSc
       if (!settingsComponent) {
         throw new Error('Could not find the plugin settings component');
       }
-      await settingsComponent.setProperty('linkClickAction', linkClickAction);
+      await settingsComponent.setProperty('shouldOpenLinkEditorOnAltClick', shouldOpenLinkEditorOnAltClick);
       await settingsComponent.saveToFile(null);
       await waitUntil({
-        message: 'the link click action setting did not take effect',
-        predicate: () => settingsComponent.settings['linkClickAction'] === linkClickAction,
+        message: 'the Alt-click setting did not take effect',
+        predicate: () => settingsComponent.settings['shouldOpenLinkEditorOnAltClick'] === shouldOpenLinkEditorOnAltClick,
         timeoutInMilliseconds: waitTimeoutInMilliseconds
       });
 
@@ -203,10 +205,9 @@ async function runClickScenario(params: RunClickScenarioParams): Promise<ClickSc
 
       linkEl.dispatchEvent(
         new MouseEvent('click', {
+          altKey: shouldUseAlt,
           bubbles: true,
-          cancelable: true,
-          ctrlKey: shouldUseModifier,
-          metaKey: shouldUseModifier
+          cancelable: true
         })
       );
 

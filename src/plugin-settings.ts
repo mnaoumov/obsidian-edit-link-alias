@@ -1,12 +1,13 @@
-import { LinkClickAction } from './link-click-action.ts';
-
 /**
  * The plugin settings.
  */
 export class PluginSettings {
   /**
-   * What clicking a link in a note does. Defaults to {@link LinkClickAction.Disabled}, so the plugin
-   * changes nothing about how links behave until the user opts in.
+   * Whether `Alt` + clicking a link (`Option` + click on macOS) opens the link editor instead of
+   * following the link.
+   *
+   * Defaults to `true`: Obsidian gives `Alt` + click no meaning on a link, so this takes no gesture
+   * away — a plain click still opens the link, and `Ctrl`/`Cmd` + click still opens it in a new tab.
    */
-  public linkClickAction = LinkClickAction.Disabled;
+  public shouldOpenLinkEditorOnAltClick = true;
 }

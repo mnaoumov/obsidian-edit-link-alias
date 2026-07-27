@@ -15,12 +15,15 @@ import { convertAsyncToSync } from 'obsidian-dev-utils/async';
 import { isFile } from 'obsidian-dev-utils/obsidian/file-system';
 
 import type { EditParsedLink } from './edit-link.ts';
+import type { PopoverAnchor } from './link-editor-popover.ts';
+import type { PointerPositionComponent } from './pointer-position-component.ts';
 import type { LinkTarget } from './resolve-link-occurrence.ts';
 
 import {
-  editParsedLinkAlias,
-  editParsedLinkUrlAndAlias
+  createEditParsedLinkUrlAndAliasInPopover,
+  editParsedLinkAlias
 } from './edit-link.ts';
+import { createAnchorFromDocumentCenter } from './link-editor-popover.ts';
 import { resolveAndEditLink } from './resolve-link-occurrence.ts';
 
 const LINK_CONTEXT_MENU_SOURCE = 'link-context-menu';
@@ -31,9 +34,14 @@ const MENU_ITEM_SECTION = 'action';
  */
 interface LinkMenuItemDescriptor {
   /**
-   * The editor to run when the item is clicked.
+   * Builds the editor to run when the item is clicked. A factory rather than a fixed
+   * {@link EditParsedLink} because the anchored editor needs the position of the gesture that opened
+   * the menu, which is only known once the item is actually clicked.
+   *
+   * @param anchor - Where to place an anchored editor.
+   * @returns The editor to run.
    */
-  readonly editParsedLink: EditParsedLink;
+  createEditParsedLink(this: void, anchor: PopoverAnchor): EditParsedLink;
 
   /**
    * The icon of the menu item.
@@ -48,12 +56,12 @@ interface LinkMenuItemDescriptor {
 
 const MENU_ITEM_DESCRIPTORS: readonly LinkMenuItemDescriptor[] = [
   {
-    editParsedLink: editParsedLinkAlias,
+    createEditParsedLink: () => editParsedLinkAlias,
     icon: 'text-cursor-input',
     title: 'Edit link alias'
   },
   {
-    editParsedLink: editParsedLinkUrlAndAlias,
+    createEditParsedLink: createEditParsedLinkUrlAndAliasInPopover,
     icon: 'link',
     title: 'Edit link (URL and alias)'
   }
@@ -77,6 +85,11 @@ export interface LinkMenuHandlerConstructorParams {
    * The plugin notice component, used to surface user-facing notices.
    */
   readonly pluginNoticeComponent: PluginNoticeComponent;
+
+  /**
+   * Supplies the position of the gesture that opened the menu, used to anchor the editor.
+   */
+  readonly pointerPositionComponent: PointerPositionComponent;
 }
 
 /**
@@ -94,6 +107,7 @@ export class LinkMenuHandler {
   private readonly app: App;
   private readonly plugin: Plugin;
   private readonly pluginNoticeComponent: PluginNoticeComponent;
+  private readonly pointerPositionComponent: PointerPositionComponent;
 
   /**
    * Creates a new link menu handler.
@@ -104,6 +118,7 @@ export class LinkMenuHandler {
     this.app = params.app;
     this.plugin = params.plugin;
     this.pluginNoticeComponent = params.pluginNoticeComponent;
+    this.pointerPositionComponent = params.pointerPositionComponent;
   }
 
   /**
@@ -156,10 +171,22 @@ export class LinkMenuHandler {
           .setIcon(descriptor.icon)
           .setSection(MENU_ITEM_SECTION)
           .onClick(convertAsyncToSync(async () => {
-            await this.resolveAndEdit(descriptor.editParsedLink, linkTarget, leaf);
+            await this.resolveAndEdit(descriptor.createEditParsedLink(this.getMenuAnchor()), linkTarget, leaf);
           }));
       });
     }
+  }
+
+  /**
+   * Where to put an anchored editor opened from the menu: the gesture that raised the menu, which is
+   * the link itself. Falls back to the middle of the window on the theoretical path where no pointer
+   * gesture has been seen at all.
+   *
+   * @returns The anchor.
+   */
+  private getMenuAnchor(): PopoverAnchor {
+    return this.pointerPositionComponent.getLastPointerAnchor()
+      ?? createAnchorFromDocumentCenter(this.app.workspace.containerEl.ownerDocument);
   }
 
   private getSourceView(leaf?: WorkspaceLeaf): MarkdownView | null {

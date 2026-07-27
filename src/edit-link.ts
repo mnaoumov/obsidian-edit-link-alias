@@ -5,13 +5,15 @@ import type { Promisable } from 'type-fest';
 import { generateRawMarkdownLink } from 'obsidian-dev-utils/obsidian/link';
 import { prompt } from 'obsidian-dev-utils/obsidian/modals/prompt';
 
-import { editLinkUrlAndAlias } from './link-editor-modal.ts';
+import type { PopoverAnchor } from './link-editor-popover.ts';
+
 import { editLinkUrlAndAliasInPopover } from './link-editor-popover.ts';
 
 /**
  * A function that edits a parsed link and applies the replacement. Both {@link editParsedLinkAlias} and
- * {@link editParsedLinkUrlAndAlias} conform to it, so callers (the editor command handlers and the link
- * context-menu handler) can be parameterized by which editor to invoke.
+ * the one built by {@link createEditParsedLinkUrlAndAliasInPopover} conform to it, so callers (the
+ * editor command handlers, the link context-menu handler, the click interception) can be parameterized
+ * by which editor to invoke.
  *
  * @param params - The parameters for editing the link.
  * @returns A {@link Promise} that resolves when the edit flow completes.
@@ -19,7 +21,7 @@ import { editLinkUrlAndAliasInPopover } from './link-editor-popover.ts';
 export type EditParsedLink = (params: EditParsedLinkParams) => Promise<void>;
 
 /**
- * Parameters for {@link editParsedLinkAlias} and {@link editParsedLinkUrlAndAlias}.
+ * Parameters for an {@link EditParsedLink}.
  */
 export interface EditParsedLinkParams {
   /**
@@ -41,17 +43,17 @@ export interface EditParsedLinkParams {
 }
 
 /**
- * Builds an {@link EditParsedLink} that edits the URL and alias in a popover anchored at the given
- * element, rather than in a centered modal.
+ * Builds an {@link EditParsedLink} that edits the URL and alias in a popover at the given anchor.
  *
- * A factory rather than another exported {@link EditParsedLink} because the anchor is only known at
- * click time, and threading it through {@link EditParsedLinkParams} would burden every other caller
- * with an anchor it has no use for.
+ * A factory rather than a plain exported {@link EditParsedLink} because the anchor differs per entry
+ * point (a clicked link, the pointer that opened a context menu, the caret) and is only known at
+ * invocation time; threading it through {@link EditParsedLinkParams} would burden the alias-only
+ * editor with an anchor it has no use for.
  *
- * @param anchorEl - The element to anchor the popover at — the clicked link.
+ * @param anchor - Where to place the popover.
  * @returns An {@link EditParsedLink} that edits the link in an anchored popover.
  */
-export function createEditParsedLinkUrlAndAliasInPopover(anchorEl: HTMLElement): EditParsedLink {
+export function createEditParsedLinkUrlAndAliasInPopover(anchor: PopoverAnchor): EditParsedLink {
   return async (params: EditParsedLinkParams): Promise<void> => {
     const {
       applyReplacement,
@@ -59,7 +61,7 @@ export function createEditParsedLinkUrlAndAliasInPopover(anchorEl: HTMLElement):
     } = params;
 
     const edited = await editLinkUrlAndAliasInPopover({
-      anchorEl,
+      anchor,
       defaultAlias: parsedLink.alias ?? '',
       defaultUrl: parsedLink.url
     });
@@ -98,34 +100,6 @@ export async function editParsedLinkAlias(params: EditParsedLinkParams): Promise
   }
 
   await applyReplacement(rebuildRawLink(parsedLink, parsedLink.url, newAlias));
-}
-
-/**
- * Opens the two-field editor for the link's URL and alias and, unless cancelled, rebuilds the link
- * preserving its remaining flags (embed / wikilink / angle brackets / title) and applies the replacement.
- * Shared by the editor command and the link/url context-menu paths.
- *
- * @param params - The parameters for editing the link.
- */
-// eslint-disable-next-line obsidian-dev-utils/params-options-name-match -- Conforms to the exported EditParsedLink callback signature, so it shares its param type.
-export async function editParsedLinkUrlAndAlias(params: EditParsedLinkParams): Promise<void> {
-  const {
-    app,
-    applyReplacement,
-    parsedLink
-  } = params;
-
-  const edited = await editLinkUrlAndAlias({
-    app,
-    defaultAlias: parsedLink.alias ?? '',
-    defaultUrl: parsedLink.url
-  });
-
-  if (edited === null) {
-    return;
-  }
-
-  await applyReplacement(rebuildRawLink(parsedLink, edited.url, edited.alias));
 }
 
 /**

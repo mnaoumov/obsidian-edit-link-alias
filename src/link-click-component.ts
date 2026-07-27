@@ -30,7 +30,7 @@ import type { PluginSettings } from './plugin-settings.ts';
 import type { LinkTarget } from './resolve-link-occurrence.ts';
 
 import { createEditParsedLinkUrlAndAliasInPopover } from './edit-link.ts';
-import { LinkClickAction } from './link-click-action.ts';
+import { createAnchorFromElement } from './link-editor-popover.ts';
 import { resolveAndEditLink } from './resolve-link-occurrence.ts';
 
 /**
@@ -119,7 +119,7 @@ export class LinkClickComponent extends AllWindowsEventComponent {
     invokeAsyncSafely(async () => {
       await resolveAndEditLink({
         app: this.app,
-        editParsedLink: createEditParsedLinkUrlAndAliasInPopover(linkEl),
+        editParsedLink: createEditParsedLinkUrlAndAliasInPopover(createAnchorFromElement(linkEl)),
         linkTarget,
         showCouldNotLocateNotice: () => {
           this.pluginNoticeComponent.showNotice('Could not locate the link in the source note.');
@@ -175,15 +175,22 @@ export class LinkClickComponent extends AllWindowsEventComponent {
       return false;
     }
 
-    const isModPressed = Keymap.isModifier(evt, 'Mod');
-    switch (this.pluginSettingsComponent.settings.linkClickAction) {
-      case LinkClickAction.OpenEditorOnClick:
-        return !isModPressed;
-      case LinkClickAction.OpenEditorOnModClick:
-        return isModPressed;
-      default:
-        return false;
+    if (!this.pluginSettingsComponent.settings.shouldOpenLinkEditorOnAltClick) {
+      return false;
     }
+
+    /*
+     * Alt, not Mod: Ctrl/Cmd + click is already Obsidian's "open the link in a new tab", so the editor
+     * must not take it over. Obsidian gives Alt + click no meaning on a link.
+     *
+     * Requiring that no OTHER modifier is held keeps every gesture Obsidian does assign a meaning to —
+     * Ctrl/Cmd, Shift, and their combinations with Alt — reaching Obsidian untouched.
+     */
+    if (Keymap.isModifier(evt, 'Mod') || Keymap.isModifier(evt, 'Shift')) {
+      return false;
+    }
+
+    return Keymap.isModifier(evt, 'Alt');
   }
 }
 

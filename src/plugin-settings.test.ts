@@ -4,13 +4,12 @@ import {
   it
 } from 'vitest';
 
-import { LinkClickAction } from './link-click-action.ts';
 import { PluginSettings } from './plugin-settings.ts';
 
 describe('PluginSettings', () => {
-  it('should leave link clicks alone by default', () => {
+  it('should open the link editor on Alt + click by default', () => {
     const settings = new PluginSettings();
 
-    expect(settings.linkClickAction).toBe(LinkClickAction.Disabled);
+    expect(settings.shouldOpenLinkEditorOnAltClick).toBe(true);
   });
 });

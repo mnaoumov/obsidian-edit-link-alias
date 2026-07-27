@@ -77,8 +77,6 @@ import { EditCommandHandler } from './edit-command-handler.ts';
 // eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
 import { EditUrlAndAliasCommandHandler } from './edit-url-and-alias-command-handler.ts';
 // eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
-import { LinkClickAction } from './link-click-action.ts';
-// eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
 import { LinkClickComponent } from './link-click-component.ts';
 // eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
 import { LinkMenuHandler } from './link-menu-handler.ts';
@@ -176,11 +174,11 @@ describe('Plugin', () => {
     expect(register).toHaveBeenCalledOnce();
   });
 
-  it('should load the plugin settings with the default link click action', async () => {
+  it('should load the plugin settings with the Alt-click editor enabled by default', async () => {
     const plugin = await createLoadedPlugin();
 
     const settingsComponent = findAddedChild(plugin, PluginSettingsComponentBase<PluginSettings>);
-    expect(settingsComponent.settings.linkClickAction).toBe(LinkClickAction.Disabled);
+    expect(settingsComponent.settings.shouldOpenLinkEditorOnAltClick).toBe(true);
   });
 
   it('should register the link click component on load', async () => {

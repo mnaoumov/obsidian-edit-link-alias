@@ -16,8 +16,8 @@ registerDemoVaultCoverageSuite({
   configInterfaces: [{ interfaceName: 'PluginSettings', sourcePath: 'src/plugin-settings.ts' }],
   interfaces: [],
   nonTrivialGuard: {
-    expectDemoNote: '04 Click a link to edit it.md',
-    expectMember: 'linkClickAction',
+    expectDemoNote: '04 Alt click a link to edit it.md',
+    expectMember: 'shouldOpenLinkEditorOnAltClick',
     interfaceName: 'PluginSettings',
     sourcePath: 'src/plugin-settings.ts'
   },

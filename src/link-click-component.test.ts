@@ -28,7 +28,6 @@ import {
 import type { PluginSettings } from './plugin-settings.ts';
 
 import { createEditParsedLinkUrlAndAliasInPopover } from './edit-link.ts';
-import { LinkClickAction } from './link-click-action.ts';
 import { LinkClickComponent } from './link-click-component.ts';
 import { resolveAndEditLink } from './resolve-link-occurrence.ts';
 
@@ -43,8 +42,10 @@ const SOURCE_PATH = 'source.md';
 const TARGET_PATH = 'target.md';
 
 interface ClickOptions {
+  readonly altKey?: boolean;
   readonly button?: number;
   readonly ctrlKey?: boolean;
+  readonly shiftKey?: boolean;
 }
 
 let app: AppOriginal;
@@ -56,15 +57,19 @@ let viewMode: 'preview' | 'source';
 
 function click(el: HTMLElement, options: ClickOptions = {}): void {
   const {
+    altKey = true,
     button = 0,
-    ctrlKey = false
+    ctrlKey = false,
+    shiftKey = false
   } = options;
   el.dispatchEvent(
     new MouseEvent('click', {
+      altKey,
       bubbles: true,
       button,
       cancelable: true,
-      ctrlKey
+      ctrlKey,
+      shiftKey
     })
   );
 }
@@ -76,10 +81,10 @@ function createInternalLinkEl(dataHref = 'target'): HTMLElement {
   });
 }
 
-function loadComponent(linkClickAction: LinkClickAction): void {
+function loadComponent(shouldOpenLinkEditorOnAltClick = true): void {
   component = new LinkClickComponent(app, {
     pluginNoticeComponent: castTo<PluginNoticeComponent>({ showNotice }),
-    pluginSettingsComponent: castTo<PluginSettingsComponentBase<PluginSettings>>({ settings: { linkClickAction } })
+    pluginSettingsComponent: castTo<PluginSettingsComponentBase<PluginSettings>>({ settings: { shouldOpenLinkEditorOnAltClick } })
   });
   component.load();
 }
@@ -90,11 +95,23 @@ beforeEach(() => {
   showNotice = vi.fn();
 
   /*
-   * The obsidian-test-mocks Keymap is a stub that always reports no modifier, so without this spy the
-   * Mod-click cases would exercise the plain-click branch and still pass.
+   * The obsidian-test-mocks Keymap is a stub that always reports no modifier, so without this spy every
+   * gesture case would exercise the same branch and still pass.
    */
   // TODO(T203): Drop this spy once obsidian-test-mocks implements Keymap.isModifier against the event (T202).
-  vi.spyOn(Keymap, 'isModifier').mockImplementation((evt) => 'ctrlKey' in evt && evt.ctrlKey);
+  vi.spyOn(Keymap, 'isModifier').mockImplementation((evt, modifier) => {
+    if (!('altKey' in evt)) {
+      return false;
+    }
+    switch (modifier) {
+      case 'Alt':
+        return evt.altKey;
+      case 'Shift':
+        return evt.shiftKey;
+      default:
+        return evt.ctrlKey || evt.metaKey;
+    }
+  });
   getFirstLinkpathDest = vi.fn().mockReturnValue(strictProxy<TFile>({ path: TARGET_PATH }));
 
   const appMock = App.createConfigured__();
@@ -126,8 +143,8 @@ afterEach(() => {
 });
 
 describe('LinkClickComponent', () => {
-  it('should not intercept a link click when the action is disabled', async () => {
-    loadComponent(LinkClickAction.Disabled);
+  it('should not intercept an Alt click when the setting is turned off', async () => {
+    loadComponent(false);
 
     click(createInternalLinkEl());
     await waitForAllAsyncOperations();
@@ -135,11 +152,12 @@ describe('LinkClickComponent', () => {
     expect(mockResolveAndEditLink).not.toHaveBeenCalled();
   });
 
-  it('should open the editor for the clicked link and suppress the navigation', async () => {
-    loadComponent(LinkClickAction.OpenEditorOnClick);
+  it('should open the editor for the Alt-clicked link and suppress the navigation', async () => {
+    loadComponent();
     const linkEl = createInternalLinkEl();
 
     const evt = new MouseEvent('click', {
+      altKey: true,
       bubbles: true,
       cancelable: true
     });
@@ -147,14 +165,23 @@ describe('LinkClickComponent', () => {
     await waitForAllAsyncOperations();
 
     expect(evt.defaultPrevented).toBe(true);
-    expect(mockCreateEditParsedLinkUrlAndAliasInPopover).toHaveBeenCalledWith(linkEl);
+    expect(mockCreateEditParsedLinkUrlAndAliasInPopover).toHaveBeenCalledWith(expect.objectContaining({ doc: document }));
     const resolveParams = mockResolveAndEditLink.mock.calls[0]?.[0];
     expect(resolveParams?.app).toBe(app);
     expect(resolveParams?.linkTarget.target?.path).toBe(TARGET_PATH);
   });
 
-  it('should let a Mod click through when the editor opens on a plain click', async () => {
-    loadComponent(LinkClickAction.OpenEditorOnClick);
+  it('should leave a plain click alone, so the link still opens', async () => {
+    loadComponent();
+
+    click(createInternalLinkEl(), { altKey: false });
+    await waitForAllAsyncOperations();
+
+    expect(mockResolveAndEditLink).not.toHaveBeenCalled();
+  });
+
+  it('should leave Ctrl + click alone, so it still opens the link in a new tab', async () => {
+    loadComponent();
 
     click(createInternalLinkEl(), { ctrlKey: true });
     await waitForAllAsyncOperations();
@@ -162,26 +189,17 @@ describe('LinkClickComponent', () => {
     expect(mockResolveAndEditLink).not.toHaveBeenCalled();
   });
 
-  it('should open the editor on a Mod click when configured to', async () => {
-    loadComponent(LinkClickAction.OpenEditorOnModClick);
+  it('should leave Shift + Alt click alone', async () => {
+    loadComponent();
 
-    click(createInternalLinkEl(), { ctrlKey: true });
-    await waitForAllAsyncOperations();
-
-    expect(mockResolveAndEditLink).toHaveBeenCalledOnce();
-  });
-
-  it('should let a plain click through when the editor opens on a Mod click', async () => {
-    loadComponent(LinkClickAction.OpenEditorOnModClick);
-
-    click(createInternalLinkEl());
+    click(createInternalLinkEl(), { shiftKey: true });
     await waitForAllAsyncOperations();
 
     expect(mockResolveAndEditLink).not.toHaveBeenCalled();
   });
 
   it('should ignore a non-primary button', async () => {
-    loadComponent(LinkClickAction.OpenEditorOnClick);
+    loadComponent();
 
     click(createInternalLinkEl(), { button: SECONDARY_MOUSE_BUTTON });
     await waitForAllAsyncOperations();
@@ -190,7 +208,7 @@ describe('LinkClickComponent', () => {
   });
 
   it('should ignore a click that is not on a link', async () => {
-    loadComponent(LinkClickAction.OpenEditorOnClick);
+    loadComponent();
 
     click(containerEl.createEl('p', { text: `${EMPTY}not a link` }));
     await waitForAllAsyncOperations();
@@ -199,27 +217,33 @@ describe('LinkClickComponent', () => {
   });
 
   it('should ignore a click whose target is not an element', async () => {
-    loadComponent(LinkClickAction.OpenEditorOnClick);
+    loadComponent();
 
-    document.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    document.dispatchEvent(new MouseEvent('click', { altKey: true, bubbles: true }));
     await waitForAllAsyncOperations();
 
     expect(mockResolveAndEditLink).not.toHaveBeenCalled();
   });
 
   it('should resolve the link from an ancestor when an inner element is clicked', async () => {
-    loadComponent(LinkClickAction.OpenEditorOnClick);
+    loadComponent();
     const linkEl = createInternalLinkEl();
     const innerEl = linkEl.createSpan({ text: 'display' });
 
+    linkEl.getBoundingClientRect = (): DOMRect => castTo<DOMRect>({ bottom: 42, left: 7 });
     click(innerEl);
     await waitForAllAsyncOperations();
 
-    expect(mockCreateEditParsedLinkUrlAndAliasInPopover).toHaveBeenCalledWith(linkEl);
+    // The popover anchors at the LINK, not at the inner element that received the click.
+    expect(mockCreateEditParsedLinkUrlAndAliasInPopover).toHaveBeenCalledWith({
+      bottom: 42,
+      doc: document,
+      left: 7
+    });
   });
 
   it('should carry the external url for an external link', async () => {
-    loadComponent(LinkClickAction.OpenEditorOnClick);
+    loadComponent();
     const linkEl = containerEl.createEl('a', {
       attr: { href: 'https://example.com' },
       cls: 'external-link'
@@ -234,7 +258,7 @@ describe('LinkClickComponent', () => {
   });
 
   it('should ignore an external link with no url', async () => {
-    loadComponent(LinkClickAction.OpenEditorOnClick);
+    loadComponent();
 
     click(containerEl.createEl('a', { cls: 'external-link' }));
     await waitForAllAsyncOperations();
@@ -243,7 +267,7 @@ describe('LinkClickComponent', () => {
   });
 
   it('should leave the target unset for a Live Preview link that carries no href', async () => {
-    loadComponent(LinkClickAction.OpenEditorOnClick);
+    loadComponent();
 
     click(containerEl.createSpan({ cls: 'cm-hmd-internal-link' }));
     await waitForAllAsyncOperations();
@@ -252,7 +276,7 @@ describe('LinkClickComponent', () => {
   });
 
   it('should leave the target unset when the link path does not resolve', async () => {
-    loadComponent(LinkClickAction.OpenEditorOnClick);
+    loadComponent();
     getFirstLinkpathDest.mockReturnValue(null);
 
     click(createInternalLinkEl('missing'));
@@ -262,7 +286,7 @@ describe('LinkClickComponent', () => {
   });
 
   it('should pass the view containing the link, and no view when it is outside every leaf', async () => {
-    loadComponent(LinkClickAction.OpenEditorOnClick);
+    loadComponent();
     const outsideLinkEl = document.body.createEl('a', {
       attr: { 'data-href': 'target' },
       cls: 'internal-link'
@@ -283,7 +307,7 @@ describe('LinkClickComponent', () => {
   });
 
   it('should surface a notice when the link cannot be located in the source note', async () => {
-    loadComponent(LinkClickAction.OpenEditorOnClick);
+    loadComponent();
 
     click(createInternalLinkEl());
     await waitForAllAsyncOperations();

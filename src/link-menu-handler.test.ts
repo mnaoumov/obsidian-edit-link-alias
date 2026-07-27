@@ -31,21 +31,25 @@ import {
   vi
 } from 'vitest';
 
+import type { EditParsedLink } from './edit-link.ts';
+import type { PopoverAnchor } from './link-editor-popover.ts';
+import type { PointerPositionComponent } from './pointer-position-component.ts';
 import type { LinkTarget } from './resolve-link-occurrence.ts';
 
 import {
-  editParsedLinkAlias,
-  editParsedLinkUrlAndAlias
+  createEditParsedLinkUrlAndAliasInPopover,
+  editParsedLinkAlias
 } from './edit-link.ts';
 import { LinkMenuHandler } from './link-menu-handler.ts';
 
-vi.mock('./edit-link.ts', () => ({ editParsedLinkAlias: vi.fn(), editParsedLinkUrlAndAlias: vi.fn() }));
+vi.mock('./edit-link.ts', () => ({ createEditParsedLinkUrlAndAliasInPopover: vi.fn(), editParsedLinkAlias: vi.fn() }));
 vi.mock('obsidian-dev-utils/obsidian/parse-link', () => ({ parseLinks: vi.fn() }));
 vi.mock('obsidian-dev-utils/obsidian/modals/select-item', () => ({ selectItem: vi.fn() }));
 vi.mock('obsidian-dev-utils/obsidian/file-system', () => ({ isFile: vi.fn() }));
 
 const mockEditParsedLinkAlias = vi.mocked(editParsedLinkAlias);
-const mockEditParsedLinkUrlAndAlias = vi.mocked(editParsedLinkUrlAndAlias);
+const mockCreateEditParsedLinkUrlAndAliasInPopover = vi.mocked(createEditParsedLinkUrlAndAliasInPopover);
+const mockEditParsedLinkUrlAndAlias = vi.fn<EditParsedLink>();
 const mockParseLinks = vi.mocked(parseLinks);
 const mockSelectItem = vi.mocked(selectItem);
 const mockIsFile = vi.mocked(isFile);
@@ -83,7 +87,7 @@ class TestableLinkMenuHandler extends LinkMenuHandler {
   }
 
   public async testResolveAndEditUrlAndAlias(linkTarget: LinkTarget, leaf?: WorkspaceLeaf): Promise<void> {
-    return this.resolveAndEdit(editParsedLinkUrlAndAlias, linkTarget, leaf);
+    return this.resolveAndEdit(mockEditParsedLinkUrlAndAlias, linkTarget, leaf);
   }
 }
 
@@ -162,6 +166,7 @@ let showNotice: ReturnType<typeof vi.fn>;
 let registerEvent: ReturnType<typeof vi.fn>;
 let on: ReturnType<typeof vi.fn>;
 let handler: TestableLinkMenuHandler;
+let lastPointerAnchor: null | PopoverAnchor;
 
 function createHandler(): TestableLinkMenuHandler {
   sourceContent = '';
@@ -181,6 +186,7 @@ function createHandler(): TestableLinkMenuHandler {
       read
     },
     workspace: {
+      containerEl: document.body,
       getActiveViewOfType,
       on
     }
@@ -192,7 +198,8 @@ function createHandler(): TestableLinkMenuHandler {
   return new TestableLinkMenuHandler({
     app,
     plugin,
-    pluginNoticeComponent
+    pluginNoticeComponent,
+    pointerPositionComponent: castTo<PointerPositionComponent>({ getLastPointerAnchor: () => lastPointerAnchor })
   });
 }
 
@@ -222,6 +229,11 @@ function mockEditApplies(newRawLink: string): void {
 }
 
 beforeEach(() => {
+  lastPointerAnchor = {
+    bottom: 100,
+    doc: document,
+    left: 40
+  };
   handler = createHandler();
   Platform.isDesktop = true;
   mockIsFile.mockReset().mockReturnValue(true);
@@ -229,6 +241,7 @@ beforeEach(() => {
   mockSelectItem.mockReset();
   mockEditParsedLinkAlias.mockReset().mockResolvedValue();
   mockEditParsedLinkUrlAndAlias.mockReset().mockResolvedValue();
+  mockCreateEditParsedLinkUrlAndAliasInPopover.mockReset().mockReturnValue(mockEditParsedLinkUrlAndAlias);
 });
 
 afterEach(() => {
@@ -642,6 +655,29 @@ describe('LinkMenuHandler', () => {
       await waitForAllAsyncOperations();
 
       expect(getActiveViewOfType).toHaveBeenCalled();
+    });
+
+    it('should anchor the editor at the gesture that opened the menu', async () => {
+      const { items, menu } = createMockMenu();
+      handler.testHandleUrlMenu(menu, 'https://example.com');
+      items[1]?.onClick?.();
+      await waitForAllAsyncOperations();
+
+      expect(mockCreateEditParsedLinkUrlAndAliasInPopover).toHaveBeenCalledWith(lastPointerAnchor);
+    });
+
+    it('should fall back to the middle of the window when no pointer gesture has happened', async () => {
+      lastPointerAnchor = null;
+      const { items, menu } = createMockMenu();
+      handler.testHandleUrlMenu(menu, 'https://example.com');
+      items[1]?.onClick?.();
+      await waitForAllAsyncOperations();
+
+      expect(mockCreateEditParsedLinkUrlAndAliasInPopover).toHaveBeenCalledWith({
+        bottom: window.innerHeight / 2,
+        doc: document,
+        left: window.innerWidth / 2
+      });
     });
   });
 });
