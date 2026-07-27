@@ -13,7 +13,6 @@ import {
 } from 'obsidian';
 import { convertAsyncToSync } from 'obsidian-dev-utils/async';
 import { isFile } from 'obsidian-dev-utils/obsidian/file-system';
-import { parseLinks } from 'obsidian-dev-utils/obsidian/parse-link';
 
 import type { EditParsedLink } from './edit-link.ts';
 import type { LinkTarget } from './resolve-link-occurrence.ts';
@@ -22,10 +21,7 @@ import {
   editParsedLinkAlias,
   editParsedLinkUrlAndAlias
 } from './edit-link.ts';
-import {
-  doesLinkMatchTarget,
-  editLinkOccurrenceViaSourceScan
-} from './resolve-link-occurrence.ts';
+import { resolveAndEditLink } from './resolve-link-occurrence.ts';
 
 const LINK_CONTEXT_MENU_SOURCE = 'link-context-menu';
 const MENU_ITEM_SECTION = 'action';
@@ -141,25 +137,14 @@ export class LinkMenuHandler {
   }
 
   protected async resolveAndEdit(editParsedLink: EditParsedLink, linkTarget: LinkTarget, leaf?: WorkspaceLeaf): Promise<void> {
-    const view = this.getSourceView(leaf);
-    const sourceFile = view?.file ?? null;
-    if (!view || !sourceFile) {
-      this.showCouldNotLocateNotice();
-      return;
-    }
-
-    if (view.getMode() === 'source' && await this.tryEditInEditor(editParsedLink, view, sourceFile.path, linkTarget)) {
-      return;
-    }
-
-    await editLinkOccurrenceViaSourceScan({
+    await resolveAndEditLink({
       app: this.app,
       editParsedLink,
       linkTarget,
       showCouldNotLocateNotice: () => {
         this.showCouldNotLocateNotice();
       },
-      sourceFile
+      view: this.getSourceView(leaf)
     });
   }
 
@@ -212,31 +197,5 @@ export class LinkMenuHandler {
 
   private showCouldNotLocateNotice(): void {
     this.pluginNoticeComponent.showNotice('Could not locate the link in the source note.');
-  }
-
-  private async tryEditInEditor(editParsedLink: EditParsedLink, view: MarkdownView, sourcePath: string, linkTarget: LinkTarget): Promise<boolean> {
-    const { editor } = view;
-    const cursor = editor.getCursor();
-    const line = editor.getDoc().getLine(cursor.line);
-    const parsedLink = parseLinks(line).find((link) => link.startOffset <= cursor.ch && cursor.ch <= link.endOffset);
-    if (
-      !parsedLink || !doesLinkMatchTarget({
-        app: this.app,
-        linkTarget,
-        parsedLink,
-        sourcePath
-      })
-    ) {
-      return false;
-    }
-
-    await editParsedLink({
-      app: this.app,
-      applyReplacement: (newRawLink) => {
-        editor.replaceRange(newRawLink, { ch: parsedLink.startOffset, line: cursor.line }, { ch: parsedLink.endOffset, line: cursor.line });
-      },
-      parsedLink
-    });
-    return true;
   }
 }

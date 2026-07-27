@@ -79,6 +79,8 @@ import { EditUrlAndAliasCommandHandler } from './edit-url-and-alias-command-hand
 // eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
 import { LinkClickAction } from './link-click-action.ts';
 // eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
+import { LinkClickComponent } from './link-click-component.ts';
+// eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
 import { LinkMenuHandler } from './link-menu-handler.ts';
 // eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
 import { PluginSettings } from './plugin-settings.ts';
@@ -179,6 +181,12 @@ describe('Plugin', () => {
 
     const settingsComponent = findAddedChild(plugin, PluginSettingsComponentBase<PluginSettings>);
     expect(settingsComponent.settings.linkClickAction).toBe(LinkClickAction.Disabled);
+  });
+
+  it('should register the link click component on load', async () => {
+    const plugin = await createLoadedPlugin();
+
+    expect(findAddedChild(plugin, LinkClickComponent)).toBeInstanceOf(LinkClickComponent);
   });
 
   it('should register the settings tab on load', async () => {

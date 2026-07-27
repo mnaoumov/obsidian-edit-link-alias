@@ -15,6 +15,7 @@
 
 import type {
   App,
+  MarkdownView,
   TFile
 } from 'obsidian';
 import type { ParseLinkResult } from 'obsidian-dev-utils/obsidian/parse-link';
@@ -94,6 +95,36 @@ export interface LinkTarget {
    * The internal target file, when the link is internal.
    */
   readonly target?: TFile;
+}
+
+/**
+ * Parameters for {@link resolveAndEditLink}.
+ */
+export interface ResolveAndEditLinkParams {
+  /**
+   * The Obsidian app instance.
+   */
+  readonly app: App;
+
+  /**
+   * The editor to run on the resolved link occurrence.
+   */
+  readonly editParsedLink: EditParsedLink;
+
+  /**
+   * The link to edit.
+   */
+  readonly linkTarget: LinkTarget;
+
+  /**
+   * Reports that the link could not be located in the source note.
+   */
+  showCouldNotLocateNotice(this: void): void;
+
+  /**
+   * The view the link was raised from, or `null` when it could not be determined.
+   */
+  readonly view: MarkdownView | null;
 }
 
 interface LinkMatch {
@@ -213,6 +244,45 @@ export async function editLinkOccurrenceViaSourceScan(params: EditLinkOccurrence
   });
 }
 
+/**
+ * Resolves the link occurrence a menu or a click refers to and runs the editor on it.
+ *
+ * In an editing view the caret already sits where the user clicked / opened the menu, so the link under
+ * it is tried first — that pins the exact occurrence even when the note links to the same destination
+ * several times, and it edits through the editor so the change joins the undo history. The match is
+ * verified against the target, so a stale caret cannot edit the wrong link: it simply falls through to
+ * the source scan.
+ *
+ * @param params - The parameters for the resolution.
+ */
+export async function resolveAndEditLink(params: ResolveAndEditLinkParams): Promise<void> {
+  const {
+    app,
+    editParsedLink,
+    linkTarget,
+    showCouldNotLocateNotice,
+    view
+  } = params;
+
+  const sourceFile = view?.file ?? null;
+  if (!view || !sourceFile) {
+    showCouldNotLocateNotice();
+    return;
+  }
+
+  if (view.getMode() === 'source' && await tryEditAtEditorCursor(app, view, sourceFile.path, linkTarget, editParsedLink)) {
+    return;
+  }
+
+  await editLinkOccurrenceViaSourceScan({
+    app,
+    editParsedLink,
+    linkTarget,
+    showCouldNotLocateNotice,
+    sourceFile
+  });
+}
+
 function findMatches(app: App, content: string, sourcePath: string, linkTarget: LinkTarget): LinkMatch[] {
   const matches: LinkMatch[] = [];
   const lines = content.split('\n');
@@ -234,4 +304,36 @@ function findMatches(app: App, content: string, sourcePath: string, linkTarget: 
     }
   });
   return matches;
+}
+
+async function tryEditAtEditorCursor(
+  app: App,
+  view: MarkdownView,
+  sourcePath: string,
+  linkTarget: LinkTarget,
+  editParsedLink: EditParsedLink
+): Promise<boolean> {
+  const { editor } = view;
+  const cursor = editor.getCursor();
+  const line = editor.getDoc().getLine(cursor.line);
+  const parsedLink = parseLinks(line).find((link) => link.startOffset <= cursor.ch && cursor.ch <= link.endOffset);
+  if (
+    !parsedLink || !doesLinkMatchTarget({
+      app,
+      linkTarget,
+      parsedLink,
+      sourcePath
+    })
+  ) {
+    return false;
+  }
+
+  await editParsedLink({
+    app,
+    applyReplacement: (newRawLink) => {
+      editor.replaceRange(newRawLink, { ch: parsedLink.startOffset, line: cursor.line }, { ch: parsedLink.endOffset, line: cursor.line });
+    },
+    parsedLink
+  });
+  return true;
 }

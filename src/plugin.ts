@@ -6,6 +6,7 @@ import { PluginBase } from 'obsidian-dev-utils/obsidian/plugin/plugin';
 
 import { EditCommandHandler } from './edit-command-handler.ts';
 import { EditUrlAndAliasCommandHandler } from './edit-url-and-alias-command-handler.ts';
+import { LinkClickComponent } from './link-click-component.ts';
 import { LinkMenuHandler } from './link-menu-handler.ts';
 import { PluginSettingsTab } from './plugin-settings-tab.ts';
 import { PluginSettings } from './plugin-settings.ts';
@@ -27,6 +28,13 @@ export class Plugin extends PluginBase {
           plugin: this,
           pluginSettingsComponent
         })
+      })
+    );
+
+    this.addChild(
+      new LinkClickComponent(this.app, {
+        pluginNoticeComponent: this.pluginNoticeComponent,
+        pluginSettingsComponent
       })
     );
 
