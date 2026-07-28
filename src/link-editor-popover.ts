@@ -18,7 +18,6 @@ import {
   Setting,
   TextComponent
 } from 'obsidian';
-import { ensureNonNullable } from 'obsidian-dev-utils/type-guards';
 
 const ALIAS_INPUT_CSS_CLASS = 'link-editor-popover-alias-input';
 const CANCEL_BUTTON_CSS_CLASS = 'link-editor-popover-cancel-button';
@@ -107,7 +106,7 @@ export interface PopoverAnchor {
  * @returns The anchor.
  */
 export function createAnchorFromDocumentCenter(doc: Document): PopoverAnchor {
-  const win = getWindow(doc);
+  const win = doc.win;
   return {
     bottom: win.innerHeight * CENTER_FRACTION,
     doc,
@@ -126,7 +125,7 @@ export function createAnchorFromElement(el: HTMLElement): PopoverAnchor {
   const rect = el.getBoundingClientRect();
   return {
     bottom: rect.bottom,
-    doc: el.ownerDocument,
+    doc: el.doc,
     left: rect.left
   };
 }
@@ -184,7 +183,7 @@ export async function editLinkUrlAndAliasInPopover(params: EditLinkUrlAndAliasIn
   } = params;
 
   const doc = anchor.doc;
-  const win = getWindow(doc);
+  const win = doc.win;
   const popoverEl = doc.body.createDiv({ cls: ['menu', POPOVER_CSS_CLASS] });
 
   const urlText = addField(popoverEl, 'URL', defaultUrl, URL_INPUT_CSS_CLASS);
@@ -267,15 +266,6 @@ function addField(containerEl: HTMLElement, name: string, value: string, cssClas
   textComponent.setValue(value);
   textComponent.inputEl.addClass(cssClass);
   return textComponent;
-}
-
-function getWindow(doc: Document): Window {
-  /*
-   * TODO(T203): Simplify to the `win` node extension — the idiomatic Obsidian form, and correct against
-   * the real typings — once obsidian-test-mocks exposes it as a getter rather than a method (T202) and
-   * the bump lands here. Until then the idiomatic form throws in unit tests.
-   */
-  return ensureNonNullable(doc.defaultView, 'The link belongs to a document with no window');
 }
 
 /**

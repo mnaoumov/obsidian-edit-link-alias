@@ -160,7 +160,7 @@ export class LinkMenuHandler {
    */
   private getMenuAnchor(): PopoverAnchor {
     return this.pointerPositionComponent.getLastPointerAnchor()
-      ?? createAnchorFromDocumentCenter(this.app.workspace.containerEl.ownerDocument);
+      ?? createAnchorFromDocumentCenter(this.app.workspace.containerEl.doc);
   }
 
   private getSourceView(leaf?: WorkspaceLeaf): MarkdownView | null {
