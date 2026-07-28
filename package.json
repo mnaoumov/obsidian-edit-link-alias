@@ -38,12 +38,12 @@
     "version": "jiti scripts/version.ts"
   },
   "overrides": {
-    "@eslint/config-helpers": "^0.6.0",
+    "@eslint/config-helpers": "^0.7.0",
     "@vitest/coverage-v8": "$@vitest/coverage-v8",
     "brace-expansion": "file:patches/brace-expansion-callable",
     "eslint": "$eslint",
-    "js-yaml": "^4.2.0",
-    "markdown-it": "^14.2.0",
+    "js-yaml": "^5.2.2",
+    "markdown-it": "^14.3.0",
     "typescript": "6.0.3"
   },
   "devDependencies": {
