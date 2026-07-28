@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## 1.1.0
+
+- refactor: narrow the link menu handlers to private, per find-overexposed
+- refactor: narrow handleClick to private, per find-overexposed
+- test: use strictProxy for the collaborator doubles, per G43
+- feat: edit a link by Alt + clicking it, and drop the modal
+- chore: renumber the TODO task references after an id collision
+- test: add the demo-vault coverage suite, now that the plugin has settings
+- feat: re #2
+- feat: re #2
+- chore: update libs
+
 ## 1.0.14
 
 - feat: re #3
