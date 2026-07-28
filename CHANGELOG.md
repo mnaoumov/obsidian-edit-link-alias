@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 1.2.0
+
+- refactor: drop the obsidian-test-mocks workarounds
+- chore: update libs
+- build: bump postcss to 8.5.23 for GHSA-r28c-9q8g-f849
+- build: patch the vulnerable brace-expansion behind a callable override
+- chore: update libs
+
 ## 1.1.0
 
 - refactor: narrow the link menu handlers to private, per find-overexposed
