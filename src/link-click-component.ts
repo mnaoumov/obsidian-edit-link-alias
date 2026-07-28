@@ -96,39 +96,6 @@ export class LinkClickComponent extends AllWindowsEventComponent {
     });
   }
 
-  protected handleClick(evt: MouseEvent): void {
-    if (!this.shouldOpenEditor(evt)) {
-      return;
-    }
-
-    const linkEl = getClickedLinkEl(evt);
-    if (!linkEl) {
-      return;
-    }
-
-    const view = this.getViewContaining(linkEl);
-    const linkTarget = this.getLinkTarget(linkEl, view);
-    if (!linkTarget) {
-      return;
-    }
-
-    evt.preventDefault();
-    evt.stopPropagation();
-    evt.stopImmediatePropagation();
-
-    invokeAsyncSafely(async () => {
-      await resolveAndEditLink({
-        app: this.app,
-        editParsedLink: createEditParsedLinkUrlAndAliasInPopover(createAnchorFromElement(linkEl)),
-        linkTarget,
-        showCouldNotLocateNotice: () => {
-          this.pluginNoticeComponent.showNotice('Could not locate the link in the source note.');
-        },
-        view
-      });
-    });
-  }
-
   /**
    * Reads what the clicked element points at. An internal link carries the link path in `data-href`,
    * which is resolved against the note it was clicked in; an external one carries its url in `href`.
@@ -168,6 +135,39 @@ export class LinkClickComponent extends AllWindowsEventComponent {
       }
     });
     return state.view;
+  }
+
+  private handleClick(evt: MouseEvent): void {
+    if (!this.shouldOpenEditor(evt)) {
+      return;
+    }
+
+    const linkEl = getClickedLinkEl(evt);
+    if (!linkEl) {
+      return;
+    }
+
+    const view = this.getViewContaining(linkEl);
+    const linkTarget = this.getLinkTarget(linkEl, view);
+    if (!linkTarget) {
+      return;
+    }
+
+    evt.preventDefault();
+    evt.stopPropagation();
+    evt.stopImmediatePropagation();
+
+    invokeAsyncSafely(async () => {
+      await resolveAndEditLink({
+        app: this.app,
+        editParsedLink: createEditParsedLinkUrlAndAliasInPopover(createAnchorFromElement(linkEl)),
+        linkTarget,
+        showCouldNotLocateNotice: () => {
+          this.pluginNoticeComponent.showNotice('Could not locate the link in the source note.');
+        },
+        view
+      });
+    });
   }
 
   private shouldOpenEditor(evt: MouseEvent): boolean {
