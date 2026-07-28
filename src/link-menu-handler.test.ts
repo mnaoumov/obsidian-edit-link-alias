@@ -199,7 +199,7 @@ function createHandler(): TestableLinkMenuHandler {
     app,
     plugin,
     pluginNoticeComponent,
-    pointerPositionComponent: castTo<PointerPositionComponent>({ getLastPointerAnchor: () => lastPointerAnchor })
+    pointerPositionComponent: strictProxy<PointerPositionComponent>({ getLastPointerAnchor: () => lastPointerAnchor })
   });
 }
 

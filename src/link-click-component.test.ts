@@ -84,7 +84,7 @@ function createInternalLinkEl(dataHref = 'target'): HTMLElement {
 function loadComponent(shouldOpenLinkEditorOnAltClick = true): void {
   component = new LinkClickComponent(app, {
     pluginNoticeComponent: castTo<PluginNoticeComponent>({ showNotice }),
-    pluginSettingsComponent: castTo<PluginSettingsComponentBase<PluginSettings>>({ settings: { shouldOpenLinkEditorOnAltClick } })
+    pluginSettingsComponent: strictProxy<PluginSettingsComponentBase<PluginSettings>>({ settings: { shouldOpenLinkEditorOnAltClick } })
   });
   component.load();
 }

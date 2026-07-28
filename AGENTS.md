@@ -34,7 +34,8 @@
   records the last `pointerdown` per window and the menu handler anchors there. It registers per window
   via `registerAllWindowsHandler` (not `registerAllDocumentsDomEvent`) so the document comes from the
   listener's own window; deriving it from the event target would add a branch a document-level listener
-  can never take.
+  can never take. Like the popover, it is plugin-agnostic and is tracked as a G61 extraction candidate
+  under the same `T204-P1`.
 - **Occurrence resolution is shared, not duplicated (`src/resolve-link-occurrence.ts`).** Neither a
   context menu nor a click tells you *where* in the note the link was written — only what it points at.
   `resolveAndEditLink` therefore tries the editor caret first (in an editing view the click has already
