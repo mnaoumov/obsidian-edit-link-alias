@@ -69,6 +69,16 @@
   `true` (see the `Alt`-vs-`Mod` note above for why on-by-default is safe here). The plugin uses the
   dev-utils `PluginSettingsComponentBase` directly rather than subclassing it — there is nothing to
   validate, and an empty subclass would be untested code against the 100% coverage gate.
+- **`patches/brace-expansion-callable/` — a G51 deviation in the toolchain, not the plugin.** Every
+  `minimatch` in the dependency tree (via `eslint-plugin-import` / `-react` / `-n` /
+  `-json-schema-validator`, `glob` and `readdir-glob`) pulls a `brace-expansion` that is vulnerable to
+  GHSA-mh99-v99m-4gvg; the fix ships only on the 5.x line, and `npm audit fix --force` "solves" it by
+  downgrading `obsidian-dev-utils` to 43.10.1. So the `brace-expansion` `overrides` entry points at a
+  local `file:` package that re-exports the patched 5.x implementation (installed under the
+  `brace-expansion-upstream` alias) in the legacy callable `module.exports = expand` shape that
+  `minimatch@3` requires. Same shape as the one `obsidian-dev-utils` uses. **Drop the override, the
+  patch directory and the alias devDependency** once the transitive `minimatch`es resolve a patched
+  `brace-expansion` on their own — `npm audit` staying at 0 after removal is the check.
 - **Styles** live in `src/styles/main.scss` and reach `dist/build/styles.css` only because `src/main.ts`
   imports the stylesheet; a `styles.css` at the repo root is silently ignored by the build.
 - **Link/url context menu integration (`src/link-menu-handler.ts`) — deliberate G51 deviation.** The
