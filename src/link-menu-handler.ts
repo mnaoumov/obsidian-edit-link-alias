@@ -137,32 +137,6 @@ export class LinkMenuHandler {
     );
   }
 
-  protected handleFileMenu(menu: Menu, file: TAbstractFile, source: string, leaf?: WorkspaceLeaf): void {
-    if (source !== LINK_CONTEXT_MENU_SOURCE || !isFile(file) || this.isHandledByEditorMenu()) {
-      return;
-    }
-    this.addMenuItems(menu, { target: file }, leaf);
-  }
-
-  protected handleUrlMenu(menu: Menu, url: string): void {
-    if (this.isHandledByEditorMenu()) {
-      return;
-    }
-    this.addMenuItems(menu, { externalUrl: url });
-  }
-
-  protected async resolveAndEdit(editParsedLink: EditParsedLink, linkTarget: LinkTarget, leaf?: WorkspaceLeaf): Promise<void> {
-    await resolveAndEditLink({
-      app: this.app,
-      editParsedLink,
-      linkTarget,
-      showCouldNotLocateNotice: () => {
-        this.showCouldNotLocateNotice();
-      },
-      view: this.getSourceView(leaf)
-    });
-  }
-
   private addMenuItems(menu: Menu, linkTarget: LinkTarget, leaf?: WorkspaceLeaf): void {
     for (const descriptor of MENU_ITEM_DESCRIPTORS) {
       menu.addItem((item) => {
@@ -196,6 +170,20 @@ export class LinkMenuHandler {
     return this.app.workspace.getActiveViewOfType(MarkdownView);
   }
 
+  private handleFileMenu(menu: Menu, file: TAbstractFile, source: string, leaf?: WorkspaceLeaf): void {
+    if (source !== LINK_CONTEXT_MENU_SOURCE || !isFile(file) || this.isHandledByEditorMenu()) {
+      return;
+    }
+    this.addMenuItems(menu, { target: file }, leaf);
+  }
+
+  private handleUrlMenu(menu: Menu, url: string): void {
+    if (this.isHandledByEditorMenu()) {
+      return;
+    }
+    this.addMenuItems(menu, { externalUrl: url });
+  }
+
   /**
    * On desktop, a link right-click in the editor fires both this link/url menu and the `editor-menu`
    * event, so the {@link EditorCommandHandler} already surfaces the items there. Detect that case (the
@@ -220,6 +208,18 @@ export class LinkMenuHandler {
 
     const clickableTokenType = view.editor.getClickableTokenAt(view.editor.getCursor())?.type;
     return clickableTokenType === 'internal-link' || clickableTokenType === 'external-link';
+  }
+
+  private async resolveAndEdit(editParsedLink: EditParsedLink, linkTarget: LinkTarget, leaf?: WorkspaceLeaf): Promise<void> {
+    await resolveAndEditLink({
+      app: this.app,
+      editParsedLink,
+      linkTarget,
+      showCouldNotLocateNotice: () => {
+        this.showCouldNotLocateNotice();
+      },
+      view: this.getSourceView(leaf)
+    });
   }
 
   private showCouldNotLocateNotice(): void {
