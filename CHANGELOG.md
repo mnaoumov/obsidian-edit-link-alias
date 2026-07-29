@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 1.3.0
+
+- docs: fix the demo vault download instructions
+- refactor(popover): consume the obsidian-dev-utils popover
+- chore: update libs
+
 ## 1.2.0
 
 - refactor: drop the obsidian-test-mocks workarounds
