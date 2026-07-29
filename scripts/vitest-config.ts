@@ -59,6 +59,15 @@ export const config = defineConfig({
       {
         test: {
           environment: 'node',
+          environmentOptions: {
+            obsidianTransport: {
+              // Support is the range [latest public, latest catalyst] and BOTH ends must work (G99), so
+              // The version is a knob rather than a constant: the default covers the public floor, and
+              // `OBSIDIAN_VERSION=catalyst-latest` covers the other end.
+              obsidianVersion: process.env['OBSIDIAN_VERSION'] ?? 'public-latest',
+              type: 'obsidian-cdp'
+            }
+          },
           fileParallelism: false,
           globalSetup: ['obsidian-integration-testing/vitest-global-setup-plugin'],
           hookTimeout: BIG_TIMEOUT_IN_MILLISECONDS * HOOK_TIMEOUT_MULTIPLIER,

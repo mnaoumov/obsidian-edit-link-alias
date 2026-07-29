@@ -1,8 +1,10 @@
 import type { App } from 'obsidian';
 import type { ParseLinkResult } from 'obsidian-dev-utils/obsidian/parse-link';
+import type { PopoverAnchor } from 'obsidian-dev-utils/obsidian/popovers/popover-anchor';
 
 import { generateRawMarkdownLink } from 'obsidian-dev-utils/obsidian/link';
 import { prompt } from 'obsidian-dev-utils/obsidian/modals/prompt';
+import { editFieldsInPopover } from 'obsidian-dev-utils/obsidian/popovers/field-popover';
 import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
 import {
   afterEach,
@@ -13,13 +15,10 @@ import {
   vi
 } from 'vitest';
 
-import type { PopoverAnchor } from './link-editor-popover.ts';
-
 import {
   createEditParsedLinkUrlAndAliasInPopover,
   editParsedLinkAlias
 } from './edit-link.ts';
-import { editLinkUrlAndAliasInPopover } from './link-editor-popover.ts';
 
 vi.mock('obsidian-dev-utils/obsidian/link', () => ({
   generateRawMarkdownLink: vi.fn()
@@ -29,14 +28,14 @@ vi.mock('obsidian-dev-utils/obsidian/modals/prompt', () => ({
   prompt: vi.fn()
 }));
 
-vi.mock('./link-editor-popover.ts', () => ({
-  editLinkUrlAndAliasInPopover: vi.fn()
+vi.mock('obsidian-dev-utils/obsidian/popovers/field-popover', () => ({
+  editFieldsInPopover: vi.fn()
 }));
 
 const mockGenerateRawMarkdownLink = vi.mocked(generateRawMarkdownLink);
 const mockPrompt = vi.mocked(prompt);
 
-const mockEditLinkUrlAndAliasInPopover = vi.mocked(editLinkUrlAndAliasInPopover);
+const mockEditFieldsInPopover = vi.mocked(editFieldsInPopover);
 
 function createMockApp(): App {
   return strictProxy<App>({});
@@ -172,7 +171,7 @@ describe('createEditParsedLinkUrlAndAliasInPopover', () => {
   });
 
   it('should open the popover at the given anchor, pre-filled with the current url and alias', async () => {
-    mockEditLinkUrlAndAliasInPopover.mockResolvedValue(null);
+    mockEditFieldsInPopover.mockResolvedValue(null);
     const anchor = createTestAnchor();
 
     await createEditParsedLinkUrlAndAliasInPopover(anchor)({
@@ -181,15 +180,25 @@ describe('createEditParsedLinkUrlAndAliasInPopover', () => {
       parsedLink: createParsedLink({ alias: 'current', url: 'target' })
     });
 
-    expect(mockEditLinkUrlAndAliasInPopover).toHaveBeenCalledWith({
+    expect(mockEditFieldsInPopover).toHaveBeenCalledWith({
       anchor,
-      defaultAlias: 'current',
-      defaultUrl: 'target'
+      fields: [
+        {
+          defaultValue: 'target',
+          key: 'url',
+          name: 'URL'
+        },
+        {
+          defaultValue: 'current',
+          key: 'alias',
+          name: 'Alias'
+        }
+      ]
     });
   });
 
   it('should default the alias field to empty when there is no alias', async () => {
-    mockEditLinkUrlAndAliasInPopover.mockResolvedValue(null);
+    mockEditFieldsInPopover.mockResolvedValue(null);
 
     await createEditParsedLinkUrlAndAliasInPopover(createTestAnchor())({
       app: createMockApp(),
@@ -197,13 +206,18 @@ describe('createEditParsedLinkUrlAndAliasInPopover', () => {
       parsedLink: createParsedLink({ url: 'target' })
     });
 
-    expect(mockEditLinkUrlAndAliasInPopover).toHaveBeenCalledWith(
-      expect.objectContaining({ defaultAlias: '', defaultUrl: 'target' })
+    expect(mockEditFieldsInPopover).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fields: [
+          expect.objectContaining({ defaultValue: 'target', key: 'url' }),
+          expect.objectContaining({ defaultValue: '', key: 'alias' })
+        ]
+      })
     );
   });
 
   it('should not apply a replacement when the popover is dismissed', async () => {
-    mockEditLinkUrlAndAliasInPopover.mockResolvedValue(null);
+    mockEditFieldsInPopover.mockResolvedValue(null);
     const applyReplacement = vi.fn();
 
     await createEditParsedLinkUrlAndAliasInPopover(createTestAnchor())({
@@ -217,7 +231,7 @@ describe('createEditParsedLinkUrlAndAliasInPopover', () => {
   });
 
   it('should rebuild the link with the new url and alias preserving its flags and apply the replacement', async () => {
-    mockEditLinkUrlAndAliasInPopover.mockResolvedValue({ alias: 'new alias', url: 'new-target' });
+    mockEditFieldsInPopover.mockResolvedValue({ alias: 'new alias', url: 'new-target' });
     mockGenerateRawMarkdownLink.mockReturnValue('[[new-target|new alias]]');
     const applyReplacement = vi.fn();
 

@@ -25,12 +25,12 @@ import {
 } from 'obsidian';
 import { invokeAsyncSafely } from 'obsidian-dev-utils/async';
 import { AllWindowsEventComponent } from 'obsidian-dev-utils/obsidian/components/all-windows-event-component';
+import { createAnchorFromElement } from 'obsidian-dev-utils/obsidian/popovers/popover-anchor';
 
 import type { PluginSettings } from './plugin-settings.ts';
 import type { LinkTarget } from './resolve-link-occurrence.ts';
 
 import { createEditParsedLinkUrlAndAliasInPopover } from './edit-link.ts';
-import { createAnchorFromElement } from './link-editor-popover.ts';
 import { resolveAndEditLink } from './resolve-link-occurrence.ts';
 
 /**

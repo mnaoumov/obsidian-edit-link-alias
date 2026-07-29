@@ -41,6 +41,12 @@ const EXPECTED_SOURCE_CONTENT = `[[${NEW_URL_LINK_TEXT}|${NEW_ALIAS}]]`;
 const WAIT_TIMEOUT_IN_MILLISECONDS = 20_000;
 const POPOVER_SETTLE_TIMEOUT_IN_MILLISECONDS = 2_000;
 
+/**
+ * The popover's URL and alias fields — the count is what tells "the popover is fully built" apart from
+ * "it is halfway through being built".
+ */
+const POPOVER_FIELD_COUNT = 2;
+
 interface ClickScenarioResult {
   readonly activePath: null | string;
   readonly sourceContent: string;
@@ -101,6 +107,7 @@ async function runClickScenario(params: RunClickScenarioParams): Promise<ClickSc
       newAlias: NEW_ALIAS,
       newUrl: NEW_URL_LINK_TEXT,
       pluginId: PLUGIN_ID,
+      popoverFieldCount: POPOVER_FIELD_COUNT,
       popoverSettleTimeoutInMilliseconds: POPOVER_SETTLE_TIMEOUT_IN_MILLISECONDS,
       shouldOpenLinkEditorOnAltClick: params.shouldOpenLinkEditorOnAltClick,
       shouldUseAlt: params.shouldUseAlt,
@@ -118,6 +125,7 @@ async function runClickScenario(params: RunClickScenarioParams): Promise<ClickSc
       newUrl,
       obsidianModule,
       pluginId,
+      popoverFieldCount,
       popoverSettleTimeoutInMilliseconds,
       shouldOpenLinkEditorOnAltClick,
       shouldUseAlt,
@@ -135,6 +143,19 @@ async function runClickScenario(params: RunClickScenarioParams): Promise<ClickSc
         saveToFile(context: unknown): Promise<void>;
         setProperty(propertyName: string, value: unknown): Promise<string>;
         settings: Record<string, unknown>;
+      }
+
+      /*
+       * The popover comes from `obsidian-dev-utils`, which classes it `obsidian-dev-utils <pluginId>
+       * popover` and gives every field the same `text-box` class. The fields are therefore told apart by
+       * their order, which is the order they were handed to `editFieldsInPopover`: URL first, alias second.
+       */
+      function getPopoverEl(): HTMLElement | null {
+        return document.body.querySelector<HTMLElement>(`.obsidian-dev-utils.${pluginId}.popover`);
+      }
+
+      function getPopoverInputEls(): HTMLInputElement[] {
+        return Array.from(getPopoverEl()?.querySelectorAll('input') ?? []);
       }
 
       function findSettingsComponent(root: unknown): null | SettingsHolder {
@@ -219,7 +240,7 @@ async function runClickScenario(params: RunClickScenarioParams): Promise<ClickSc
       try {
         await waitUntil({
           message: 'the link editor popover did not open',
-          predicate: () => document.querySelector('.link-editor-popover-url-input') !== null,
+          predicate: () => getPopoverInputEls().length === popoverFieldCount,
           timeoutInMilliseconds: popoverSettleTimeoutInMilliseconds
         });
         wasPopoverShown = true;
@@ -228,9 +249,8 @@ async function runClickScenario(params: RunClickScenarioParams): Promise<ClickSc
       }
 
       if (wasPopoverShown) {
-        const urlInputEl = document.querySelector<HTMLInputElement>('.link-editor-popover-url-input');
-        const aliasInputEl = document.querySelector<HTMLInputElement>('.link-editor-popover-alias-input');
-        const okButtonEl = document.querySelector<HTMLElement>('.link-editor-popover-ok-button');
+        const [urlInputEl, aliasInputEl] = getPopoverInputEls();
+        const okButtonEl = getPopoverEl()?.querySelector<HTMLElement>('.ok-button');
         if (!urlInputEl || !aliasInputEl || !okButtonEl) {
           throw new Error('The link editor popover is missing its fields');
         }

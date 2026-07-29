@@ -10,7 +10,9 @@ import type {
   WorkspaceLeaf
 } from 'obsidian';
 import type { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/components/plugin-notice-component';
+import type { PointerPositionComponent } from 'obsidian-dev-utils/obsidian/components/pointer-position-component';
 import type { ParseLinkResult } from 'obsidian-dev-utils/obsidian/parse-link';
+import type { PopoverAnchor } from 'obsidian-dev-utils/obsidian/popovers/popover-anchor';
 
 import {
   MarkdownView,
@@ -32,8 +34,6 @@ import {
 } from 'vitest';
 
 import type { EditParsedLink } from './edit-link.ts';
-import type { PopoverAnchor } from './link-editor-popover.ts';
-import type { PointerPositionComponent } from './pointer-position-component.ts';
 
 import {
   createEditParsedLinkUrlAndAliasInPopover,

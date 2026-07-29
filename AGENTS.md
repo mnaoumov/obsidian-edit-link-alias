@@ -6,8 +6,8 @@
   link-rebuild machinery, differing only in the `EditParsedLink` function they run (`src/edit-link.ts`):
   - `editParsedLinkAlias` — the original alias-only flow (dev-utils `prompt`), surfaced by
     `EditCommandHandler` (`src/edit-command-handler.ts`).
-  - the URL **and** alias editor, an **anchored popover** (`src/link-editor-popover.ts`) reached through
-    the factory `createEditParsedLinkUrlAndAliasInPopover(anchor)`.
+  - the URL **and** alias editor, the dev-utils **anchored popover** (`editFieldsInPopover`) reached
+    through the factory `createEditParsedLinkUrlAndAliasInPopover(anchor)`.
 
   Command handlers delegate the cursor-resolution + `replaceRange` to the shared
   `editLinkAtEditorCursor` (`src/edit-in-editor.ts`), parameterized by which `EditParsedLink` to invoke.
@@ -18,24 +18,32 @@
   was briefly a centered `Modal` version too; it was deleted when the menu switched over. It is plain
   DOM rather than `Modal` because a modal dims the screen and is positioned by Obsidian, neither of
   which suits an editor that must appear *at* the link.
+  - **It lives in `obsidian-dev-utils`, not here** — `editFieldsInPopover`
+    (`obsidian/popovers/field-popover`) over the `showPopover` shell (`obsidian/popovers/popover`). It
+    started as a plugin-local `src/link-editor-popover.ts`, was extracted under `T204-P1` because it is
+    entirely plugin-agnostic (G61), and the local copy was deleted under `T214-P27`. `src/edit-link.ts`
+    is the single call site: two fields, `url` then `alias`, whose keys type the resolved record.
   - It takes a resolved `PopoverAnchor` (`{ bottom, doc, left }`) rather than an element, because the
     three entry points know the position in three different ways: `createAnchorFromElement` (the clicked
     link), `createAnchorFromPoint` (the pointer that opened the context menu — see
     `PointerPositionComponent` below), and `createAnchorFromSelection` (the caret, for the keyboard-
-    invoked command). Carrying `doc` explicitly is what makes pop-out windows work.
+    invoked command). All three come from `obsidian-dev-utils/obsidian/popovers/popover-anchor`.
+    Carrying `doc` explicitly is what makes pop-out windows work.
   - It dismisses on the next `pointerdown` OUTSIDE it — **not** `click`. It is opened from a `click`
     handler, so a `click`-based outside listener would see that very same event and close it instantly.
-  - Whether it should be promoted into `obsidian-dev-utils` is tracked centrally as a G61 candidate
-    (`T204-P1`); it stays here while it has a single consumer.
-- **`PointerPositionComponent` (`src/pointer-position-component.ts`) exists only because the context
-  menu has no anchor.** The `file-menu` / `url-menu` events carry the target file or url but no event
-  and no element, and by the time a menu item's callback runs the menu is closing — so nothing is left
-  to measure. The right-click / long-press that raised the menu IS where the link is, so the component
-  records the last `pointerdown` per window and the menu handler anchors there. It registers per window
-  via `registerAllWindowsHandler` (not `registerAllDocumentsDomEvent`) so the document comes from the
-  listener's own window; deriving it from the event target would add a branch a document-level listener
-  can never take. Like the popover, it is plugin-agnostic and is tracked as a G61 extraction candidate
-  under the same `T204-P1`.
+  - **What its DOM looks like matters to the integration suites**: the root carries
+    `menu obsidian-dev-utils edit-link-alias popover`, the OK/Cancel buttons `ok-button` / `cancel-button`,
+    and EVERY field the same `text-box` class — there is no per-field class, so a test tells the URL
+    field from the alias field by their order, not by a selector.
+- **`PointerPositionComponent` exists only because the context menu has no anchor.** The `file-menu` /
+  `url-menu` events carry the target file or url but no event and no element, and by the time a menu
+  item's callback runs the menu is closing — so nothing is left to measure. The right-click / long-press
+  that raised the menu IS where the link is, so the component records the last `pointerdown` per window
+  and the menu handler anchors there. It registers per window via `registerAllWindowsHandler` (not
+  `registerAllDocumentsDomEvent`) so the document comes from the listener's own window; deriving it from
+  the event target would add a branch a document-level listener can never take. Like the popover it is
+  plugin-agnostic, so it too was extracted (`T204-P1`) and is now consumed from
+  `obsidian-dev-utils/obsidian/components/pointer-position-component`.
 - **Occurrence resolution is shared, not duplicated (`src/resolve-link-occurrence.ts`).** Neither a
   context menu nor a click tells you *where* in the note the link was written — only what it points at.
   `resolveAndEditLink` therefore tries the editor caret first (in an editing view the click has already
@@ -79,8 +87,20 @@
   `minimatch@3` requires. Same shape as the one `obsidian-dev-utils` uses. **Drop the override, the
   patch directory and the alias devDependency** once the transitive `minimatch`es resolve a patched
   `brace-expansion` on their own — `npm audit` staying at 0 after removal is the check.
-- **Styles** live in `src/styles/main.scss` and reach `dist/build/styles.css` only because `src/main.ts`
-  imports the stylesheet; a `styles.css` at the repo root is silently ignored by the build.
+- **The desktop integration project pins the Obsidian version, and it is a knob (G99).** Support is the
+  range `[latest public, latest catalyst]` and both ends must work, so
+  `scripts/vitest-config.ts` sets `environmentOptions.obsidianTransport.obsidianVersion` to
+  `process.env['OBSIDIAN_VERSION'] ?? 'public-latest'`. `npm run test:integration:desktop` therefore covers
+  the public floor; the other end is `OBSIDIAN_VERSION=catalyst-latest npx vitest run
+  --project=integration-tests:desktop` — spawn `vitest` directly, because dev-utils' `test()` helper does
+  not propagate the variable to its child and the run silently falls back to the public build.
+- **The plugin ships NO stylesheet of its own.** There was a `src/styles/main.scss` holding the popover's
+  layout; it was deleted with the popover (`T214-P27`) because `obsidian-dev-utils` now ships the identical
+  block under `.obsidian-dev-utils.popover` in its own styles, injected by `initPluginContext`. If a
+  plugin-specific rule is ever needed again, re-create `src/styles/main.scss` **and** import it from
+  `src/main.ts` — that import is the only thing that makes it reach `dist/build/styles.css`; a
+  `styles.css` at the repo root is silently ignored by the build. Popover-only overrides should instead go
+  through `editFieldsInPopover`'s `cssClasses` parameter.
 - **Link/url context menu integration (`src/link-menu-handler.ts`) — deliberate G51 deviation.** The
   editors are normal `EditorCommandHandler`s (command palette + `editor-menu`). But on mobile,
   long-pressing a link (and right-clicking a rendered link in Reading view) does **not** fire

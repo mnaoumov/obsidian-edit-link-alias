@@ -1,13 +1,11 @@
 import type { App } from 'obsidian';
 import type { ParseLinkResult } from 'obsidian-dev-utils/obsidian/parse-link';
+import type { PopoverAnchor } from 'obsidian-dev-utils/obsidian/popovers/popover-anchor';
 import type { Promisable } from 'type-fest';
 
 import { generateRawMarkdownLink } from 'obsidian-dev-utils/obsidian/link';
 import { prompt } from 'obsidian-dev-utils/obsidian/modals/prompt';
-
-import type { PopoverAnchor } from './link-editor-popover.ts';
-
-import { editLinkUrlAndAliasInPopover } from './link-editor-popover.ts';
+import { editFieldsInPopover } from 'obsidian-dev-utils/obsidian/popovers/field-popover';
 
 /**
  * A function that edits a parsed link and applies the replacement. Both {@link editParsedLinkAlias} and
@@ -60,10 +58,20 @@ export function createEditParsedLinkUrlAndAliasInPopover(anchor: PopoverAnchor):
       parsedLink
     } = params;
 
-    const edited = await editLinkUrlAndAliasInPopover({
+    const edited = await editFieldsInPopover({
       anchor,
-      defaultAlias: parsedLink.alias ?? '',
-      defaultUrl: parsedLink.url
+      fields: [
+        {
+          defaultValue: parsedLink.url,
+          key: 'url',
+          name: 'URL'
+        },
+        {
+          defaultValue: parsedLink.alias ?? '',
+          key: 'alias',
+          name: 'Alias'
+        }
+      ]
     });
 
     if (edited === null) {
