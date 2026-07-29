@@ -6,6 +6,8 @@ import type {
   WorkspaceLeaf
 } from 'obsidian';
 import type { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/components/plugin-notice-component';
+import type { PointerPositionComponent } from 'obsidian-dev-utils/obsidian/components/pointer-position-component';
+import type { PopoverAnchor } from 'obsidian-dev-utils/obsidian/popovers/popover-anchor';
 
 import {
   MarkdownView,
@@ -13,17 +15,15 @@ import {
 } from 'obsidian';
 import { convertAsyncToSync } from 'obsidian-dev-utils/async';
 import { isFile } from 'obsidian-dev-utils/obsidian/file-system';
+import { createAnchorFromDocumentCenter } from 'obsidian-dev-utils/obsidian/popovers/popover-anchor';
 
 import type { EditParsedLink } from './edit-link.ts';
-import type { PopoverAnchor } from './link-editor-popover.ts';
-import type { PointerPositionComponent } from './pointer-position-component.ts';
 import type { LinkTarget } from './resolve-link-occurrence.ts';
 
 import {
   createEditParsedLinkUrlAndAliasInPopover,
   editParsedLinkAlias
 } from './edit-link.ts';
-import { createAnchorFromDocumentCenter } from './link-editor-popover.ts';
 import { resolveAndEditLink } from './resolve-link-occurrence.ts';
 
 const LINK_CONTEXT_MENU_SOURCE = 'link-context-menu';

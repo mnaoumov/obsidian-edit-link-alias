@@ -1,6 +1,7 @@
 import { OpenDemoVaultCommandHandler } from 'obsidian-dev-utils/obsidian/command-handlers/open-demo-vault-command-handler';
 import { PluginSettingsComponentBase } from 'obsidian-dev-utils/obsidian/components/plugin-settings-component';
 import { PluginSettingsTabComponent } from 'obsidian-dev-utils/obsidian/components/plugin-settings-tab-component';
+import { PointerPositionComponent } from 'obsidian-dev-utils/obsidian/components/pointer-position-component';
 import { PluginDataHandler } from 'obsidian-dev-utils/obsidian/data-handler';
 import { PluginBase } from 'obsidian-dev-utils/obsidian/plugin/plugin';
 
@@ -10,7 +11,6 @@ import { LinkClickComponent } from './link-click-component.ts';
 import { LinkMenuHandler } from './link-menu-handler.ts';
 import { PluginSettingsTab } from './plugin-settings-tab.ts';
 import { PluginSettings } from './plugin-settings.ts';
-import { PointerPositionComponent } from './pointer-position-component.ts';
 
 export class Plugin extends PluginBase {
   protected override onloadImpl(): void {

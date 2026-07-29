@@ -6,10 +6,10 @@ import type {
 
 import { MarkdownView } from 'obsidian';
 import { EditorCommandHandler } from 'obsidian-dev-utils/obsidian/command-handlers/editor-command-handler';
+import { createAnchorFromSelection } from 'obsidian-dev-utils/obsidian/popovers/popover-anchor';
 
 import { editLinkAtEditorCursor } from './edit-in-editor.ts';
 import { createEditParsedLinkUrlAndAliasInPopover } from './edit-link.ts';
-import { createAnchorFromSelection } from './link-editor-popover.ts';
 
 export class EditUrlAndAliasCommandHandler extends EditorCommandHandler {
   public constructor(private readonly app: App) {

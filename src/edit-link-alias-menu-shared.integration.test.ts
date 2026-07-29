@@ -160,6 +160,13 @@ export function registerEditAliasMenuSuite(platform: string): void {
 const URL_AND_ALIAS_MENU_ITEM_TITLE = 'Edit link (URL and alias)';
 const NEW_URL_LINK_TEXT = 'edit-link-alias-target-renamed';
 const URL_AND_ALIAS_EXPECTED_SOURCE_CONTENT = `[[${NEW_URL_LINK_TEXT}|${NEW_ALIAS}]]`;
+const PLUGIN_ID = 'edit-link-alias';
+
+/**
+ * The popover's URL and alias fields — the count is what tells "the popover is fully built" apart from
+ * "it is halfway through being built".
+ */
+const POPOVER_FIELD_COUNT = 2;
 
 /**
  * Registers the "Edit link (URL and alias)" link-context-menu integration test for the given platform. It
@@ -178,6 +185,8 @@ export function registerEditUrlAndAliasMenuSuite(platform: string): void {
           menuItemTitle: URL_AND_ALIAS_MENU_ITEM_TITLE,
           newAlias: NEW_ALIAS,
           newUrl: NEW_URL_LINK_TEXT,
+          pluginId: PLUGIN_ID,
+          popoverFieldCount: POPOVER_FIELD_COUNT,
           sourcePath: SOURCE_PATH,
           targetContent: TARGET_CONTENT,
           targetLinkText: TARGET_LINK_TEXT,
@@ -193,12 +202,28 @@ export function registerEditUrlAndAliasMenuSuite(platform: string): void {
           newAlias,
           newUrl,
           obsidianModule,
+          pluginId,
+          popoverFieldCount,
           sourcePath,
           targetContent,
           targetLinkText,
           targetPath,
           waitTimeoutInMilliseconds
         }) {
+          /*
+           * The popover comes from `obsidian-dev-utils`, which classes it `obsidian-dev-utils <pluginId>
+           * popover` and gives every field the same `text-box` class. The fields are therefore told apart
+           * by their order, which is the order they were handed to `editFieldsInPopover`: URL first,
+           * alias second.
+           */
+          function getPopoverEl(): HTMLElement | null {
+            return document.body.querySelector<HTMLElement>(`.obsidian-dev-utils.${pluginId}.popover`);
+          }
+
+          function getPopoverInputEls(): HTMLInputElement[] {
+            return Array.from(getPopoverEl()?.querySelectorAll('input') ?? []);
+          }
+
           for (const path of [sourcePath, targetPath]) {
             const existing = app.vault.getAbstractFileByPath(path);
             if (existing) {
@@ -239,13 +264,12 @@ export function registerEditUrlAndAliasMenuSuite(platform: string): void {
 
           await waitUntil({
             message: 'link editor popover did not open',
-            predicate: () => document.querySelector('.link-editor-popover-url-input') !== null && document.querySelector('.link-editor-popover-alias-input') !== null,
+            predicate: () => getPopoverInputEls().length === popoverFieldCount,
             timeoutInMilliseconds: waitTimeoutInMilliseconds
           });
 
-          const urlInputEl = document.querySelector<HTMLInputElement>('.link-editor-popover-url-input');
-          const aliasInputEl = document.querySelector<HTMLInputElement>('.link-editor-popover-alias-input');
-          const okButtonEl = document.querySelector<HTMLElement>('.link-editor-popover-ok-button');
+          const [urlInputEl, aliasInputEl] = getPopoverInputEls();
+          const okButtonEl = getPopoverEl()?.querySelector<HTMLElement>('.ok-button');
           if (!urlInputEl || !aliasInputEl || !okButtonEl) {
             return {
               itemFound: true,
