@@ -3,11 +3,15 @@
  *
  * Resolves a *rendered* link back to its occurrence in the source note and edits it there.
  *
- * Obsidian's link context menu, and a click on a rendered link, both identify a link only by what it
- * points at (a target {@link TFile} or an external url) — never by where its raw text sits in the note.
- * Reading view has no editor to consult either, so the occurrence is recovered by scanning the source
- * note for links resolving to the same destination, disambiguating with `selectItem` when a note links
- * to the same destination more than once, and writing back through `vault.process`.
+ * Obsidian's link context menu identifies a link only by what it points at (a target {@link TFile} or an
+ * external url) — never by where its raw text sits in the note. Reading view has no editor to consult
+ * either, so the occurrence is recovered by scanning the source note for links resolving to the same
+ * destination, disambiguating with `selectItem` when a note links to the same destination more than once,
+ * and writing back through `vault.process`.
+ *
+ * A click carries more: its own coordinates, which an editing view turns into an exact source position
+ * ({@link ResolveAndEditLinkParams.sourcePosition}). That is what makes Live Preview work at all — there
+ * the link is editor text with no `href` to read, so the position is the ONLY identity available.
  *
  * Shared by {@link LinkMenuHandler} (long-press / context menu) and {@link LinkClickComponent} (click
  * interception) so the scan, the match rules, and the shifted-offset write-back live in one place.
@@ -15,6 +19,7 @@
 
 import type {
   App,
+  EditorPosition,
   MarkdownView,
   TFile
 } from 'obsidian';
@@ -84,6 +89,10 @@ export interface EditLinkOccurrenceViaSourceScanParams {
 /**
  * Identifies the link to edit: either an internal target file or an external url, as carried by the
  * `file-menu` / `url-menu` events and by a clicked rendered link.
+ *
+ * All three fields are optional, and a target with none set means "unknown" — the caller could not tell
+ * what the link points at, and the source position it supplies alongside is the only identity available.
+ * That is the Live Preview click: the link is editor text carrying no `href` to read.
  */
 export interface LinkTarget {
   /**
@@ -92,7 +101,14 @@ export interface LinkTarget {
   readonly externalUrl?: string;
 
   /**
-   * The internal target file, when the link is internal.
+   * The internal link path as written / rendered, when the link is internal but does not resolve to a
+   * file. A link to a note that does not exist yet has no {@link target} to match on, so it is matched by
+   * this text instead.
+   */
+  readonly linkPath?: string;
+
+  /**
+   * The internal target file, when the link is internal and resolves.
    */
   readonly target?: TFile;
 }
@@ -122,6 +138,12 @@ export interface ResolveAndEditLinkParams {
   showCouldNotLocateNotice(this: void): void;
 
   /**
+   * Where in the source note the gesture landed, when the caller knows it. A click knows it exactly (from
+   * its own coordinates); a context menu does not, and leaves it unset so the caret is used instead.
+   */
+  readonly sourcePosition?: EditorPosition;
+
+  /**
    * The view the link was raised from, or `null` when it could not be determined.
    */
   readonly view: MarkdownView | null;
@@ -130,6 +152,15 @@ export interface ResolveAndEditLinkParams {
 interface LinkMatch {
   readonly line: number;
   readonly parsedLink: ParseLinkResult;
+}
+
+interface TryEditLinkAtPositionParams {
+  readonly app: App;
+  readonly editorPosition: EditorPosition;
+  readonly editParsedLink: EditParsedLink;
+  readonly linkTarget: LinkTarget;
+  readonly sourcePath: string;
+  readonly view: MarkdownView;
 }
 
 /**
@@ -147,6 +178,7 @@ export function doesLinkMatchTarget(params: DoesLinkMatchTargetParams): boolean 
   } = params;
   const {
     externalUrl,
+    linkPath,
     target
   } = linkTarget;
 
@@ -154,12 +186,27 @@ export function doesLinkMatchTarget(params: DoesLinkMatchTargetParams): boolean 
     return parsedLink.isExternal && (parsedLink.url === externalUrl || parsedLink.encodedUrl === externalUrl);
   }
 
-  if (!target || parsedLink.isExternal) {
+  if (parsedLink.isExternal) {
     return false;
   }
 
-  const dest = app.metadataCache.getFirstLinkpathDest(getLinkpath(parsedLink.url), sourcePath);
-  return dest?.path === target.path;
+  if (target) {
+    const dest = app.metadataCache.getFirstLinkpathDest(getLinkpath(parsedLink.url), sourcePath);
+    return dest?.path === target.path;
+  }
+
+  /*
+   * An unresolved internal link has no `TFile` to compare against — `getFirstLinkpathDest` returns null
+   * for a link to a note that does not exist yet — so it is matched by its path text instead. Both the
+   * decoded and the encoded form are compared, exactly as the external branch above does, so a markdown
+   * link written with percent-escapes still matches the `data-href` Obsidian renders it with.
+   */
+  if (linkPath !== undefined) {
+    const wantedLinkpath = getLinkpath(linkPath);
+    return getLinkpath(parsedLink.url) === wantedLinkpath || getLinkpath(parsedLink.encodedUrl ?? parsedLink.url) === wantedLinkpath;
+  }
+
+  return false;
 }
 
 /**
@@ -247,11 +294,10 @@ export async function editLinkOccurrenceViaSourceScan(params: EditLinkOccurrence
 /**
  * Resolves the link occurrence a menu or a click refers to and runs the editor on it.
  *
- * In an editing view the caret already sits where the user clicked / opened the menu, so the link under
- * it is tried first — that pins the exact occurrence even when the note links to the same destination
- * several times, and it edits through the editor so the change joins the undo history. The match is
- * verified against the target, so a stale caret cannot edit the wrong link: it simply falls through to
- * the source scan.
+ * In an editing view the link at a position in the source is tried first — that pins the exact occurrence
+ * even when the note links to the same destination several times, and it edits through the editor so the
+ * change joins the undo history. The position is {@link ResolveAndEditLinkParams.sourcePosition} when the
+ * caller knows it, and the caret otherwise.
  *
  * @param params - The parameters for the resolution.
  */
@@ -261,6 +307,7 @@ export async function resolveAndEditLink(params: ResolveAndEditLinkParams): Prom
     editParsedLink,
     linkTarget,
     showCouldNotLocateNotice,
+    sourcePosition,
     view
   } = params;
 
@@ -270,8 +317,19 @@ export async function resolveAndEditLink(params: ResolveAndEditLinkParams): Prom
     return;
   }
 
-  if (view.getMode() === 'source' && await tryEditAtEditorCursor(app, view, sourceFile.path, linkTarget, editParsedLink)) {
-    return;
+  // `source` covers Live Preview and raw Source mode alike; only Reading view has no editor to ask.
+  if (view.getMode() === 'source') {
+    const shouldEditAtPosition = await tryEditLinkAtPosition({
+      app,
+      editorPosition: sourcePosition ?? view.editor.getCursor(),
+      editParsedLink,
+      linkTarget,
+      sourcePath: sourceFile.path,
+      view
+    });
+    if (shouldEditAtPosition) {
+      return;
+    }
   }
 
   await editLinkOccurrenceViaSourceScan({
@@ -306,19 +364,38 @@ function findMatches(app: App, content: string, sourcePath: string, linkTarget: 
   return matches;
 }
 
-async function tryEditAtEditorCursor(
-  app: App,
-  view: MarkdownView,
-  sourcePath: string,
-  linkTarget: LinkTarget,
-  editParsedLink: EditParsedLink
-): Promise<boolean> {
+function isTargetKnown(linkTarget: LinkTarget): boolean {
+  return linkTarget.externalUrl !== undefined || linkTarget.linkPath !== undefined || Boolean(linkTarget.target);
+}
+
+async function tryEditLinkAtPosition(params: TryEditLinkAtPositionParams): Promise<boolean> {
+  const {
+    app,
+    editorPosition,
+    editParsedLink,
+    linkTarget,
+    sourcePath,
+    view
+  } = params;
+
   const { editor } = view;
-  const cursor = editor.getCursor();
-  const line = editor.getDoc().getLine(cursor.line);
-  const parsedLink = parseLinks(line).find((link) => link.startOffset <= cursor.ch && cursor.ch <= link.endOffset);
+  const line = editor.getDoc().getLine(editorPosition.line);
+  const parsedLink = parseLinks(line).find((link) => link.startOffset <= editorPosition.ch && editorPosition.ch <= link.endOffset);
+  if (!parsedLink) {
+    return false;
+  }
+
+  /*
+   * A known target always wins: it is what the gesture actually named, so a position that disagrees with
+   * it is resolving something else and must fall through to the scan. The case that makes this matter is a
+   * link inside an `![[embed]]`-rendered block in Live Preview — the clicked anchor names the embedded
+   * note's link, while the source position holds the embed link.
+   *
+   * An unknown target has nothing to verify against, and the position is then the whole identity. It comes
+   * from the click's own coordinates, so there is no staleness to guard against either.
+   */
   if (
-    !parsedLink || !doesLinkMatchTarget({
+    isTargetKnown(linkTarget) && !doesLinkMatchTarget({
       app,
       linkTarget,
       parsedLink,
@@ -331,7 +408,11 @@ async function tryEditAtEditorCursor(
   await editParsedLink({
     app,
     applyReplacement: (newRawLink) => {
-      editor.replaceRange(newRawLink, { ch: parsedLink.startOffset, line: cursor.line }, { ch: parsedLink.endOffset, line: cursor.line });
+      editor.replaceRange(
+        newRawLink,
+        { ch: parsedLink.startOffset, line: editorPosition.line },
+        { ch: parsedLink.endOffset, line: editorPosition.line }
+      );
     },
     parsedLink
   });

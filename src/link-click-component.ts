@@ -24,11 +24,15 @@ import {
   MarkdownView
 } from 'obsidian';
 import { invokeAsyncSafely } from 'obsidian-dev-utils/async';
+import { normalizeOptionalProperties } from 'obsidian-dev-utils/object-utils';
 import { AllWindowsEventComponent } from 'obsidian-dev-utils/obsidian/components/all-windows-event-component';
 import { createAnchorFromElement } from 'obsidian-dev-utils/obsidian/popovers/popover-anchor';
 
 import type { PluginSettings } from './plugin-settings.ts';
-import type { LinkTarget } from './resolve-link-occurrence.ts';
+import type {
+  LinkTarget,
+  ResolveAndEditLinkParams
+} from './resolve-link-occurrence.ts';
 
 import { createEditParsedLinkUrlAndAliasInPopover } from './edit-link.ts';
 import { resolveAndEditLink } from './resolve-link-occurrence.ts';
@@ -116,15 +120,20 @@ export class LinkClickComponent extends AllWindowsEventComponent {
     const sourcePath = view?.file?.path;
     if (linkText === null || sourcePath === undefined) {
       /*
-       * Live Preview renders links as plain editor text with no href at all. There is nothing to match
-       * against, but the caret is already inside the clicked link, so an empty target lets the editor
-       * path resolve it — and it is deliberately not treated as "no link".
+       * Live Preview and Source mode render links as plain editor text with no href at all, so there is
+       * nothing to read the target from. An unknown target is deliberately NOT treated as "no link": the
+       * click position resolves it instead (see `resolveAndEditLink`).
        */
       return {};
     }
 
     const target = this.app.metadataCache.getFirstLinkpathDest(getLinkpath(linkText), sourcePath);
-    return target === null ? {} : { target };
+    /*
+     * A link to a note that does not exist yet resolves to nothing, so it is carried by its path text —
+     * editing the alias of a link to an uncreated note is ordinary, and Reading view has no editor
+     * position to fall back on.
+     */
+    return target === null ? { linkPath: linkText } : { target };
   }
 
   private getViewContaining(el: HTMLElement): MarkdownView | null {
@@ -153,6 +162,14 @@ export class LinkClickComponent extends AllWindowsEventComponent {
       return;
     }
 
+    /*
+     * The click's own coordinates are the exact identity of the clicked link — the ONLY one in Live
+     * Preview, where the link carries no href. The caret is NOT usable here: an Alt click on a Live
+     * Preview link leaves it at the end of the line, not inside the link (verified against a real
+     * Obsidian). Reading view has no editor to ask, hence the mode check.
+     */
+    const sourcePosition = view?.getMode() === 'source' ? view.editor.posAtMouse(evt) : undefined;
+
     evt.preventDefault();
     evt.stopPropagation();
     evt.stopImmediatePropagation();
@@ -165,7 +182,8 @@ export class LinkClickComponent extends AllWindowsEventComponent {
         showCouldNotLocateNotice: () => {
           this.pluginNoticeComponent.showNotice('Could not locate the link in the source note.');
         },
-        view
+        view,
+        ...normalizeOptionalProperties<Pick<ResolveAndEditLinkParams, 'sourcePosition'>>({ sourcePosition })
       });
     });
   }

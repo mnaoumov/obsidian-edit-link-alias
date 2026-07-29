@@ -647,8 +647,10 @@ describe('LinkMenuHandler', () => {
 
     it('should not match any link when neither a target nor a url is provided', async () => {
       /*
-       * An empty link target is never produced by a menu — it comes from the click path in Live Preview,
-       * where the clicked element carries no href at all — so the shared resolver is driven directly.
+       * An unknown link target is never produced by a menu — it comes from the click path in Live Preview,
+       * where the clicked element carries no href at all — so the shared resolver is driven directly. With
+       * no target AND no click position (Reading view has no editor to ask), there is no identity left to
+       * resolve, and reporting the failure is correct.
        */
       const view = mockActiveView('preview');
       sourceContent = '[[target|old]]';
@@ -658,6 +660,242 @@ describe('LinkMenuHandler', () => {
         app,
         editParsedLink: editParsedLinkAlias,
         linkTarget: {},
+        showCouldNotLocateNotice: castTo<(this: void) => void>(showNotice),
+        view
+      });
+
+      expect(showNotice).toHaveBeenCalledOnce();
+      expect(mockEditParsedLinkAlias).not.toHaveBeenCalled();
+    });
+
+    it('should edit the link at the click position when the clicked link carries no target', async () => {
+      // The Live Preview click: no href to read a target from, so the position is the whole identity.
+      const replaceRange = vi.fn<Editor['replaceRange']>();
+      const view = mockActiveView(
+        'source',
+        createMockEditor({
+          line: '[[target|old]]',
+          replaceRange
+        })
+      );
+      mockParseLinks.mockReturnValue([parsedLink()]);
+      mockEditApplies('[[target|new]]');
+
+      await resolveAndEditLink({
+        app,
+        editParsedLink: editParsedLinkAlias,
+        linkTarget: {},
+        showCouldNotLocateNotice: castTo<(this: void) => void>(showNotice),
+        sourcePosition: { ch: 5, line: 0 },
+        view
+      });
+
+      expect(replaceRange).toHaveBeenCalledWith('[[target|new]]', { ch: 0, line: 0 }, { ch: 14, line: 0 });
+      expect(read).not.toHaveBeenCalled();
+      expect(showNotice).not.toHaveBeenCalled();
+    });
+
+    it('should pick the clicked occurrence when the line links to the same note twice', async () => {
+      // What the caret cannot do: both links match the target, so only the position tells them apart.
+      const replaceRange = vi.fn<Editor['replaceRange']>();
+      const view = mockActiveView(
+        'source',
+        createMockEditor({
+          line: '[[target|a]] [[target|b]]',
+          replaceRange
+        })
+      );
+      mockParseLinks.mockReturnValue([
+        parsedLink({
+          endOffset: 12,
+          raw: '[[target|a]]'
+        }),
+        parsedLink({
+          endOffset: 25,
+          raw: '[[target|b]]',
+          startOffset: 13
+        })
+      ]);
+      getFirstLinkpathDest.mockReturnValue(strictProxy<TFile>({ path: 'target.md' }));
+      mockEditApplies('[[target|second]]');
+
+      await resolveAndEditLink({
+        app,
+        editParsedLink: editParsedLinkAlias,
+        linkTarget: { target: strictProxy<TFile>({ path: 'target.md' }) },
+        showCouldNotLocateNotice: castTo<(this: void) => void>(showNotice),
+        sourcePosition: { ch: 20, line: 0 },
+        view
+      });
+
+      expect(replaceRange).toHaveBeenCalledWith('[[target|second]]', { ch: 13, line: 0 }, { ch: 25, line: 0 });
+    });
+
+    it('should fall back to the source scan when no link sits at the click position', async () => {
+      const view = mockActiveView('source', createMockEditor({ line: 'no link here' }));
+      sourceContent = 'no link here';
+      mockParseLinks.mockReturnValue([]);
+
+      await resolveAndEditLink({
+        app,
+        editParsedLink: editParsedLinkAlias,
+        linkTarget: {},
+        showCouldNotLocateNotice: castTo<(this: void) => void>(showNotice),
+        sourcePosition: { ch: 3, line: 0 },
+        view
+      });
+
+      expect(read).toHaveBeenCalledOnce();
+      expect(showNotice).toHaveBeenCalledOnce();
+    });
+
+    it('should fall back to the source scan when the link at the click position points elsewhere', async () => {
+      /*
+       * A known target always wins over the position — the case that makes this matter is a link inside an
+       * `![[embed]]`-rendered block in Live Preview, where the two name different links.
+       */
+      const view = mockActiveView('source', createMockEditor({ line: '[[other|old]]' }));
+      sourceContent = '[[other|old]]\n[[target|old]]';
+      mockParseLinks.mockImplementation((text: string) => text.includes('[[target') ? [parsedLink()] : [parsedLink({ raw: '[[other|old]]', url: 'other' })]);
+      getFirstLinkpathDest.mockImplementation((linkpath: string) => linkpath === 'target' ? strictProxy<TFile>({ path: 'target.md' }) : null);
+      mockEditApplies('[[target|new]]');
+
+      await resolveAndEditLink({
+        app,
+        editParsedLink: editParsedLinkAlias,
+        linkTarget: { target: strictProxy<TFile>({ path: 'target.md' }) },
+        showCouldNotLocateNotice: castTo<(this: void) => void>(showNotice),
+        sourcePosition: { ch: 5, line: 0 },
+        view
+      });
+
+      expect(read).toHaveBeenCalledOnce();
+      expect(process).toHaveBeenCalledOnce();
+      expect(mockEditParsedLinkAlias).toHaveBeenCalledOnce();
+    });
+
+    it('should edit an external link at the click position', async () => {
+      const replaceRange = vi.fn<Editor['replaceRange']>();
+      const view = mockActiveView(
+        'source',
+        createMockEditor({
+          line: '[click](https://example.com)',
+          replaceRange
+        })
+      );
+      mockParseLinks.mockReturnValue([parsedLink({
+        alias: 'click',
+        endOffset: 28,
+        isExternal: true,
+        isWikilink: false,
+        raw: '[click](https://example.com)',
+        url: 'https://example.com'
+      })]);
+      mockEditApplies('[new](https://example.com)');
+
+      await resolveAndEditLink({
+        app,
+        editParsedLink: editParsedLinkAlias,
+        linkTarget: { externalUrl: 'https://example.com' },
+        showCouldNotLocateNotice: castTo<(this: void) => void>(showNotice),
+        sourcePosition: { ch: 3, line: 0 },
+        view
+      });
+
+      expect(replaceRange).toHaveBeenCalledWith('[new](https://example.com)', { ch: 0, line: 0 }, { ch: 28, line: 0 });
+    });
+
+    it('should edit an unresolved link at the click position by its link path', async () => {
+      const replaceRange = vi.fn<Editor['replaceRange']>();
+      const view = mockActiveView(
+        'source',
+        createMockEditor({
+          line: '[[missing|old]]',
+          replaceRange
+        })
+      );
+      mockParseLinks.mockReturnValue([parsedLink({
+        endOffset: 15,
+        raw: '[[missing|old]]',
+        url: 'missing'
+      })]);
+      mockEditApplies('[[missing|new]]');
+
+      await resolveAndEditLink({
+        app,
+        editParsedLink: editParsedLinkAlias,
+        linkTarget: { linkPath: 'missing' },
+        showCouldNotLocateNotice: castTo<(this: void) => void>(showNotice),
+        sourcePosition: { ch: 5, line: 0 },
+        view
+      });
+
+      // `getFirstLinkpathDest` is never consulted: there is no file to resolve to.
+      expect(getFirstLinkpathDest).not.toHaveBeenCalled();
+      expect(replaceRange).toHaveBeenCalledWith('[[missing|new]]', { ch: 0, line: 0 }, { ch: 15, line: 0 });
+    });
+
+    it('should edit an unresolved link in reading mode by scanning for its link path', async () => {
+      // Reading view has no editor, so an unresolved link is only reachable through the path scan.
+      const view = mockActiveView('preview');
+      sourceContent = 'intro\n[[missing|old]]';
+      const missingLink = parsedLink({
+        endOffset: 15,
+        raw: '[[missing|old]]',
+        url: 'missing'
+      });
+      mockParseLinks.mockImplementation((text: string) => text.includes('[[missing') ? [missingLink] : []);
+      mockEditApplies('[[missing|new]]');
+
+      await resolveAndEditLink({
+        app,
+        editParsedLink: editParsedLinkAlias,
+        linkTarget: { linkPath: 'missing' },
+        showCouldNotLocateNotice: castTo<(this: void) => void>(showNotice),
+        view
+      });
+
+      expect(process).toHaveBeenCalledOnce();
+      const processFn = process.mock.calls[0]?.[1] as (data: string) => string;
+      expect(processFn('intro\n[[missing|old]]')).toBe('intro\n[[missing|new]]');
+      expect(showNotice).not.toHaveBeenCalled();
+    });
+
+    it('should match an unresolved link whose rendered path kept its percent-escapes', async () => {
+      const view = mockActiveView('preview');
+      sourceContent = '[old](my%20note)';
+      mockParseLinks.mockReturnValue([parsedLink({
+        alias: 'old',
+        encodedUrl: 'my%20note',
+        endOffset: 16,
+        isWikilink: false,
+        raw: '[old](my%20note)',
+        url: 'my note'
+      })]);
+      mockEditApplies('[new](my%20note)');
+
+      await resolveAndEditLink({
+        app,
+        editParsedLink: editParsedLinkAlias,
+        // The decoded form does not match, so the encoded one has to.
+        linkTarget: { linkPath: 'my%20note' },
+        showCouldNotLocateNotice: castTo<(this: void) => void>(showNotice),
+        view
+      });
+
+      expect(mockEditParsedLinkAlias).toHaveBeenCalledOnce();
+      expect(showNotice).not.toHaveBeenCalled();
+    });
+
+    it('should not match an unresolved link whose path differs', async () => {
+      const view = mockActiveView('preview');
+      sourceContent = '[[target|old]]';
+      mockParseLinks.mockImplementation((text: string) => text.includes('[[target') ? [parsedLink()] : []);
+
+      await resolveAndEditLink({
+        app,
+        editParsedLink: editParsedLinkAlias,
+        linkTarget: { linkPath: 'other' },
         showCouldNotLocateNotice: castTo<(this: void) => void>(showNotice),
         view
       });

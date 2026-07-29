@@ -1,5 +1,7 @@
 import type {
   App as AppOriginal,
+  Editor,
+  EditorPosition,
   MarkdownView as MarkdownViewType,
   TFile,
   WorkspaceLeaf
@@ -41,6 +43,12 @@ const SECONDARY_MOUSE_BUTTON = 2;
 const SOURCE_PATH = 'source.md';
 const TARGET_PATH = 'target.md';
 
+/**
+ * Where `posAtMouse` claims the click landed. Arbitrary, but distinct from `{ ch: 0, line: 0 }` so a
+ * forwarded position cannot be confused with a default one.
+ */
+const CLICK_POSITION: EditorPosition = { ch: 7, line: 3 };
+
 interface ClickOptions {
   readonly altKey?: boolean;
   readonly button?: number;
@@ -53,6 +61,7 @@ let app: AppOriginal;
 let component: LinkClickComponent;
 let containerEl: HTMLElement;
 let getFirstLinkpathDest: ReturnType<typeof vi.fn>;
+let posAtMouse: ReturnType<typeof vi.fn>;
 let showNotice: ReturnType<typeof vi.fn>;
 let viewMode: 'preview' | 'source';
 
@@ -96,6 +105,7 @@ beforeEach(() => {
   document.body.empty();
   viewMode = 'source';
   showNotice = vi.fn();
+  posAtMouse = vi.fn().mockReturnValue(CLICK_POSITION);
 
   getFirstLinkpathDest = vi.fn().mockReturnValue(strictProxy<TFile>({ path: TARGET_PATH }));
 
@@ -109,6 +119,7 @@ beforeEach(() => {
   const view = castTo<MarkdownViewType>(Object.create(MarkdownView.prototype));
   Object.assign(view, {
     containerEl,
+    editor: strictProxy<Editor>({ posAtMouse: castTo<Editor['posAtMouse']>(posAtMouse) }),
     file: strictProxy<TFile>({ path: SOURCE_PATH }),
     getMode: () => viewMode
   });
@@ -267,23 +278,53 @@ describe('LinkClickComponent', () => {
     expect(mockResolveAndEditLink).not.toHaveBeenCalled();
   });
 
-  it('should leave the target unset for a Live Preview link that carries no href', async () => {
+  it('should identify a Live Preview link that carries no href by the click position alone', async () => {
     loadComponent();
 
     click(containerEl.createSpan({ cls: 'cm-hmd-internal-link' }));
     await waitForAllAsyncOperations();
 
-    expect(mockResolveAndEditLink).toHaveBeenCalledWith(expect.objectContaining({ linkTarget: {} }));
+    // No href to read the target from, so the position the click resolves to is the whole identity.
+    expect(mockResolveAndEditLink).toHaveBeenCalledWith(
+      expect.objectContaining({
+        linkTarget: {},
+        sourcePosition: CLICK_POSITION
+      })
+    );
   });
 
-  it('should leave the target unset when the link path does not resolve', async () => {
+  it('should carry the link path when the target note does not exist', async () => {
     loadComponent();
     getFirstLinkpathDest.mockReturnValue(null);
 
     click(createInternalLinkEl('missing'));
     await waitForAllAsyncOperations();
 
-    expect(mockResolveAndEditLink).toHaveBeenCalledWith(expect.objectContaining({ linkTarget: {} }));
+    expect(mockResolveAndEditLink).toHaveBeenCalledWith(expect.objectContaining({ linkTarget: { linkPath: 'missing' } }));
+  });
+
+  it('should not resolve a click position in Reading view, which has no editor to ask', async () => {
+    viewMode = 'preview';
+    loadComponent();
+
+    click(createInternalLinkEl());
+    await waitForAllAsyncOperations();
+
+    expect(posAtMouse).not.toHaveBeenCalled();
+    expect(mockResolveAndEditLink.mock.calls[0]?.[0].sourcePosition).toBeUndefined();
+  });
+
+  it('should not resolve a click position when the link is outside every leaf', async () => {
+    loadComponent();
+
+    click(document.body.createEl('a', {
+      attr: { 'data-href': 'target' },
+      cls: 'internal-link'
+    }));
+    await waitForAllAsyncOperations();
+
+    expect(posAtMouse).not.toHaveBeenCalled();
+    expect(mockResolveAndEditLink.mock.calls[0]?.[0].sourcePosition).toBeUndefined();
   });
 
   it('should pass the view containing the link, and no view when it is outside every leaf', async () => {

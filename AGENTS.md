@@ -44,17 +44,41 @@
   the event target would add a branch a document-level listener can never take. Like the popover it is
   plugin-agnostic, so it too was extracted (`T204-P1`) and is now consumed from
   `obsidian-dev-utils/obsidian/components/pointer-position-component`.
-- **Occurrence resolution is shared, not duplicated (`src/resolve-link-occurrence.ts`).** Neither a
-  context menu nor a click tells you *where* in the note the link was written — only what it points at.
-  `resolveAndEditLink` therefore tries the editor caret first (in an editing view the click has already
-  put the caret inside the clicked link, which pins the exact occurrence and edits through the editor so
-  the change joins the undo history), verifies the match against the target so a stale caret cannot edit
-  the wrong link, and otherwise falls back to `editLinkOccurrenceViaSourceScan` — a `vault.read` +
-  `parseLinks` scan with a `selectItem` picker when a note links to the same destination more than once.
-  Both `LinkMenuHandler` and `LinkClickComponent` go through it.
-
-  Note there is no coordinate-based resolution: Obsidian exposes no public "position at these
-  coordinates" API on `Editor`, and the caret-plus-verified-fallback path makes one unnecessary.
+- **Occurrence resolution is shared, not duplicated (`src/resolve-link-occurrence.ts`).** A context menu
+  tells you only what the link points at, never *where* in the note it was written. A click tells you more:
+  its own coordinates. `resolveAndEditLink` therefore tries the link at a source position first (editing
+  through the editor, so the change joins the undo history), and otherwise falls back to
+  `editLinkOccurrenceViaSourceScan` — a `vault.read` + `parseLinks` scan with a `selectItem` picker when a
+  note links to the same destination more than once. Both `LinkMenuHandler` and `LinkClickComponent` go
+  through it.
+  - **The position comes from the click's coordinates (`Editor.posAtMouse`), NOT from the caret.** This is
+    load-bearing, and reverses an earlier note here claiming coordinate resolution was unnecessary — that
+    claim is what shipped GH #4. Two independent reasons: (1) in Live Preview / Source mode the link is
+    editor text with **no `href`**, so there is no target to match and the position is the only identity
+    available; (2) the caret is simply **not** inside the clicked link — verified against a real Obsidian,
+    an `Alt` click on a Live Preview link leaves it at the **end of the line**. Any comment claiming "the
+    click has already put the caret inside the clicked link" is false; the caret survives only as the
+    fallback for the menu path, which has no coordinates at all.
+  - `posAtMouse` is `@unofficial` in obsidian-typings. That is consistent with existing practice here —
+    `link-menu-handler.ts` already calls the equally-`@unofficial` `Editor.getClickableTokenAt` in
+    production code — and both type-check without an import via the globally registered
+    `@obsidian-typings/obsidian-public-latest` (`tsconfig.json`).
+  - **Invariant: a known target is always verified; the position only chooses which occurrence.** Do not
+    "simplify" this into letting the position always win. The case it protects is a link inside an
+    `![[embed]]`-rendered block in Live Preview: the clicked anchor names the *embedded* note's link, while
+    the source position holds the *embed* link. Verification fails there and it falls through to the scan,
+    which is the pre-existing behavior. Conversely an **unknown** target has nothing to verify against, so
+    the position is trusted outright — that is the whole Live Preview path.
+- **`LinkTarget` has three fields, and the third one is not redundant (`src/resolve-link-occurrence.ts`).**
+  `externalUrl` for an external link, `target` for an internal one that resolves, and `linkPath` — the link
+  text as written — for an internal one that does **not**. `getFirstLinkpathDest` returns `null` for a link
+  to a note that does not exist yet, and the old code collapsed that to an empty `LinkTarget`, which
+  `doesLinkMatchTarget` could never match: `Alt` + clicking `[[not-created-yet]]` reported "Could not locate
+  the link in the source note" even in Reading view. Reading view has no editor position to fall back on, so
+  path-text matching is the only route there. `linkPath` is compared in both its decoded and encoded form,
+  the same way the `externalUrl` branch already checks `url` and `encodedUrl`.
+  - A `LinkTarget` with **none** of the three set still exists, and means "unknown — resolve me by
+    position". It is produced only by a click on an href-less Live Preview link.
 - **Click interception (`src/link-click-component.ts`) — a second deliberate G51 deviation.** Obsidian
   raises no event for "a link was clicked", and `openLinkText` is shared with the backlinks pane, search
   and the graph, so patching it would intercept far more than a click in a note. The component therefore
@@ -73,6 +97,17 @@
     `preventDefault()` on link clicks itself. The integration suite asserts on whether navigation
     actually occurred (which file ends up active) instead. This cost one red integration run; do not
     reintroduce that assertion.
+  - Reading view resolves the clicked link through `data-href`; Live Preview / Source mode through the
+    editor position. Capture-phase `click` alone is enough in **every** mode — navigation is already
+    suppressed in Live Preview, so there is no need to also intercept `mousedown` (checked against a real
+    Obsidian while fixing GH #4).
+  - **`link-click-popover-shared.integration.test.ts` must keep covering every mode, and the dispatched
+    `MouseEvent` must carry real `clientX`/`clientY`.** The suite was Reading-view-only, which is precisely
+    why GH #4 shipped — Reading view is the one mode that works through `data-href` and so exercises none of
+    the position path. A click dispatched without coordinates makes `posAtMouse` resolve to the start of the
+    document, so the test would pass or fail for the wrong reason; take them from the link element's
+    bounding-rect centre. Live Preview also needs the caret parked off the link's line, or Live Preview
+    renders that line as raw markdown instead of the decorated link — hence the two-line fixture.
 - **Settings.** `PluginSettings` holds a single `shouldOpenLinkEditorOnAltClick` toggle, defaulting to
   `true` (see the `Alt`-vs-`Mod` note above for why on-by-default is safe here). The plugin uses the
   dev-utils `PluginSettingsComponentBase` directly rather than subclassing it — there is nothing to
@@ -113,9 +148,10 @@
   carries a `createEditParsedLink(anchor)` FACTORY rather than a fixed `EditParsedLink`, because the
   anchored editor needs the position of the gesture that opened the menu, which is only known once the
   item is actually clicked. The shared `resolveAndEdit` is parameterized by the resulting function.
-  - Occurrence resolution: editor cursor + `parseLinks` in an editing view; a source-note scan
-    (`vault.read` + `parseLinks`, `selectItem` to disambiguate multiple matches) in Reading view; the
-    edit is applied via `editor.replaceRange` or `vault.process`.
+  - Occurrence resolution: the editor **caret** + `parseLinks` in an editing view — the menu events carry
+    no coordinates, so this is the one path that still relies on the caret (see the shared-resolution note
+    above); a source-note scan (`vault.read` + `parseLinks`, `selectItem` to disambiguate multiple matches)
+    in Reading view; the edit is applied via `editor.replaceRange` or `vault.process`.
   - Desktop de-duplication: on desktop a link right-click in the editor fires **both** `editor-menu` and
     `file-menu`(`link-context-menu`), so `isHandledByEditorMenu()` suppresses both menu items when the
     editor menu already shows them (desktop + `source` mode + cursor on a link). Mobile never suppresses.
