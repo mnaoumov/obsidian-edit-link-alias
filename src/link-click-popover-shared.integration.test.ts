@@ -4,14 +4,19 @@
  * Shared integration suite for the Alt-click-to-edit behavior: `Alt` + clicking a rendered link opens
  * the anchored URL + alias popover instead of opening the link.
  *
- * It runs against a real Obsidian: it creates a note containing `[[target|old alias]]`, opens it in
- * Reading view, dispatches a real `Alt` click on the rendered anchor, fills the popover and confirms,
- * then asserts the source note was rewritten AND that the navigation was suppressed (the source note is
- * still the active file).
+ * It runs against a real Obsidian: it creates a note containing `[[target|old alias]]`, opens it, dispatches
+ * a real `Alt` click on the rendered link, fills the popover and confirms, then asserts the source note was
+ * rewritten AND that the navigation was suppressed (the source note is still the active file).
  *
- * The two control cases matter as much as the happy path: a PLAIN click must still open the link, which
- * is what proves the feature takes no existing gesture away; and with the setting turned off even the
- * `Alt` click must be left alone.
+ * **Every mode is covered, not just Reading view.** A Reading-view-only suite is exactly what let GH #4 ship:
+ * Reading view renders real anchors carrying `data-href`, while Live Preview renders the link as styled
+ * editor text with no href at all, so the two resolve the clicked link by completely different routes (the
+ * rendered target vs. the click's own coordinates). The unresolved-link case is here for the same reason —
+ * a link to a note that does not exist has no target to resolve to, and used to fail in Reading view too.
+ *
+ * The control cases matter as much as the happy path: a PLAIN click must still open the link, which is what
+ * proves the feature takes no existing gesture away; and with the setting turned off even the `Alt` click
+ * must be left alone.
  *
  * Note that `defaultPrevented` is NOT usable as evidence here — Obsidian calls `preventDefault()` on
  * link clicks itself — so the assertions are on which note ends up active.
@@ -19,6 +24,8 @@
  * Registered by the platform entry points (`plugin.desktop.integration.test.ts`,
  * `plugin.android.integration.test.ts`) so the same flow runs on Desktop and Android.
  */
+
+import type { TFile } from 'obsidian';
 
 import { evalInObsidian } from 'obsidian-integration-testing';
 import { getTempVault } from 'obsidian-integration-testing/vitest-global-setup-plugin';
@@ -32,12 +39,28 @@ const PLUGIN_ID = 'edit-link-alias';
 const TARGET_PATH = 'link-click-target.md';
 const TARGET_CONTENT = '# Target';
 const TARGET_LINK_TEXT = 'link-click-target';
+const MISSING_LINK_TEXT = 'link-click-never-created';
 const SOURCE_PATH = 'link-click-source.md';
 const OLD_ALIAS = 'old alias';
 const NEW_ALIAS = 'new alias';
 const NEW_URL_LINK_TEXT = 'link-click-target-renamed';
-const INITIAL_SOURCE_CONTENT = `[[${TARGET_LINK_TEXT}|${OLD_ALIAS}]]`;
-const EXPECTED_SOURCE_CONTENT = `[[${NEW_URL_LINK_TEXT}|${NEW_ALIAS}]]`;
+
+/**
+ * The link deliberately sits on the SECOND line: in Live Preview the line holding the caret is shown as raw
+ * markdown, so a link on the caret's line would never be rendered in its decorated form. A non-zero line
+ * index also means a line-index bug in the write-back cannot pass unnoticed.
+ */
+const SOURCE_INTRO_LINE = 'intro';
+
+const READING_VIEW_LINK_SELECTOR = 'a.internal-link';
+
+/**
+ * Both editing modes wrap the link in `.cm-hmd-internal-link` — Live Preview around the displayed alias
+ * (inside a `.cm-underline`), raw Source mode around the link path itself. Neither is an anchor and neither
+ * carries a `data-href` to read the target from, which is the whole reason the click position is needed.
+ */
+const EDITING_MODE_LINK_SELECTOR = '.cm-hmd-internal-link';
+
 const WAIT_TIMEOUT_IN_MILLISECONDS = 20_000;
 const POPOVER_SETTLE_TIMEOUT_IN_MILLISECONDS = 2_000;
 
@@ -54,8 +77,11 @@ interface ClickScenarioResult {
 }
 
 interface RunClickScenarioParams {
+  readonly linkText: string;
   readonly shouldOpenLinkEditorOnAltClick: boolean;
+  readonly shouldTargetExist: boolean;
   readonly shouldUseAlt: boolean;
+  readonly viewMode: 'live-preview' | 'reading' | 'source';
 }
 
 /**
@@ -65,62 +91,142 @@ interface RunClickScenarioParams {
  */
 export function registerLinkClickPopoverSuite(platform: string): void {
   describe(`Edit a link by Alt + clicking it (${platform})`, () => {
-    it('opens the popover on an Alt click, rewrites the link, and does not open it', async () => {
+    it('opens the popover on an Alt click in Reading view, rewrites the link, and does not open it', async () => {
       const result = await runClickScenario({
+        linkText: TARGET_LINK_TEXT,
         shouldOpenLinkEditorOnAltClick: true,
-        shouldUseAlt: true
+        shouldTargetExist: true,
+        shouldUseAlt: true,
+        viewMode: 'reading'
       });
 
       expect(result.wasPopoverShown).toBe(true);
       // Still on the source note: the navigation the click would normally trigger was suppressed.
       expect(result.activePath).toBe(SOURCE_PATH);
-      expect(result.sourceContent).toBe(EXPECTED_SOURCE_CONTENT);
+      expect(result.sourceContent).toBe(getExpectedSourceContent());
+    });
+
+    it('opens the popover on an Alt click in Live Preview, rewrites the link, and does not open it', async () => {
+      /*
+       * The GH #4 regression test. Live Preview gives the clicked element no href, so the link is identified
+       * by the click's own coordinates; before the fix this reported "Could not locate the link in the
+       * source note".
+       */
+      const result = await runClickScenario({
+        linkText: TARGET_LINK_TEXT,
+        shouldOpenLinkEditorOnAltClick: true,
+        shouldTargetExist: true,
+        shouldUseAlt: true,
+        viewMode: 'live-preview'
+      });
+
+      expect(result.wasPopoverShown).toBe(true);
+      expect(result.activePath).toBe(SOURCE_PATH);
+      expect(result.sourceContent).toBe(getExpectedSourceContent());
+    });
+
+    it('opens the popover on an Alt click in Source mode, rewrites the link, and does not open it', async () => {
+      /*
+       * Source mode shares Live Preview's code path (`getMode()` is `source` for both), but GH #4 reported
+       * both, and Source mode wraps the link PATH rather than the displayed alias — so the resolved position
+       * lands in a different part of the same link.
+       */
+      const result = await runClickScenario({
+        linkText: TARGET_LINK_TEXT,
+        shouldOpenLinkEditorOnAltClick: true,
+        shouldTargetExist: true,
+        shouldUseAlt: true,
+        viewMode: 'source'
+      });
+
+      expect(result.wasPopoverShown).toBe(true);
+      expect(result.activePath).toBe(SOURCE_PATH);
+      expect(result.sourceContent).toBe(getExpectedSourceContent());
+    });
+
+    it('opens the popover on an Alt click on a link whose target note does not exist', async () => {
+      // No target to resolve to, so the link is matched by its path text instead.
+      const result = await runClickScenario({
+        linkText: MISSING_LINK_TEXT,
+        shouldOpenLinkEditorOnAltClick: true,
+        shouldTargetExist: false,
+        shouldUseAlt: true,
+        viewMode: 'reading'
+      });
+
+      expect(result.wasPopoverShown).toBe(true);
+      expect(result.activePath).toBe(SOURCE_PATH);
+      expect(result.sourceContent).toBe(getExpectedSourceContent());
     });
 
     it('leaves a plain click alone, so the link still opens', async () => {
       const result = await runClickScenario({
+        linkText: TARGET_LINK_TEXT,
         shouldOpenLinkEditorOnAltClick: true,
-        shouldUseAlt: false
+        shouldTargetExist: true,
+        shouldUseAlt: false,
+        viewMode: 'reading'
       });
 
       expect(result.wasPopoverShown).toBe(false);
       expect(result.activePath).toBe(TARGET_PATH);
-      expect(result.sourceContent).toBe(INITIAL_SOURCE_CONTENT);
+      expect(result.sourceContent).toBe(getInitialSourceContent(TARGET_LINK_TEXT));
     });
 
     it('leaves the Alt click alone when the setting is turned off', async () => {
       const result = await runClickScenario({
+        linkText: TARGET_LINK_TEXT,
         shouldOpenLinkEditorOnAltClick: false,
-        shouldUseAlt: true
+        shouldTargetExist: true,
+        shouldUseAlt: true,
+        viewMode: 'reading'
       });
 
       expect(result.wasPopoverShown).toBe(false);
-      expect(result.sourceContent).toBe(INITIAL_SOURCE_CONTENT);
+      expect(result.sourceContent).toBe(getInitialSourceContent(TARGET_LINK_TEXT));
     });
   });
 }
 
+function getExpectedSourceContent(): string {
+  return `${SOURCE_INTRO_LINE}\n[[${NEW_URL_LINK_TEXT}|${NEW_ALIAS}]]`;
+}
+
+function getInitialSourceContent(linkText: string): string {
+  return `${SOURCE_INTRO_LINE}\n[[${linkText}|${OLD_ALIAS}]]`;
+}
+
 async function runClickScenario(params: RunClickScenarioParams): Promise<ClickScenarioResult> {
+  const isEditingScenario = params.viewMode !== 'reading';
   return await evalInObsidian({
     args: {
-      initialSourceContent: INITIAL_SOURCE_CONTENT,
+      initialSourceContent: getInitialSourceContent(params.linkText),
+      isEditing: isEditingScenario,
+      // Live Preview is `mode: 'source'` with `source: false`; raw Source mode is `source: true`.
+      isRawSource: params.viewMode === 'source',
+      linkSelector: isEditingScenario ? EDITING_MODE_LINK_SELECTOR : READING_VIEW_LINK_SELECTOR,
+      linkText: params.linkText,
       newAlias: NEW_ALIAS,
       newUrl: NEW_URL_LINK_TEXT,
       pluginId: PLUGIN_ID,
       popoverFieldCount: POPOVER_FIELD_COUNT,
       popoverSettleTimeoutInMilliseconds: POPOVER_SETTLE_TIMEOUT_IN_MILLISECONDS,
       shouldOpenLinkEditorOnAltClick: params.shouldOpenLinkEditorOnAltClick,
+      shouldTargetExist: params.shouldTargetExist,
       shouldUseAlt: params.shouldUseAlt,
       sourcePath: SOURCE_PATH,
       targetContent: TARGET_CONTENT,
-      targetLinkText: TARGET_LINK_TEXT,
       targetPath: TARGET_PATH,
       waitTimeoutInMilliseconds: WAIT_TIMEOUT_IN_MILLISECONDS
     },
     async fn({
       app,
       initialSourceContent,
+      isEditing,
+      isRawSource,
       lib: { waitUntil },
+      linkSelector,
+      linkText,
       newAlias,
       newUrl,
       obsidianModule,
@@ -128,10 +234,10 @@ async function runClickScenario(params: RunClickScenarioParams): Promise<ClickSc
       popoverFieldCount,
       popoverSettleTimeoutInMilliseconds,
       shouldOpenLinkEditorOnAltClick,
+      shouldTargetExist,
       shouldUseAlt,
       sourcePath,
       targetContent,
-      targetLinkText,
       targetPath,
       waitTimeoutInMilliseconds
     }) {
@@ -174,81 +280,35 @@ async function runClickScenario(params: RunClickScenarioParams): Promise<ClickSc
         return null;
       }
 
-      for (const path of [sourcePath, targetPath]) {
-        const existing = app.vault.getAbstractFileByPath(path);
-        if (existing) {
-          await app.fileManager.trashFile(existing);
+      /*
+       * The coordinates are what identifies the link in an editing view (`Editor.posAtMouse`), so a click
+       * dispatched without them would resolve to the very start of the document. The element's own centre
+       * is the point the user would have hit.
+       */
+      function clickLink(linkEl: HTMLElement): void {
+        const rect = linkEl.getBoundingClientRect();
+        linkEl.dispatchEvent(
+          new MouseEvent('click', {
+            altKey: shouldUseAlt,
+            bubbles: true,
+            button: 0,
+            cancelable: true,
+            clientX: rect.left + rect.width / 2,
+            clientY: rect.top + rect.height / 2
+          })
+        );
+      }
+
+      async function trashNotes(): Promise<void> {
+        for (const path of [sourcePath, targetPath]) {
+          const existing = app.vault.getAbstractFileByPath(path);
+          if (existing) {
+            await app.fileManager.trashFile(existing);
+          }
         }
       }
 
-      await app.vault.create(targetPath, targetContent);
-      const sourceFile = await app.vault.create(sourcePath, initialSourceContent);
-
-      const plugin = app.plugins.getPlugin(pluginId);
-      const settingsComponent = findSettingsComponent(plugin);
-      if (!settingsComponent) {
-        throw new Error('Could not find the plugin settings component');
-      }
-      await settingsComponent.setProperty('shouldOpenLinkEditorOnAltClick', shouldOpenLinkEditorOnAltClick);
-      await settingsComponent.saveToFile(null);
-      await waitUntil({
-        message: 'the Alt-click setting did not take effect',
-        predicate: () => settingsComponent.settings['shouldOpenLinkEditorOnAltClick'] === shouldOpenLinkEditorOnAltClick,
-        timeoutInMilliseconds: waitTimeoutInMilliseconds
-      });
-
-      const leaf = app.workspace.getLeaf(true);
-      await leaf.openFile(sourceFile, { state: { mode: 'preview' } });
-
-      await waitUntil({
-        message: 'source note did not become the active reading view',
-        predicate: () => app.workspace.getActiveViewOfType(obsidianModule.MarkdownView)?.file?.path === sourcePath,
-        timeoutInMilliseconds: waitTimeoutInMilliseconds
-      });
-
-      await waitUntil({
-        message: 'link target did not resolve',
-        predicate: () => app.metadataCache.getFirstLinkpathDest(targetLinkText, sourcePath) !== null,
-        timeoutInMilliseconds: waitTimeoutInMilliseconds
-      });
-
-      const view = app.workspace.getActiveViewOfType(obsidianModule.MarkdownView);
-      await waitUntil({
-        message: 'the rendered link did not appear in the reading view',
-        predicate: () => Boolean(view?.containerEl.querySelector('a.internal-link')),
-        timeoutInMilliseconds: waitTimeoutInMilliseconds
-      });
-
-      const linkEl = view?.containerEl.querySelector<HTMLElement>('a.internal-link');
-      if (!linkEl) {
-        throw new Error('The rendered link disappeared');
-      }
-
-      linkEl.dispatchEvent(
-        new MouseEvent('click', {
-          altKey: shouldUseAlt,
-          bubbles: true,
-          cancelable: true
-        })
-      );
-
-      /*
-       * The popover is expected NOT to open in the control case, so a timeout here is a legitimate
-       * outcome rather than a failure — the assertions live in the calling test.
-       */
-      let wasPopoverShown: boolean;
-      try {
-        await waitUntil({
-          message: 'the link editor popover did not open',
-          predicate: () => getPopoverInputEls().length === popoverFieldCount,
-          timeoutInMilliseconds: popoverSettleTimeoutInMilliseconds
-        });
-        wasPopoverShown = true;
-      } catch {
-        wasPopoverShown = false;
-      }
-
-      if (wasPopoverShown) {
+      async function applyPopoverEdit(sourceFile: TFile): Promise<void> {
         const [urlInputEl, aliasInputEl] = getPopoverInputEls();
         const okButtonEl = getPopoverEl()?.querySelector<HTMLElement>('.ok-button');
         if (!urlInputEl || !aliasInputEl || !okButtonEl) {
@@ -266,12 +326,14 @@ async function runClickScenario(params: RunClickScenarioParams): Promise<ClickSc
           predicate: async () => (await app.vault.read(sourceFile)) !== initialSourceContent,
           timeoutInMilliseconds: waitTimeoutInMilliseconds
         });
-      } else {
-        /*
-         * No popover means the click was left alone, so Obsidian should be opening the link. Give the
-         * navigation a moment to settle; a timeout is reported through activePath, not thrown, so the
-         * calling test states what should have happened.
-         */
+      }
+
+      /*
+       * No popover means the click was left alone, so Obsidian should be opening the link. Give the
+       * navigation a moment to settle; a timeout is reported through activePath, not thrown, so the
+       * calling test states what should have happened.
+       */
+      async function waitForNavigation(): Promise<void> {
         try {
           await waitUntil({
             message: 'the link did not open',
@@ -283,15 +345,92 @@ async function runClickScenario(params: RunClickScenarioParams): Promise<ClickSc
         }
       }
 
+      await trashNotes();
+
+      if (shouldTargetExist) {
+        await app.vault.create(targetPath, targetContent);
+      }
+      const sourceFile = await app.vault.create(sourcePath, initialSourceContent);
+
+      const plugin = app.plugins.getPlugin(pluginId);
+      const settingsComponent = findSettingsComponent(plugin);
+      if (!settingsComponent) {
+        throw new Error('Could not find the plugin settings component');
+      }
+      await settingsComponent.setProperty('shouldOpenLinkEditorOnAltClick', shouldOpenLinkEditorOnAltClick);
+      await settingsComponent.saveToFile(null);
+      await waitUntil({
+        message: 'the Alt-click setting did not take effect',
+        predicate: () => settingsComponent.settings['shouldOpenLinkEditorOnAltClick'] === shouldOpenLinkEditorOnAltClick,
+        timeoutInMilliseconds: waitTimeoutInMilliseconds
+      });
+
+      const leaf = app.workspace.getLeaf(true);
+      await leaf.openFile(sourceFile, { state: isEditing ? { mode: 'source', source: isRawSource } : { mode: 'preview' } });
+
+      const expectedMode = isEditing ? 'source' : 'preview';
+      await waitUntil({
+        message: 'source note did not become the active view in the expected mode',
+        predicate: () => {
+          const candidate = app.workspace.getActiveViewOfType(obsidianModule.MarkdownView);
+          return candidate?.file?.path === sourcePath && candidate.getMode() === expectedMode;
+        },
+        timeoutInMilliseconds: waitTimeoutInMilliseconds
+      });
+
+      if (shouldTargetExist) {
+        await waitUntil({
+          message: 'link target did not resolve',
+          predicate: () => app.metadataCache.getFirstLinkpathDest(linkText, sourcePath) !== null,
+          timeoutInMilliseconds: waitTimeoutInMilliseconds
+        });
+      }
+
+      const view = app.workspace.getActiveViewOfType(obsidianModule.MarkdownView);
+      if (isEditing) {
+        // Live Preview shows the caret's own line as raw markdown, so park it off the link's line.
+        view?.editor.setCursor({ ch: 0, line: 0 });
+      }
+
+      await waitUntil({
+        message: 'the rendered link did not appear',
+        predicate: () => Boolean(view?.containerEl.querySelector(linkSelector)),
+        timeoutInMilliseconds: waitTimeoutInMilliseconds
+      });
+
+      const linkEl = view?.containerEl.querySelector<HTMLElement>(linkSelector);
+      if (!linkEl) {
+        throw new Error('The rendered link disappeared');
+      }
+
+      clickLink(linkEl);
+
+      /*
+       * The popover is expected NOT to open in the control cases, so a timeout here is a legitimate
+       * outcome rather than a failure — the assertions live in the calling test.
+       */
+      let wasPopoverShown: boolean;
+      try {
+        await waitUntil({
+          message: 'the link editor popover did not open',
+          predicate: () => getPopoverInputEls().length === popoverFieldCount,
+          timeoutInMilliseconds: popoverSettleTimeoutInMilliseconds
+        });
+        wasPopoverShown = true;
+      } catch {
+        wasPopoverShown = false;
+      }
+
+      if (wasPopoverShown) {
+        await applyPopoverEdit(sourceFile);
+      } else {
+        await waitForNavigation();
+      }
+
       const sourceContent = await app.vault.read(sourceFile);
       const activePath = app.workspace.getActiveViewOfType(obsidianModule.MarkdownView)?.file?.path ?? null;
 
-      for (const path of [sourcePath, targetPath]) {
-        const existing = app.vault.getAbstractFileByPath(path);
-        if (existing) {
-          await app.fileManager.trashFile(existing);
-        }
-      }
+      await trashNotes();
 
       return {
         activePath,
