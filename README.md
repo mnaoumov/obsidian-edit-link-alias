@@ -5,7 +5,7 @@
 [![GitHub downloads](https://img.shields.io/github/downloads/mnaoumov/obsidian-edit-link-alias/total)](https://github.com/mnaoumov/obsidian-edit-link-alias/releases)
 [![Coverage: 100%](https://img.shields.io/badge/coverage-100%25-brightgreen)](https://github.com/mnaoumov/obsidian-edit-link-alias)
 
-This is a plugin for [Obsidian](https://obsidian.md/) that adds an **Edit link alias** command (changes only the display text of the link under your cursor) and an **Edit link (URL and alias)** command (a two-field pop-up that edits the link's target and display text together). Both are available from the Command Palette, the editor right-click menu, and the link long-press / Reading-view context menu, and work on internal wikilinks, markdown links, and external links alike. `Alt` + clicking a link opens that editor right at the link, and the same editor is what the context menu opens.
+This is a plugin for [Obsidian](https://obsidian.md/) that adds an **Edit link alias** command (changes only the display text of the link under your cursor) and an **Edit link (URL and alias)** command (a two-field pop-up that edits the link's target and display text together). Both are available from the Command Palette, the editor right-click menu, and the link long-press / Reading-view context menu, and work on internal wikilinks, markdown links, external links, and links in a note's frontmatter alike. `Alt` + clicking a link opens that editor right at the link, and the same editor is what the context menu opens.
 
 ![Prompt](./images/prompt.png)
 
@@ -16,6 +16,15 @@ This is a plugin for [Obsidian](https://obsidian.md/) that adds an **Edit link a
 `Alt` + click is used because Obsidian gives it no meaning on a link, so **nothing you already do changes**: a plain click still opens the link, and `Ctrl` + click (`Cmd` + click) still opens it in a new tab.
 
 It is on by default; turn it off with **Should open link editor on Alt + click** in **Settings → Edit Link Alias**.
+
+## Links in the frontmatter
+
+Links living in a note's **properties** are editable the same way: `Alt` + click one in the Properties panel, right-click it, or put the cursor on it in source mode where the frontmatter is plain YAML.
+
+Such an edit is written back **through the frontmatter**, so the value is quoted whenever it needs to be — `url: https://example.com` becomes `url: "[Example](https://example.com)"` rather than a note that no longer parses. Two consequences worth knowing:
+
+- the frontmatter block is re-serialized, so comments and hand formatting inside it are normalized;
+- the change is written to the file rather than typed into the editor, so it is not part of the editor's undo history.
 
 ## Demo vault
 

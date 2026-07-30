@@ -79,6 +79,36 @@
   the same way the `externalUrl` branch already checks `url` and `encodedUrl`.
   - A `LinkTarget` with **none** of the three set still exists, and means "unknown — resolve me by
     position". It is produced only by a click on an href-less Live Preview link.
+- **A link in the FRONTMATTER has its own resolver and its own write path
+  (`src/frontmatter-link-occurrence.ts`).** Frontmatter is YAML, not markdown, so the raw-text splice every
+  body path performs corrupts it: `url: https://x` is a plain scalar, but `url: [Alias](https://x)` starts a
+  flow sequence and the note stops parsing — that is GH #5. The edit is therefore expressed as a change
+  against the *parsed property value* and handed to dev-utils `applyFileChanges`, which applies it to the
+  frontmatter object and re-emits the block through `stringifyYaml` (`lineWidth: 0`, so nothing folds),
+  quoting whatever needs quoting.
+  - **`resolve-link-occurrence.ts` must keep frontmatter out of its own paths, in all three places**:
+    `findMatches` skips frontmatter lines, `tryEditLinkAtPosition` hands off when the position is in the
+    frontmatter, and `editLinkAtEditorCursor` does the same for the caret. Removing any one of them
+    re-opens #5 through that entry point.
+  - **The accepted trade-off is that the whole frontmatter block is re-serialized**, so YAML comments and
+    hand formatting inside it are normalized, and the edit goes through `vault.process` rather than the
+    editor, so it does not join the undo history. Both are stated in the demo note and were the user's
+    explicit call (`T258-P27`) over hand-rolling YAML quoting for a surgical splice.
+  - **Occurrence resolution is by key and link identity, never by offset into the block.** The panel knows
+    the `data-property-key` it rendered, the raw YAML knows the link text under the pointer, and the context
+    menu knows only the url — so the resolver takes an optional `propertyKey` and an optional `rawLink`, and
+    falls back to `selectItem` when several links still match.
+  - **`applyFileChanges` validates before writing, and what it compares against differs by reference**: one
+    carrying offsets is matched against that slice of the property value, one without against the WHOLE
+    value. Get it wrong and the write is a silent no-op — which is why the write is confirmed by comparing
+    the content before and after, and reports the "could not locate" notice when nothing changed.
+  - **The two sources of frontmatter links are disjoint and both are needed.** Obsidian natively caches only
+    INTERNAL links whose whole property value is the link (`cache.frontmatterLinks`); dev-utils
+    `parseFrontmatterLinks` supplies the external ones and any value holding several links, and deliberately
+    skips what Obsidian already covers. `getCacheSafe` + `getLinks` would union them for you but reads
+    unofficial cache internals (`metadataCache.fileCache` / `computeFileMetadataAsync`) that the test mocks
+    do not implement, so the public `getFileCache` is used and the union is done here, de-duplicated by
+    key + start offset.
 - **Click interception (`src/link-click-component.ts`) — a second deliberate G51 deviation.** Obsidian
   raises no event for "a link was clicked", and `openLinkText` is shared with the backlinks pane, search
   and the graph, so patching it would intercept far more than a click in a note. The component therefore
@@ -97,6 +127,18 @@
     `preventDefault()` on link clicks itself. The integration suite asserts on whether navigation
     actually occurred (which file ends up active) instead. This cost one red integration run; do not
     reintroduce that assertion.
+  - **The Properties panel renders a link as a `div`, not an anchor** — `.metadata-link-inner` for a text
+    property, `.multi-select-pill-content` for a list one, each carrying `data-href` and the
+    `internal-link`/`external-link` class, and NO `href` (verified against Obsidian 1.13.4 over CDP). So
+    `LINK_SELECTOR` must not require a tag name for those two, and `getLinkTarget` reads `href ?? data-href`.
+    An `a.external-link`-only selector is why GH #6 saw nothing happen.
+  - **A panel click must NOT consult a position.** The panel is visible in Live Preview, where
+    `view.getMode()` is `'source'`, so the caret and `posAtMouse` both "work" and both resolve something
+    else entirely — whatever body link the caret was last left on. The `data-property-key` the click carries
+    replaces the position outright.
+  - **A click in the raw YAML has no link element at all**, so it is picked up by `handleRawFrontmatterClick`
+    after the selector misses: `posAtMouse` → is the position inside the frontmatter → is a parsed link under
+    it. The popover is anchored with `createAnchorFromPoint`, there being no element to anchor to.
   - Reading view resolves the clicked link through `data-href`; Live Preview / Source mode through the
     editor position. Capture-phase `click` alone is enough in **every** mode — navigation is already
     suppressed in Live Preview, so there is no need to also intercept `mousedown` (checked against a real
