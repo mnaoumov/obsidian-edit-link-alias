@@ -94,6 +94,9 @@ function createMockEditor(params: CreateMockEditorParams = {}): Editor {
     getClickableTokenAt: vi.fn().mockReturnValue(clickableTokenType === null ? null : { type: clickableTokenType }),
     getCursor: vi.fn().mockReturnValue(cursor),
     getDoc: vi.fn().mockReturnValue(strictProxy({ getLine })),
+    // A single body line: no frontmatter, so the frontmatter routing in `tryEditLinkAtPosition` is not taken.
+    getValue: vi.fn().mockReturnValue(line),
+    posToOffset: vi.fn().mockReturnValue(0),
     replaceRange
   });
 }
@@ -200,7 +203,11 @@ function createHandler(): LinkMenuHandler {
   on = vi.fn();
 
   app = castTo<App>({
-    metadataCache: { getFirstLinkpathDest },
+    // No frontmatter cache: these tests exercise the body paths, so frontmatter resolution finds nothing.
+    metadataCache: {
+      getFileCache: vi.fn().mockReturnValue(null),
+      getFirstLinkpathDest
+    },
     vault: {
       process,
       read

@@ -3,6 +3,7 @@ import type {
   EditorPosition,
   MarkdownFileInfo
 } from 'obsidian';
+import type { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/components/plugin-notice-component';
 
 import { castTo } from 'obsidian-dev-utils/object-utils';
 import { EditorCommandHandler } from 'obsidian-dev-utils/obsidian/command-handlers/editor-command-handler';
@@ -57,8 +58,8 @@ class TestableEditCommandHandler extends EditCommandHandler {
     return this.canExecuteEditor(editor, ctx);
   }
 
-  public async testExecuteEditor(editor: Editor): Promise<void> {
-    return this.executeEditor(editor);
+  public async testExecuteEditor(editor: Editor, ctx: MarkdownFileInfo = createMockCtx()): Promise<void> {
+    return this.executeEditor(editor, ctx);
   }
 
   public testShouldAddToEditorMenu(editor: Editor, ctx: MarkdownFileInfo): boolean {
@@ -71,7 +72,7 @@ function createMockApp(): import('obsidian').App {
 }
 
 function createMockCtx(): MarkdownFileInfo {
-  return strictProxy<MarkdownFileInfo>({});
+  return strictProxy<MarkdownFileInfo>({ file: null });
 }
 
 function createMockEditor(params: CreateMockEditorParams = {}): Editor {
@@ -89,15 +90,24 @@ function createMockEditor(params: CreateMockEditorParams = {}): Editor {
     getClickableTokenAt: vi.fn().mockReturnValue(clickableToken),
     getCursor: vi.fn().mockReturnValue(cursor),
     getDoc: mockGetDoc,
+    getValue: vi.fn().mockReturnValue(line),
+    posToOffset: vi.fn().mockReturnValue(0),
     replaceRange
   });
+}
+
+function createMockPluginNoticeComponent(): PluginNoticeComponent {
+  return strictProxy<PluginNoticeComponent>({ showNotice: vi.fn() });
 }
 
 describe('EditCommandHandler', () => {
   let handler: TestableEditCommandHandler;
 
   beforeEach(() => {
-    handler = new TestableEditCommandHandler(createMockApp());
+    handler = new TestableEditCommandHandler({
+      app: createMockApp(),
+      pluginNoticeComponent: createMockPluginNoticeComponent()
+    });
   });
 
   afterEach(() => {
@@ -168,6 +178,39 @@ describe('EditCommandHandler', () => {
 
       expect(mockPrompt).not.toHaveBeenCalled();
       expect(editor.replaceRange).not.toHaveBeenCalled();
+    });
+
+    it('should surface a notice when a frontmatter link cannot be located', async () => {
+      const showNotice = vi.fn();
+      const frontmatterContent = '---\nurl: https://example.com\n---\n';
+      mockParseLinks.mockReturnValue([{
+        endOffset: 24,
+        isEmbed: false,
+        isExternal: true,
+        isFileUrl: false,
+        isWikilink: false,
+        raw: 'https://example.com',
+        startOffset: 5,
+        url: 'https://example.com'
+      }]);
+
+      const noticeHandler = new TestableEditCommandHandler({
+        // The note holds no cached frontmatter link, so the resolution finds nothing to edit.
+        app: strictProxy<import('obsidian').App>({ metadataCache: strictProxy({ getFileCache: vi.fn().mockReturnValue(null) }) }),
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice })
+      });
+
+      const editor = createMockEditor({
+        cursor: { ch: 10, line: 1 },
+        line: 'url: https://example.com'
+      });
+      vi.mocked(editor.getValue).mockReturnValue(frontmatterContent);
+      vi.mocked(editor.posToOffset).mockReturnValue(frontmatterContent.indexOf('https'));
+
+      await noticeHandler.testExecuteEditor(editor, strictProxy<MarkdownFileInfo>({ file: strictProxy({ path: 'source.md' }) }));
+
+      expect(showNotice).toHaveBeenCalledWith('Could not locate the link in the source note.');
+      expect(mockPrompt).not.toHaveBeenCalled();
     });
 
     it('should return early when prompt is cancelled', async () => {
