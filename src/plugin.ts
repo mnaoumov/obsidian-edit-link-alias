@@ -42,8 +42,14 @@ export class Plugin extends PluginBase {
     );
 
     this.commandHandlerComponent.registerCommandHandlers([
-      new EditCommandHandler(this.app),
-      new EditUrlAndAliasCommandHandler(this.app),
+      new EditCommandHandler({
+        app: this.app,
+        pluginNoticeComponent: this.pluginNoticeComponent
+      }),
+      new EditUrlAndAliasCommandHandler({
+        app: this.app,
+        pluginNoticeComponent: this.pluginNoticeComponent
+      }),
       new OpenDemoVaultCommandHandler({
         app: this.app,
         pluginId: this.manifest.id,

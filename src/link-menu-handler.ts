@@ -18,12 +18,13 @@ import { isFile } from 'obsidian-dev-utils/obsidian/file-system';
 import { createAnchorFromDocumentCenter } from 'obsidian-dev-utils/obsidian/popovers/popover-anchor';
 
 import type { EditParsedLink } from './edit-link.ts';
-import type { LinkTarget } from './resolve-link-occurrence.ts';
+import type { LinkTarget } from './link-target.ts';
 
 import {
   createEditParsedLinkUrlAndAliasInPopover,
   editParsedLinkAlias
 } from './edit-link.ts';
+import { COULD_NOT_LOCATE_LINK_NOTICE } from './notices.ts';
 import { resolveAndEditLink } from './resolve-link-occurrence.ts';
 
 const LINK_CONTEXT_MENU_SOURCE = 'link-context-menu';
@@ -223,6 +224,6 @@ export class LinkMenuHandler {
   }
 
   private showCouldNotLocateNotice(): void {
-    this.pluginNoticeComponent.showNotice('Could not locate the link in the source note.');
+    this.pluginNoticeComponent.showNotice(COULD_NOT_LOCATE_LINK_NOTICE);
   }
 }

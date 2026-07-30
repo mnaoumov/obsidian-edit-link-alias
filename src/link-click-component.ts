@@ -14,9 +14,13 @@
  * entirely untouched, so it keeps whatever meaning Obsidian gives it.
  */
 
-import type { App } from 'obsidian';
+import type {
+  App,
+  EditorPosition
+} from 'obsidian';
 import type { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/components/plugin-notice-component';
 import type { PluginSettingsComponentBase } from 'obsidian-dev-utils/obsidian/components/plugin-settings-component';
+import type { PopoverAnchor } from 'obsidian-dev-utils/obsidian/popovers/popover-anchor';
 
 import {
   getLinkpath,
@@ -26,15 +30,19 @@ import {
 import { invokeAsyncSafely } from 'obsidian-dev-utils/async';
 import { normalizeOptionalProperties } from 'obsidian-dev-utils/object-utils';
 import { AllWindowsEventComponent } from 'obsidian-dev-utils/obsidian/components/all-windows-event-component';
-import { createAnchorFromElement } from 'obsidian-dev-utils/obsidian/popovers/popover-anchor';
+import { parseLinks } from 'obsidian-dev-utils/obsidian/parse-link';
+import {
+  createAnchorFromElement,
+  createAnchorFromPoint
+} from 'obsidian-dev-utils/obsidian/popovers/popover-anchor';
 
+import type { LinkTarget } from './link-target.ts';
 import type { PluginSettings } from './plugin-settings.ts';
-import type {
-  LinkTarget,
-  ResolveAndEditLinkParams
-} from './resolve-link-occurrence.ts';
+import type { ResolveAndEditLinkParams } from './resolve-link-occurrence.ts';
 
 import { createEditParsedLinkUrlAndAliasInPopover } from './edit-link.ts';
+import { isOffsetInFrontmatter } from './frontmatter-link-occurrence.ts';
+import { COULD_NOT_LOCATE_LINK_NOTICE } from './notices.ts';
 import { resolveAndEditLink } from './resolve-link-occurrence.ts';
 
 /**
@@ -42,10 +50,24 @@ import { resolveAndEditLink } from './resolve-link-occurrence.ts';
  * styled editor text, so the wikilink / markdown-link wrappers and the underlined display text have to
  * be matched too.
  */
-const LINK_SELECTOR = 'a.internal-link, a.external-link, .cm-hmd-internal-link, .cm-link, .cm-underline';
+const LINK_SELECTOR = [
+  'a.internal-link',
+  'a.external-link',
+  '.cm-hmd-internal-link',
+  '.cm-link',
+  '.cm-underline',
+  /*
+   * The Properties panel. Obsidian renders a property link as a `div` carrying `data-href` and the
+   * internal-link / external-link class — never an anchor — so the tag cannot be part of the selector
+   * (this is why GH #6 saw nothing happen). The same markup covers the text widget and the list pills.
+   */
+  '.metadata-property-value .internal-link',
+  '.metadata-property-value .external-link'
+].join(', ');
 
 const EXTERNAL_LINK_CSS_CLASS = 'external-link';
 const PRIMARY_MOUSE_BUTTON = 0;
+const PROPERTY_KEY_ATTRIBUTE = 'data-property-key';
 
 /**
  * Parameters for constructing a {@link LinkClickComponent}.
@@ -64,6 +86,38 @@ export interface LinkClickComponentConstructorParams {
 
 interface ContainingViewState {
   view: MarkdownView | null;
+}
+
+interface LinkClickComponentInterceptAndEditParams {
+  /**
+   * Where to place the link editor.
+   */
+  readonly anchor: PopoverAnchor;
+
+  /**
+   * The click being intercepted.
+   */
+  readonly evt: MouseEvent;
+
+  /**
+   * What the click said the link points at.
+   */
+  readonly linkTarget: LinkTarget;
+
+  /**
+   * The frontmatter property the click landed in, or `null` when it was not a Properties panel click.
+   */
+  readonly propertyKey: null | string;
+
+  /**
+   * The source position the click resolves to, when there is one.
+   */
+  readonly sourcePosition?: EditorPosition;
+
+  /**
+   * The view the click landed in, or `null` when it could not be determined.
+   */
+  readonly view: MarkdownView | null;
 }
 
 /**
@@ -113,7 +167,12 @@ export class LinkClickComponent extends AllWindowsEventComponent {
     const href = linkEl.getAttribute('href');
 
     if (linkEl.hasClass(EXTERNAL_LINK_CSS_CLASS)) {
-      return href === null ? null : { externalUrl: href };
+      /*
+       * A rendered anchor carries its url in `href`; a Properties panel link is a `div` and carries it in
+       * `data-href` instead, so both are read here.
+       */
+      const externalUrl = href ?? dataHref;
+      return externalUrl === null ? null : { externalUrl };
     }
 
     const linkText = dataHref ?? href;
@@ -153,6 +212,7 @@ export class LinkClickComponent extends AllWindowsEventComponent {
 
     const linkEl = getClickedLinkEl(evt);
     if (!linkEl) {
+      this.handleRawFrontmatterClick(evt);
       return;
     }
 
@@ -162,13 +222,86 @@ export class LinkClickComponent extends AllWindowsEventComponent {
       return;
     }
 
+    const propertyKey = getClickedPropertyKey(linkEl);
+
     /*
      * The click's own coordinates are the exact identity of the clicked link — the ONLY one in Live
      * Preview, where the link carries no href. The caret is NOT usable here: an Alt click on a Live
      * Preview link leaves it at the end of the line, not inside the link (verified against a real
      * Obsidian). Reading view has no editor to ask, hence the mode check.
+     *
+     * A Properties panel link is deliberately excluded: it sits outside the editor's text, so its
+     * coordinates resolve to an unrelated position, and the property key it carries is the better
+     * identity anyway.
      */
-    const sourcePosition = view?.getMode() === 'source' ? view.editor.posAtMouse(evt) : undefined;
+    const sourcePosition = propertyKey === null && view?.getMode() === 'source' ? view.editor.posAtMouse(evt) : undefined;
+
+    this.interceptAndEdit({
+      anchor: createAnchorFromElement(linkEl),
+      evt,
+      linkTarget,
+      propertyKey,
+      view,
+      ...normalizeOptionalProperties<Pick<LinkClickComponentInterceptAndEditParams, 'sourcePosition'>>({ sourcePosition })
+    });
+  }
+
+  /**
+   * Handles a click that landed on no rendered link, in case it landed on a link inside the raw YAML of a
+   * note's frontmatter in Source mode. Nothing there is a link element — Obsidian decorates no links inside
+   * the frontmatter block — so the pointer position is the only identity available (GH #6).
+   *
+   * @param evt - The click event.
+   */
+  private handleRawFrontmatterClick(evt: MouseEvent): void {
+    const { target } = evt;
+    if (!(target instanceof HTMLElement)) {
+      return;
+    }
+
+    const view = this.getViewContaining(target);
+    if (view?.getMode() !== 'source') {
+      return;
+    }
+
+    const { editor } = view;
+    const sourcePosition = editor.posAtMouse(evt);
+    if (!isOffsetInFrontmatter(editor.getValue(), editor.posToOffset(sourcePosition))) {
+      return;
+    }
+
+    const line = editor.getDoc().getLine(sourcePosition.line);
+    const isPointerOnLink = parseLinks(line)
+      .some((parsedLink) => parsedLink.startOffset <= sourcePosition.ch && sourcePosition.ch <= parsedLink.endOffset);
+    if (!isPointerOnLink) {
+      return;
+    }
+
+    this.interceptAndEdit({
+      anchor: createAnchorFromPoint(evt.clientX, evt.clientY, target.doc),
+      evt,
+      // Raw YAML says nothing about what the link points at; the position resolves it.
+      linkTarget: {},
+      propertyKey: null,
+      sourcePosition,
+      view
+    });
+  }
+
+  /**
+   * Stops Obsidian from acting on the click and opens the link editor instead.
+   *
+   * @param params - The parameters for the interception.
+   */
+  private interceptAndEdit(params: LinkClickComponentInterceptAndEditParams): void {
+    const {
+      anchor,
+      evt,
+      linkTarget,
+      propertyKey,
+      sourcePosition,
+      view
+    } = params;
 
     evt.preventDefault();
     evt.stopPropagation();
@@ -177,13 +310,16 @@ export class LinkClickComponent extends AllWindowsEventComponent {
     invokeAsyncSafely(async () => {
       await resolveAndEditLink({
         app: this.app,
-        editParsedLink: createEditParsedLinkUrlAndAliasInPopover(createAnchorFromElement(linkEl)),
+        editParsedLink: createEditParsedLinkUrlAndAliasInPopover(anchor),
         linkTarget,
         showCouldNotLocateNotice: () => {
-          this.pluginNoticeComponent.showNotice('Could not locate the link in the source note.');
+          this.pluginNoticeComponent.showNotice(COULD_NOT_LOCATE_LINK_NOTICE);
         },
         view,
-        ...normalizeOptionalProperties<Pick<ResolveAndEditLinkParams, 'sourcePosition'>>({ sourcePosition })
+        ...normalizeOptionalProperties<Pick<ResolveAndEditLinkParams, 'propertyKey' | 'sourcePosition'>>({
+          propertyKey: propertyKey ?? undefined,
+          sourcePosition
+        })
       });
     });
   }
@@ -218,4 +354,14 @@ function getClickedLinkEl(evt: MouseEvent): HTMLElement | null {
     return null;
   }
   return target.closest<HTMLElement>(LINK_SELECTOR);
+}
+
+/**
+ * Reads the frontmatter property a clicked link belongs to, when it was rendered by the Properties panel.
+ *
+ * @param linkEl - The clicked link element.
+ * @returns The property key, or `null` when the link was not rendered by the Properties panel.
+ */
+function getClickedPropertyKey(linkEl: HTMLElement): null | string {
+  return linkEl.closest<HTMLElement>(`[${PROPERTY_KEY_ATTRIBUTE}]`)?.getAttribute(PROPERTY_KEY_ATTRIBUTE) ?? null;
 }

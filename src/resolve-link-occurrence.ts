@@ -13,6 +13,11 @@
  * ({@link ResolveAndEditLinkParams.sourcePosition}). That is what makes Live Preview work at all — there
  * the link is editor text with no `href` to read, so the position is the ONLY identity available.
  *
+ * A link in the note's FRONTMATTER is handed to `frontmatter-link-occurrence.ts` instead: the raw-text
+ * splice this module performs would produce invalid YAML there (GH #5). Every route into that module goes
+ * through here, which is why the shared {@link LinkTarget} vocabulary lives in `link-target.ts` rather
+ * than in either resolver.
+ *
  * Shared by {@link LinkMenuHandler} (long-press / context menu) and {@link LinkClickComponent} (click
  * interception) so the scan, the match rules, and the shifted-offset write-back live in one place.
  */
@@ -25,93 +30,21 @@ import type {
 } from 'obsidian';
 import type { ParseLinkResult } from 'obsidian-dev-utils/obsidian/parse-link';
 
-import { getLinkpath } from 'obsidian';
 import { selectItem } from 'obsidian-dev-utils/obsidian/modals/select-item';
 import { parseLinks } from 'obsidian-dev-utils/obsidian/parse-link';
 
 import type { EditParsedLink } from './edit-link.ts';
+import type { LinkTarget } from './link-target.ts';
 
-/**
- * Parameters for {@link doesLinkMatchTarget}.
- */
-export interface DoesLinkMatchTargetParams {
-  /**
-   * The Obsidian app instance.
-   */
-  readonly app: App;
-
-  /**
-   * The link target to test against.
-   */
-  readonly linkTarget: LinkTarget;
-
-  /**
-   * The link to test.
-   */
-  readonly parsedLink: ParseLinkResult;
-
-  /**
-   * The path of the note the link lives in, used to resolve the link path.
-   */
-  readonly sourcePath: string;
-}
-
-/**
- * Parameters for {@link editLinkOccurrenceViaSourceScan}.
- */
-export interface EditLinkOccurrenceViaSourceScanParams {
-  /**
-   * The Obsidian app instance.
-   */
-  readonly app: App;
-
-  /**
-   * The editor to run on the resolved link occurrence.
-   */
-  readonly editParsedLink: EditParsedLink;
-
-  /**
-   * The link to look for.
-   */
-  readonly linkTarget: LinkTarget;
-
-  /**
-   * Reports that the link could not be located in the source note.
-   */
-  showCouldNotLocateNotice(this: void): void;
-
-  /**
-   * The note to scan and rewrite.
-   */
-  readonly sourceFile: TFile;
-}
-
-/**
- * Identifies the link to edit: either an internal target file or an external url, as carried by the
- * `file-menu` / `url-menu` events and by a clicked rendered link.
- *
- * All three fields are optional, and a target with none set means "unknown" — the caller could not tell
- * what the link points at, and the source position it supplies alongside is the only identity available.
- * That is the Live Preview click: the link is editor text carrying no `href` to read.
- */
-export interface LinkTarget {
-  /**
-   * The external url, when the link is external.
-   */
-  readonly externalUrl?: string;
-
-  /**
-   * The internal link path as written / rendered, when the link is internal but does not resolve to a
-   * file. A link to a note that does not exist yet has no {@link target} to match on, so it is matched by
-   * this text instead.
-   */
-  readonly linkPath?: string;
-
-  /**
-   * The internal target file, when the link is internal and resolves.
-   */
-  readonly target?: TFile;
-}
+import {
+  isLineInFrontmatter,
+  isOffsetInFrontmatter,
+  resolveAndEditFrontmatterLink
+} from './frontmatter-link-occurrence.ts';
+import {
+  doesLinkMatchTarget,
+  isTargetKnown
+} from './link-target.ts';
 
 /**
  * Parameters for {@link resolveAndEditLink}.
@@ -133,6 +66,13 @@ export interface ResolveAndEditLinkParams {
   readonly linkTarget: LinkTarget;
 
   /**
+   * The frontmatter property the gesture happened in, when the caller knows it. Only the Properties panel
+   * does — it rendered that property — and knowing it means the link is in the frontmatter, so no position
+   * is consulted at all.
+   */
+  readonly propertyKey?: string;
+
+  /**
    * Reports that the link could not be located in the source note.
    */
   showCouldNotLocateNotice(this: void): void;
@@ -149,6 +89,14 @@ export interface ResolveAndEditLinkParams {
   readonly view: MarkdownView | null;
 }
 
+interface EditLinkOccurrenceViaSourceScanParams {
+  readonly app: App;
+  readonly editParsedLink: EditParsedLink;
+  readonly linkTarget: LinkTarget;
+  showCouldNotLocateNotice(this: void): void;
+  readonly sourceFile: TFile;
+}
+
 interface LinkMatch {
   readonly line: number;
   readonly parsedLink: ParseLinkResult;
@@ -159,63 +107,109 @@ interface TryEditLinkAtPositionParams {
   readonly editorPosition: EditorPosition;
   readonly editParsedLink: EditParsedLink;
   readonly linkTarget: LinkTarget;
-  readonly sourcePath: string;
+  showCouldNotLocateNotice(this: void): void;
+  readonly sourceFile: TFile;
   readonly view: MarkdownView;
 }
 
 /**
- * Determines whether a parsed link points at the given target.
+ * Resolves the link occurrence a menu or a click refers to and runs the editor on it.
  *
- * @param params - The parameters for the match test.
- * @returns Whether the parsed link points at the target.
+ * In an editing view the link at a position in the source is tried first — that pins the exact occurrence
+ * even when the note links to the same destination several times, and it edits through the editor so the
+ * change joins the undo history. The position is {@link ResolveAndEditLinkParams.sourcePosition} when the
+ * caller knows it, and the caret otherwise.
+ *
+ * @param params - The parameters for the resolution.
  */
-export function doesLinkMatchTarget(params: DoesLinkMatchTargetParams): boolean {
+export async function resolveAndEditLink(params: ResolveAndEditLinkParams): Promise<void> {
   const {
     app,
+    editParsedLink,
     linkTarget,
-    parsedLink,
-    sourcePath
+    propertyKey,
+    showCouldNotLocateNotice,
+    sourcePosition,
+    view
   } = params;
-  const {
-    externalUrl,
-    linkPath,
-    target
-  } = linkTarget;
 
-  if (externalUrl !== undefined) {
-    return parsedLink.isExternal && (parsedLink.url === externalUrl || parsedLink.encodedUrl === externalUrl);
-  }
-
-  if (parsedLink.isExternal) {
-    return false;
-  }
-
-  if (target) {
-    const dest = app.metadataCache.getFirstLinkpathDest(getLinkpath(parsedLink.url), sourcePath);
-    return dest?.path === target.path;
+  const sourceFile = view?.file ?? null;
+  if (!view || !sourceFile) {
+    showCouldNotLocateNotice();
+    return;
   }
 
   /*
-   * An unresolved internal link has no `TFile` to compare against — `getFirstLinkpathDest` returns null
-   * for a link to a note that does not exist yet — so it is matched by its path text instead. Both the
-   * decoded and the encoded form are compared, exactly as the external branch above does, so a markdown
-   * link written with percent-escapes still matches the `data-href` Obsidian renders it with.
+   * A Properties panel gesture names the property it happened in, which says outright that the link is in
+   * the frontmatter. No position may be consulted on this path: in Live Preview the caret sits wherever the
+   * user last left it in the body, so a position would resolve a different link entirely.
    */
-  if (linkPath !== undefined) {
-    const wantedLinkpath = getLinkpath(linkPath);
-    return getLinkpath(parsedLink.url) === wantedLinkpath || getLinkpath(parsedLink.encodedUrl ?? parsedLink.url) === wantedLinkpath;
+  if (propertyKey !== undefined) {
+    const wasEditedInFrontmatter = await resolveAndEditFrontmatterLink({
+      app,
+      editParsedLink,
+      linkTarget,
+      propertyKey,
+      showCouldNotLocateNotice,
+      sourceFile
+    });
+    if (!wasEditedInFrontmatter) {
+      showCouldNotLocateNotice();
+    }
+    return;
   }
 
-  return false;
+  // `source` covers Live Preview and raw Source mode alike; only Reading view has no editor to ask.
+  if (view.getMode() === 'source') {
+    const wasEditedAtPosition = await tryEditLinkAtPosition({
+      app,
+      editorPosition: sourcePosition ?? view.editor.getCursor(),
+      editParsedLink,
+      linkTarget,
+      showCouldNotLocateNotice,
+      sourceFile,
+      view
+    });
+    if (wasEditedAtPosition) {
+      return;
+    }
+  }
+
+  const wasEditedViaScan = await editLinkOccurrenceViaSourceScan({
+    app,
+    editParsedLink,
+    linkTarget,
+    showCouldNotLocateNotice,
+    sourceFile
+  });
+  if (wasEditedViaScan) {
+    return;
+  }
+
+  /*
+   * The body holds no such link. A right-click on a Properties panel link lands here — the `url-menu` /
+   * `file-menu` events carry no property key — so the frontmatter is the remaining place to look.
+   */
+  const wasEditedInFrontmatter = await resolveAndEditFrontmatterLink({
+    app,
+    editParsedLink,
+    linkTarget,
+    showCouldNotLocateNotice,
+    sourceFile
+  });
+  if (!wasEditedInFrontmatter) {
+    showCouldNotLocateNotice();
+  }
 }
 
 /**
- * Scans the source note for links pointing at the given target, asks which one to edit when there is
+ * Scans the source note's BODY for links pointing at the given target, asks which one to edit when there is
  * more than one, and runs the editor on it, writing the result back to the note.
  *
  * @param params - The parameters for the scan.
+ * @returns Whether a link occurrence was found and handed to the editor.
  */
-export async function editLinkOccurrenceViaSourceScan(params: EditLinkOccurrenceViaSourceScanParams): Promise<void> {
+async function editLinkOccurrenceViaSourceScan(params: EditLinkOccurrenceViaSourceScanParams): Promise<boolean> {
   const {
     app,
     editParsedLink,
@@ -228,8 +222,7 @@ export async function editLinkOccurrenceViaSourceScan(params: EditLinkOccurrence
   const matches = findMatches(app, content, sourceFile.path, linkTarget);
 
   if (matches.length === 0) {
-    showCouldNotLocateNotice();
-    return;
+    return false;
   }
 
   const chosen = matches.length > 1
@@ -242,7 +235,8 @@ export async function editLinkOccurrenceViaSourceScan(params: EditLinkOccurrence
     : matches[0];
 
   if (!chosen) {
-    return;
+    // The picker was dismissed. The link WAS located, so this is a cancel, not a failure to resolve.
+    return true;
   }
 
   const match = chosen;
@@ -289,62 +283,22 @@ export async function editLinkOccurrenceViaSourceScan(params: EditLinkOccurrence
     },
     parsedLink: match.parsedLink
   });
-}
 
-/**
- * Resolves the link occurrence a menu or a click refers to and runs the editor on it.
- *
- * In an editing view the link at a position in the source is tried first — that pins the exact occurrence
- * even when the note links to the same destination several times, and it edits through the editor so the
- * change joins the undo history. The position is {@link ResolveAndEditLinkParams.sourcePosition} when the
- * caller knows it, and the caret otherwise.
- *
- * @param params - The parameters for the resolution.
- */
-export async function resolveAndEditLink(params: ResolveAndEditLinkParams): Promise<void> {
-  const {
-    app,
-    editParsedLink,
-    linkTarget,
-    showCouldNotLocateNotice,
-    sourcePosition,
-    view
-  } = params;
-
-  const sourceFile = view?.file ?? null;
-  if (!view || !sourceFile) {
-    showCouldNotLocateNotice();
-    return;
-  }
-
-  // `source` covers Live Preview and raw Source mode alike; only Reading view has no editor to ask.
-  if (view.getMode() === 'source') {
-    const shouldEditAtPosition = await tryEditLinkAtPosition({
-      app,
-      editorPosition: sourcePosition ?? view.editor.getCursor(),
-      editParsedLink,
-      linkTarget,
-      sourcePath: sourceFile.path,
-      view
-    });
-    if (shouldEditAtPosition) {
-      return;
-    }
-  }
-
-  await editLinkOccurrenceViaSourceScan({
-    app,
-    editParsedLink,
-    linkTarget,
-    showCouldNotLocateNotice,
-    sourceFile
-  });
+  return true;
 }
 
 function findMatches(app: App, content: string, sourcePath: string, linkTarget: LinkTarget): LinkMatch[] {
   const matches: LinkMatch[] = [];
   const lines = content.split('\n');
   lines.forEach((lineText, line) => {
+    /*
+     * Frontmatter is YAML, not markdown: splicing a rebuilt link into its raw text produces a syntax error
+     * (GH #5). Those links are resolved and written by `frontmatter-link-occurrence.ts` instead.
+     */
+    if (isLineInFrontmatter(content, line)) {
+      return;
+    }
+
     for (const parsedLink of parseLinks(lineText)) {
       if (
         doesLinkMatchTarget({
@@ -364,17 +318,14 @@ function findMatches(app: App, content: string, sourcePath: string, linkTarget: 
   return matches;
 }
 
-function isTargetKnown(linkTarget: LinkTarget): boolean {
-  return linkTarget.externalUrl !== undefined || linkTarget.linkPath !== undefined || Boolean(linkTarget.target);
-}
-
 async function tryEditLinkAtPosition(params: TryEditLinkAtPositionParams): Promise<boolean> {
   const {
     app,
     editorPosition,
     editParsedLink,
     linkTarget,
-    sourcePath,
+    showCouldNotLocateNotice,
+    sourceFile,
     view
   } = params;
 
@@ -399,10 +350,25 @@ async function tryEditLinkAtPosition(params: TryEditLinkAtPositionParams): Promi
       app,
       linkTarget,
       parsedLink,
-      sourcePath
+      sourcePath: sourceFile.path
     })
   ) {
     return false;
+  }
+
+  /*
+   * Raw YAML in Source mode: the position is inside the frontmatter, so the edit must go through the
+   * frontmatter rather than `replaceRange` — the same reason the scan skips those lines.
+   */
+  if (isOffsetInFrontmatter(editor.getValue(), editor.posToOffset(editorPosition))) {
+    return await resolveAndEditFrontmatterLink({
+      app,
+      editParsedLink,
+      linkTarget,
+      rawLink: parsedLink.raw,
+      showCouldNotLocateNotice,
+      sourceFile
+    });
   }
 
   await editParsedLink({

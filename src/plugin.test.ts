@@ -145,13 +145,19 @@ describe('Plugin', () => {
   it('should construct the edit command handler with the app', async () => {
     await createLoadedPlugin();
 
-    expect(vi.mocked(EditCommandHandler)).toHaveBeenCalledExactlyOnceWith(app);
+    expect(vi.mocked(EditCommandHandler)).toHaveBeenCalledOnce();
+    const params = vi.mocked(EditCommandHandler).mock.calls[0]?.[0];
+    expect(params?.app).toBe(app);
+    expect(params?.pluginNoticeComponent).toBeDefined();
   });
 
   it('should construct the edit-url-and-alias command handler with the app', async () => {
     await createLoadedPlugin();
 
-    expect(vi.mocked(EditUrlAndAliasCommandHandler)).toHaveBeenCalledExactlyOnceWith(app);
+    expect(vi.mocked(EditUrlAndAliasCommandHandler)).toHaveBeenCalledOnce();
+    const params = vi.mocked(EditUrlAndAliasCommandHandler).mock.calls[0]?.[0];
+    expect(params?.app).toBe(app);
+    expect(params?.pluginNoticeComponent).toBeDefined();
   });
 
   it('should construct the open-demo-vault command handler with the app, plugin id, and version', async () => {

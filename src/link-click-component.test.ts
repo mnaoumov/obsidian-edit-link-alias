@@ -49,12 +49,25 @@ const TARGET_PATH = 'target.md';
  */
 const CLICK_POSITION: EditorPosition = { ch: 7, line: 3 };
 
+const PROPERTY_URL = 'https://example.com';
+
+/**
+ * Raw frontmatter whose line 3 holds a url spanning {@link CLICK_POSITION}, so a click "lands" on it.
+ */
+const RAW_FRONTMATTER_CONTENT = `---\nurl: ${PROPERTY_URL}\ntags: x\nfoo: ${PROPERTY_URL}/deep\n---\n`;
+
 interface ClickOptions {
   readonly altKey?: boolean;
   readonly button?: number;
   readonly ctrlKey?: boolean;
   readonly metaKey?: boolean;
   readonly shiftKey?: boolean;
+}
+
+interface CreatePropertyLinkElOptions {
+  readonly cls?: string;
+  readonly dataHref?: string;
+  readonly propertyKey: string;
 }
 
 let app: AppOriginal;
@@ -64,6 +77,11 @@ let getFirstLinkpathDest: ReturnType<typeof vi.fn>;
 let posAtMouse: ReturnType<typeof vi.fn>;
 let showNotice: ReturnType<typeof vi.fn>;
 let viewMode: 'preview' | 'source';
+/**
+ * What the editor reports as the note content. Only the raw-frontmatter click path reads it, so it stays
+ * empty (no frontmatter) unless a test sets it.
+ */
+let editorContent: string;
 
 function click(el: HTMLElement, options: ClickOptions = {}): void {
   const {
@@ -93,6 +111,33 @@ function createInternalLinkEl(dataHref = 'target'): HTMLElement {
   });
 }
 
+/**
+ * Builds the markup Obsidian's Properties panel renders for a link: a `div` carrying `data-href` and the
+ * internal-link / external-link class — never an anchor, and never an `href` — inside a
+ * `.metadata-property-value` whose `.metadata-property` ancestor names the property. Verified against
+ * Obsidian 1.13.4.
+ *
+ * @param options - What to render.
+ * @returns The link element.
+ */
+function createPropertyLinkEl(options: CreatePropertyLinkElOptions): HTMLElement {
+  const {
+    cls = 'metadata-link-inner external-link',
+    dataHref = PROPERTY_URL,
+    propertyKey
+  } = options;
+
+  const propertyEl = containerEl.createDiv({
+    attr: { 'data-property-key': propertyKey },
+    cls: 'metadata-property'
+  });
+  const valueEl = propertyEl.createDiv({ cls: 'metadata-property-value' });
+  return valueEl.createDiv({
+    attr: { 'data-href': dataHref },
+    cls
+  });
+}
+
 function loadComponent(shouldOpenLinkEditorOnAltClick = true): void {
   component = new LinkClickComponent(app, {
     pluginNoticeComponent: castTo<PluginNoticeComponent>({ showNotice }),
@@ -101,11 +146,25 @@ function loadComponent(shouldOpenLinkEditorOnAltClick = true): void {
   component.load();
 }
 
+/**
+ * Converts an editor position into a character offset, the way `Editor.posToOffset` does.
+ *
+ * @param content - The editor content.
+ * @param position - The position to convert.
+ * @returns The character offset.
+ */
+function toOffset(content: string, position: EditorPosition): number {
+  const lines = content.split('\n').slice(0, position.line);
+  const precedingLength = lines.reduce((total, lineText) => total + lineText.length + 1, 0);
+  return precedingLength + position.ch;
+}
+
 beforeEach(() => {
   document.body.empty();
   viewMode = 'source';
   showNotice = vi.fn();
   posAtMouse = vi.fn().mockReturnValue(CLICK_POSITION);
+  editorContent = '';
 
   getFirstLinkpathDest = vi.fn().mockReturnValue(strictProxy<TFile>({ path: TARGET_PATH }));
 
@@ -119,7 +178,12 @@ beforeEach(() => {
   const view = castTo<MarkdownViewType>(Object.create(MarkdownView.prototype));
   Object.assign(view, {
     containerEl,
-    editor: strictProxy<Editor>({ posAtMouse: castTo<Editor['posAtMouse']>(posAtMouse) }),
+    editor: strictProxy<Editor>({
+      getDoc: vi.fn().mockImplementation(() => strictProxy({ getLine: (line: number) => editorContent.split('\n')[line] ?? '' })),
+      getValue: () => editorContent,
+      posAtMouse: castTo<Editor['posAtMouse']>(posAtMouse),
+      posToOffset: (position: EditorPosition) => toOffset(editorContent, position)
+    }),
     file: strictProxy<TFile>({ path: SOURCE_PATH }),
     getMode: () => viewMode
   });
@@ -235,6 +299,84 @@ describe('LinkClickComponent', () => {
     await waitForAllAsyncOperations();
 
     expect(mockResolveAndEditLink).not.toHaveBeenCalled();
+  });
+
+  describe('frontmatter links', () => {
+    it('should resolve a Properties panel link by its property key rather than a position', async () => {
+      loadComponent();
+
+      click(createPropertyLinkEl({ propertyKey: 'url' }));
+      await waitForAllAsyncOperations();
+
+      const params = mockResolveAndEditLink.mock.calls[0]?.[0];
+      expect(params?.propertyKey).toBe('url');
+      expect(params?.linkTarget).toEqual({ externalUrl: PROPERTY_URL });
+      /*
+       * A panel link sits outside the editor's text, so its coordinates would resolve to an unrelated
+       * position — the property key is the identity here.
+       */
+      expect(params?.sourcePosition).toBeUndefined();
+    });
+
+    it('should resolve a list property pill, which Obsidian renders with a different class', async () => {
+      loadComponent();
+
+      click(createPropertyLinkEl({
+        cls: 'multi-select-pill-content external-link',
+        propertyKey: 'links'
+      }));
+      await waitForAllAsyncOperations();
+
+      const params = mockResolveAndEditLink.mock.calls[0]?.[0];
+      expect(params?.propertyKey).toBe('links');
+      expect(params?.linkTarget).toEqual({ externalUrl: PROPERTY_URL });
+    });
+
+    it('should open the editor for a link in the raw YAML, where there is no link element at all', async () => {
+      editorContent = RAW_FRONTMATTER_CONTENT;
+      loadComponent();
+
+      click(containerEl.createEl('p', { text: `${EMPTY}raw yaml` }));
+      await waitForAllAsyncOperations();
+
+      const params = mockResolveAndEditLink.mock.calls[0]?.[0];
+      // Nothing says what the link points at, so the position is the whole identity.
+      expect(params?.linkTarget).toEqual({});
+      expect(params?.sourcePosition).toEqual(CLICK_POSITION);
+      expect(params?.propertyKey).toBeUndefined();
+    });
+
+    it('should ignore a click inside the frontmatter that is not on a link', async () => {
+      editorContent = '---\ntitle: plain\nother: plain\nmore: plain\n---\n';
+      loadComponent();
+
+      click(containerEl.createEl('p', { text: `${EMPTY}raw yaml` }));
+      await waitForAllAsyncOperations();
+
+      expect(mockResolveAndEditLink).not.toHaveBeenCalled();
+    });
+
+    it('should ignore a click on a link that is outside the frontmatter', async () => {
+      // Same url, but the click position is on a body line, which the body paths already handle.
+      editorContent = `# Body\n\n\n${PROPERTY_URL}\n`;
+      loadComponent();
+
+      click(containerEl.createEl('p', { text: `${EMPTY}body` }));
+      await waitForAllAsyncOperations();
+
+      expect(mockResolveAndEditLink).not.toHaveBeenCalled();
+    });
+
+    it('should ignore a non-link click in Reading view, where there is no editor to ask', async () => {
+      viewMode = 'preview';
+      editorContent = RAW_FRONTMATTER_CONTENT;
+      loadComponent();
+
+      click(containerEl.createEl('p', { text: `${EMPTY}reading view` }));
+      await waitForAllAsyncOperations();
+
+      expect(mockResolveAndEditLink).not.toHaveBeenCalled();
+    });
   });
 
   it('should resolve the link from an ancestor when an inner element is clicked', async () => {
