@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 1.3.2
+
+- feat: edit links in the frontmatter, writing valid YAML
+
 ## 1.3.1
 
 - fix: open the link editor on Alt+click in Live Preview and Source mode (#4)
