@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 1.4.0
+
+- refactor(settings): move the settings tab onto the declarative settings API
+- chore: update libs and clear the npm audit
+
 ## 1.3.2
 
 - feat: edit links in the frontmatter, writing valid YAML
