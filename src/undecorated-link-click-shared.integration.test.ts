@@ -232,7 +232,13 @@ async function runScenario(requestedScenario: UndecoratedScenario): Promise<Unde
       /*
        * ON the link's line, not off it. Live Preview renders the caret's own line as raw markdown, which is
        * what strips the decoration and produces the very situation GH #9 reported.
+       *
+       * The editor is focused FIRST, and that is not redundant: Live Preview only un-decorates the caret's
+       * line while the editor actually has the focus, and on Android neither `openFile` nor `revealLeaf`
+       * gives it any — the active element stays the `body`, so the line keeps rendering as `old alias` and
+       * the url never appears at all.
        */
+      view.editor.focus();
       view.editor.setCursor({ ch: 0, line: linkLineIndex });
 
       await waitUntil({

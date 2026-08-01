@@ -180,6 +180,14 @@
     document, so the test would pass or fail for the wrong reason; take them from the link element's
     bounding-rect centre. Live Preview also needs the caret parked off the link's line, or Live Preview
     renders that line as raw markdown instead of the decorated link — hence the two-line fixture.
+  - **The mirror-image suite, `undecorated-link-click-shared.integration.test.ts`, must FOCUS the editor and
+    not merely place the caret.** Live Preview un-decorates the caret's own line only while the editor
+    actually holds the focus, and on Android neither `openFile` nor `revealLeaf` gives it any — the active
+    element stays the `body` (measured on the emulator: `editor.hasFocus()` `false` and the line still reads
+    `old alias`; after `editor.focus()`, `true` and it reads `[old alias](https://…)`). Without the explicit
+    focus the `(url)` half is never in the DOM at all and the suite fails on Android only. The bare-url half
+    hides this, because a bare url's rendered text IS its url whether or not it is decorated — so it is the
+    markdown-link case that pins the behavior down.
 - **Settings.** `PluginSettings` holds a single `shouldOpenLinkEditorOnAltClick` toggle, defaulting to
   `true` (see the `Alt`-vs-`Mod` note above for why on-by-default is safe here). The plugin uses the
   dev-utils `PluginSettingsComponentBase` directly rather than subclassing it — there is nothing to
@@ -201,6 +209,16 @@
   the public floor; the other end is `OBSIDIAN_VERSION=catalyst-latest npx vitest run
   --project=integration-tests:desktop` — spawn `vitest` directly, because dev-utils' `test()` helper does
   not propagate the variable to its child and the run silently falls back to the public build.
+- **The Android suite has a KNOWN intermittent failure that is not ours — do not re-investigate it
+  (`T304-P2`).** `vault.create` on the Android emulator loses ~0.9% of its writes: the file lands on disk
+  as **0 bytes** while Obsidian's `TFile.stat.size` reports the full content (verified — `adapter.stat`,
+  `adapter.read`, `vault.read` and `cachedRead` all say 0 at the same moment `file.stat.size` says 38, and
+  it never heals; a `vault.modify` with the same content repairs it). The test then opens a genuinely empty
+  note and times out waiting for a link that was never written. At ~34 creates per run that is a ~26%
+  chance per full run, landing on whichever test loses the lottery — which is why it masquerades as a
+  different single-test flake each time. The fix belongs in the harness's injected `lib`, not here; until it
+  ships, a lone `waitUntil` timeout of the form "the rendered … did not appear" on Android is presumed to be
+  this. Confirm it by dumping the view's `editor.getValue()` — an EMPTY document is the signature.
 - **The plugin ships NO stylesheet of its own.** There was a `src/styles/main.scss` holding the popover's
   layout; it was deleted with the popover (`T214-P27`) because `obsidian-dev-utils` now ships the identical
   block under `.obsidian-dev-utils.popover` in its own styles, injected by `initPluginContext`. If a
