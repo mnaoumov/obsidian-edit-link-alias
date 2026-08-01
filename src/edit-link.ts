@@ -60,16 +60,22 @@ export function createEditParsedLinkUrlAndAliasInPopover(anchor: PopoverAnchor):
 
     const edited = await editFieldsInPopover({
       anchor,
+      /*
+       * The alias comes FIRST, and that order is load-bearing rather than cosmetic: the popover focuses and
+       * selects its first input, so whichever field is declared first is the one ready to be typed over.
+       * Changing an alias is the more frequent edit (GH #7), so it gets the caret. Do not reorder these —
+       * alphabetically or otherwise — without moving the focus somewhere else on purpose.
+       */
       fields: [
-        {
-          defaultValue: parsedLink.url,
-          key: 'url',
-          name: 'URL'
-        },
         {
           defaultValue: parsedLink.alias ?? '',
           key: 'alias',
           name: 'Alias'
+        },
+        {
+          defaultValue: parsedLink.url,
+          key: 'url',
+          name: 'URL'
         }
       ]
     });

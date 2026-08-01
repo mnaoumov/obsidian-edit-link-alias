@@ -254,7 +254,8 @@ async function runClickScenario(params: RunClickScenarioParams): Promise<ClickSc
       /*
        * The popover comes from `obsidian-dev-utils`, which classes it `obsidian-dev-utils <pluginId>
        * popover` and gives every field the same `text-box` class. The fields are therefore told apart by
-       * their order, which is the order they were handed to `editFieldsInPopover`: URL first, alias second.
+       * their order, which is the order they were handed to `editFieldsInPopover`: alias first, URL second
+       * (the alias leads so the popover focuses it — GH #7).
        */
       function getPopoverEl(): HTMLElement | null {
         return document.body.querySelector<HTMLElement>(`.obsidian-dev-utils.${pluginId}.popover`);
@@ -309,7 +310,7 @@ async function runClickScenario(params: RunClickScenarioParams): Promise<ClickSc
       }
 
       async function applyPopoverEdit(sourceFile: TFile): Promise<void> {
-        const [urlInputEl, aliasInputEl] = getPopoverInputEls();
+        const [aliasInputEl, urlInputEl] = getPopoverInputEls();
         const okButtonEl = getPopoverEl()?.querySelector<HTMLElement>('.ok-button');
         if (!urlInputEl || !aliasInputEl || !okButtonEl) {
           throw new Error('The link editor popover is missing its fields');
