@@ -2,7 +2,9 @@
 
 # Alt + click a link to edit it
 
-`Alt` + click a link (`Option` + click on macOS) and a small pop-up appears **at the link**, with its **URL** and **alias** ready to edit. No command to run, no cursor to place carefully inside the link syntax.
+`Alt` + click a link (`Option` + click on macOS) and a small pop-up appears **at the link**, with its **alias** and **URL** ready to edit. No command to run, no cursor to place carefully inside the link syntax.
+
+The **alias** is the field the pop-up opens on, already selected - changing the display text is the more common edit, so you can start typing straight away. `Tab` moves to the URL.
 
 `Alt` + click was chosen because Obsidian gives it no meaning on a link, so **nothing you already do changes**:
 
@@ -32,6 +34,17 @@ Then try a plain click on the same link: it still opens the note, untouched.
 ## External links
 
 - Correct a URL and its text: [Obsidian Help](https://help.obsidian.md)
+<!-- markdownlint-disable-next-line MD034 -- The bare URL is the point of this example; wrapping it would remove what it demonstrates. -->
+- A bare URL, no markdown around it: https://obsidian.md
+
+## Anywhere on the link, with the cursor anywhere
+
+It does not matter which part of the link you click or where the text cursor happens to be:
+
+- Click the **display text** or the **destination** - both open the same pop-up.
+- The cursor may sit inside the link, right next to it, or on the other side of the note.
+
+That second point is worth trying deliberately: in Live Preview, click into the bare URL above so the cursor is inside it (the line turns back into plain text), then `Alt` + click it.
 
 ## The same editor, from the menu
 

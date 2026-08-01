@@ -22,7 +22,14 @@
     (`obsidian/popovers/field-popover`) over the `showPopover` shell (`obsidian/popovers/popover`). It
     started as a plugin-local `src/link-editor-popover.ts`, was extracted under `T204-P1` because it is
     entirely plugin-agnostic (G61), and the local copy was deleted under `T214-P27`. `src/edit-link.ts`
-    is the single call site: two fields, `url` then `alias`, whose keys type the resolved record.
+    is the single call site: two fields, `alias` then `url`, whose keys type the resolved record.
+  - **The field ORDER is load-bearing, not cosmetic (`T296-P27` / GH #7).** `showPopover` focuses **and
+    selects the FIRST input**, so whichever field is declared first is the one ready to be typed over.
+    The alias leads because changing an alias is the more frequent edit. Do NOT reorder these — the
+    request was for a *setting* choosing the focused field, and the answer taken was to change the
+    default outright, so the order IS the feature. The rejected alternative was a `shouldFocus` knob on
+    dev-utils' `PopoverField` — correct per G61, but a cross-repo change plus a release for a one-line
+    outcome.
   - It takes a resolved `PopoverAnchor` (`{ bottom, doc, left }`) rather than an element, because the
     three entry points know the position in three different ways: `createAnchorFromElement` (the clicked
     link), `createAnchorFromPoint` (the pointer that opened the context menu — see
@@ -33,8 +40,12 @@
     handler, so a `click`-based outside listener would see that very same event and close it instantly.
   - **What its DOM looks like matters to the integration suites**: the root carries
     `menu obsidian-dev-utils edit-link-alias popover`, the OK/Cancel buttons `ok-button` / `cancel-button`,
-    and EVERY field the same `text-box` class — there is no per-field class, so a test tells the URL
-    field from the alias field by their order, not by a selector.
+    and EVERY field the same `text-box` class — there is no per-field class, so a test tells the alias
+    field from the URL field by their order, not by a selector. **Four suites destructure that order**
+    (`const [aliasInputEl, urlInputEl] = getPopoverInputEls()` in the three `*-shared.integration.test.ts`
+    popover suites plus `undecorated-link-click-shared`), and `src/edit-link.test.ts` asserts it — so a
+    reorder is a five-file change, and getting it half-right silently swaps the url and the alias in every
+    assertion.
 - **`PointerPositionComponent` exists only because the context menu has no anchor.** The `file-menu` /
   `url-menu` events carry the target file or url but no event and no element, and by the time a menu
   item's callback runs the menu is closing — so nothing is left to measure. The right-click / long-press
@@ -98,6 +109,13 @@
     the `data-property-key` it rendered, the raw YAML knows the link text under the pointer, and the context
     menu knows only the url — so the resolver takes an optional `propertyKey` and an optional `rawLink`, and
     falls back to `selectItem` when several links still match.
+    - **Obsidian renders `data-property-key` as `key.toLowerCase()`, while the metadata cache keeps the
+      key exactly as the YAML spells it** (verified in Obsidian's own source, `app.js` — it lowercases at
+      every one of the three places it sets the attribute). `doesKeyMatch` therefore compares
+      case-INSENSITIVELY; comparing as written is what made `Alt` + clicking a link under a `Homepage:`
+      property report "could not locate the link" while the context menu — which carries no property key,
+      so it never reaches the filter — edited the very same link (GH #8 / `T297-P27`). Do not "simplify"
+      the lowercasing away.
   - **`applyFileChanges` validates before writing, and what it compares against differs by reference**: one
     carrying offsets is matched against that slice of the property value, one without against the WHOLE
     value. Get it wrong and the write is a silent no-op — which is why the write is confirmed by comparing
@@ -114,9 +132,10 @@
   and the graph, so patching it would intercept far more than a click in a note. The component therefore
   registers a raw **capture-phase** `click` listener (via the dev-utils `AllWindowsEventComponent`, so
   pop-out windows are covered) — the capture phase is the only point where Obsidian's own navigation can
-  still be stopped. It is gated on the `shouldOpenLinkEditorOnAltClick` setting and only fires for events
+  still be stopped. It is gated on the `shouldOpenLinkEditorOnAltClick` setting and fires either for events
   whose target `closest()`-matches a rendered link, in Reading view (`a.internal-link` /
-  `a.external-link`) or Live Preview (`.cm-hmd-internal-link` / `.cm-link` / `.cm-underline`).
+  `a.external-link`) or Live Preview (`.cm-hmd-internal-link` / `.cm-link` / `.cm-underline`), **or** —
+  when that misses — for a position inside a parsed link (see the position-fallback note below).
   - **`Alt`, not `Mod`** — `Ctrl`/`Cmd`+click is already Obsidian's "open the link in a new tab", so
     binding the editor there would take over a gesture users rely on; Obsidian gives `Alt`+click no
     meaning on a link. The handler additionally requires that NO other modifier is held, so every
@@ -136,9 +155,20 @@
     `view.getMode()` is `'source'`, so the caret and `posAtMouse` both "work" and both resolve something
     else entirely — whatever body link the caret was last left on. The `data-property-key` the click carries
     replaces the position outright.
-  - **A click in the raw YAML has no link element at all**, so it is picked up by `handleRawFrontmatterClick`
-    after the selector misses: `posAtMouse` → is the position inside the frontmatter → is a parsed link under
-    it. The popover is anchored with `createAnchorFromPoint`, there being no element to anchor to.
+  - **`LINK_SELECTOR` is NOT the only entry gate — the position fallback is the other half
+    (`handleEditorPositionClick`).** When the selector misses, an editing view is asked what sits at the
+    click's position: `posAtMouse` → is a parsed link under it → intercept with an *unknown* `LinkTarget`
+    and that position. It covers the three places a link is shown as plain text: the raw YAML of the
+    frontmatter (GH #6), a bare url with the caret inside/beside it, and the `(url)` half of a markdown
+    link (both GH #9 / `T298-P27`). The popover is anchored with `createAnchorFromPoint`, there being no
+    element to anchor to.
+    - **It is deliberately NOT scoped to the frontmatter, and the `isOffsetInFrontmatter` gate it used to
+      carry must NOT come back.** That gate was what made GH #9 possible — everything downstream is
+      already generic, and `tryEditLinkAtPosition` re-checks `isOffsetInFrontmatter` itself to route a
+      frontmatter position to the frontmatter resolver. Where the position lands matters to the WRITE,
+      not to whether the click is worth intercepting.
+    - **What keeps it from swallowing every `Alt` click is the `parseLinks(line)` check** that the
+      position actually falls inside a parsed link on that line. Do not weaken it.
   - Reading view resolves the clicked link through `data-href`; Live Preview / Source mode through the
     editor position. Capture-phase `click` alone is enough in **every** mode — navigation is already
     suppressed in Live Preview, so there is no need to also intercept `mousedown` (checked against a real

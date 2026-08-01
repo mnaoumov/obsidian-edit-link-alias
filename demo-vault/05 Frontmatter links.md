@@ -1,5 +1,6 @@
 ---
 url: https://help.obsidian.md
+Homepage: https://obsidian.md/about
 note: "[[First target]]"
 links:
   - https://obsidian.md
@@ -10,7 +11,7 @@ links:
 
 # Frontmatter links
 
-Links also live in a note's **properties** - this very note has four of them, right above. They are edited by the same two editors, and the plugin writes them back **through the frontmatter** so the YAML stays valid.
+Links also live in a note's **properties** - this very note has five of them, right above. They are edited by the same two editors, and the plugin writes them back **through the frontmatter** so the YAML stays valid.
 
 That last part is the whole difficulty. A property value holding a bare URL needs no quotes:
 
@@ -38,6 +39,10 @@ Then try the other two routes to the same edit:
 - Switch to **source mode** (`Ctrl`/`Cmd` + click the note title menu → *Source mode*), where the frontmatter is plain YAML text, and `Alt` + click a URL inside it. There is no link to click there as far as Obsidian is concerned - the position under the pointer is what identifies it.
 
 The `links` list works the same way, one item at a time: only the item you clicked is rewritten.
+
+## Property names with capitals
+
+The `Homepage` property above is spelled with a capital letter on purpose. Obsidian shows every property name in lowercase but stores it exactly as the note wrote it, so the two have to be matched case-insensitively - `Alt` + click that link and it opens like any other.
 
 ## Good to know
 
