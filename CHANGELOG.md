@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 1.5.0
+
+- test: update
+- fix: make the link editor reachable and open it on the alias
+- chore: update libs
+
 ## 1.4.0
 
 - refactor(settings): move the settings tab onto the declarative settings API
