@@ -213,8 +213,8 @@ export function registerEditUrlAndAliasMenuSuite(platform: string): void {
           /*
            * The popover comes from `obsidian-dev-utils`, which classes it `obsidian-dev-utils <pluginId>
            * popover` and gives every field the same `text-box` class. The fields are therefore told apart
-           * by their order, which is the order they were handed to `editFieldsInPopover`: URL first,
-           * alias second.
+           * by their order, which is the order they were handed to `editFieldsInPopover`: alias first,
+           * URL second (the alias leads so the popover focuses it — GH #7).
            */
           function getPopoverEl(): HTMLElement | null {
             return document.body.querySelector<HTMLElement>(`.obsidian-dev-utils.${pluginId}.popover`);
@@ -268,7 +268,7 @@ export function registerEditUrlAndAliasMenuSuite(platform: string): void {
             timeoutInMilliseconds: waitTimeoutInMilliseconds
           });
 
-          const [urlInputEl, aliasInputEl] = getPopoverInputEls();
+          const [aliasInputEl, urlInputEl] = getPopoverInputEls();
           const okButtonEl = getPopoverEl()?.querySelector<HTMLElement>('.ok-button');
           if (!urlInputEl || !aliasInputEl || !okButtonEl) {
             return {

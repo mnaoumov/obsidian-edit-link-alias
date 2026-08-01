@@ -11,6 +11,7 @@ import {
 } from './edit-link-alias-menu-shared.integration.test.ts';
 import { registerFrontmatterLinkSuite } from './frontmatter-link-shared.integration.test.ts';
 import { registerLinkClickPopoverSuite } from './link-click-popover-shared.integration.test.ts';
+import { registerUndecoratedLinkClickSuite } from './undecorated-link-click-shared.integration.test.ts';
 
 describe('Smoke test', () => {
   it('should load plugin on Desktop', () => {
@@ -22,4 +23,5 @@ describe('Smoke test', () => {
 registerEditAliasMenuSuite('Desktop');
 registerEditUrlAndAliasMenuSuite('Desktop');
 registerLinkClickPopoverSuite('Desktop');
+registerUndecoratedLinkClickSuite('Desktop');
 registerFrontmatterLinkSuite('Desktop');

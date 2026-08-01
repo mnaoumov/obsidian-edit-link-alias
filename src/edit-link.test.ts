@@ -184,17 +184,34 @@ describe('createEditParsedLinkUrlAndAliasInPopover', () => {
       anchor,
       fields: [
         {
-          defaultValue: 'target',
-          key: 'url',
-          name: 'URL'
-        },
-        {
           defaultValue: 'current',
           key: 'alias',
           name: 'Alias'
+        },
+        {
+          defaultValue: 'target',
+          key: 'url',
+          name: 'URL'
         }
       ]
     });
+  });
+
+  it('should offer the alias for editing first, so it is the field the popover focuses', async () => {
+    mockEditFieldsInPopover.mockResolvedValue(null);
+
+    await createEditParsedLinkUrlAndAliasInPopover(createTestAnchor())({
+      app: createMockApp(),
+      applyReplacement: vi.fn(),
+      parsedLink: createParsedLink({ alias: 'current', url: 'target' })
+    });
+
+    /*
+     * The popover focuses and selects its FIRST input, so the field order is what decides which one is ready
+     * to be typed over — the alias, per GH #7.
+     */
+    const [firstField] = mockEditFieldsInPopover.mock.calls[0]?.[0].fields ?? [];
+    expect(firstField?.key).toBe('alias');
   });
 
   it('should default the alias field to empty when there is no alias', async () => {
@@ -209,8 +226,8 @@ describe('createEditParsedLinkUrlAndAliasInPopover', () => {
     expect(mockEditFieldsInPopover).toHaveBeenCalledWith(
       expect.objectContaining({
         fields: [
-          expect.objectContaining({ defaultValue: 'target', key: 'url' }),
-          expect.objectContaining({ defaultValue: '', key: 'alias' })
+          expect.objectContaining({ defaultValue: '', key: 'alias' }),
+          expect.objectContaining({ defaultValue: 'target', key: 'url' })
         ]
       })
     );

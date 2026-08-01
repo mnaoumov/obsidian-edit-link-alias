@@ -13,13 +13,17 @@ This is a plugin for [Obsidian](https://obsidian.md/) that adds an **Edit link a
 
 **`Alt` + click** a link (`Option` + click on macOS) and the editor opens as a small pop-up right at the link, instead of the link opening. It works in Reading view, Live Preview, and source mode, on desktop and mobile.
 
+The pop-up opens on the **alias** with the text already selected, so the more common edit needs no extra click; `Tab` moves to the URL.
+
+It does not matter which part of the link you click — the display text or the destination — or where the text cursor happens to be, including inside the link itself.
+
 `Alt` + click is used because Obsidian gives it no meaning on a link, so **nothing you already do changes**: a plain click still opens the link, and `Ctrl` + click (`Cmd` + click) still opens it in a new tab.
 
 It is on by default; turn it off with **Should open link editor on Alt + click** in **Settings → Edit Link Alias**.
 
 ## Links in the frontmatter
 
-Links living in a note's **properties** are editable the same way: `Alt` + click one in the Properties panel, right-click it, or put the cursor on it in source mode where the frontmatter is plain YAML.
+Links living in a note's **properties** are editable the same way: `Alt` + click one in the Properties panel, right-click it, or put the cursor on it in source mode where the frontmatter is plain YAML. Property names are matched regardless of their capitalization, so a `Homepage:` property works exactly like a `homepage:` one.
 
 Such an edit is written back **through the frontmatter**, so the value is quoted whenever it needs to be — `url: https://example.com` becomes `url: "[Example](https://example.com)"` rather than a note that no longer parses. Two consequences worth knowing:
 

@@ -194,6 +194,34 @@ describe('resolveAndEditFrontmatterLink', () => {
     expect(getFrontmatter(await readSource())).toEqual({ links: [NEW_RAW_LINK] });
   });
 
+  /*
+   * The Properties panel renders the key it hands the click as `key.toLowerCase()`, while the cache keeps the
+   * note's own casing, so a property spelled with capitals resolved to nothing at all (GH #8).
+   */
+  it('should match a property key whose note spells it with capitals', async () => {
+    setUpVault(`---\nHomepage: ${URL}\n---\n`);
+
+    expect(await resolve({ propertyKey: 'homepage' })).toBe(true);
+    expect(getFrontmatter(await readSource())).toEqual({ Homepage: NEW_RAW_LINK });
+  });
+
+  it('should match a list item under a property key spelled with capitals', async () => {
+    setUpVault(`---\nBookmarks:\n  - ${URL}\n---\n`);
+
+    expect(await resolve({ propertyKey: 'bookmarks' })).toBe(true);
+    expect(getFrontmatter(await readSource())).toEqual({ Bookmarks: [NEW_RAW_LINK] });
+  });
+
+  it('should still ignore links outside the property when the casing differs', async () => {
+    setUpVault(`---\nHomepage: ${URL}\nOther: ${OTHER_URL}\n---\n`);
+
+    expect(await resolve({ propertyKey: 'other' })).toBe(true);
+    expect(getFrontmatter(await readSource())).toEqual({
+      Homepage: URL,
+      Other: NEW_RAW_LINK
+    });
+  });
+
   it('should replace only the matching link inside a value holding several', async () => {
     setUpVault(`---\nurls: ${URL} and ${OTHER_URL}\n---\n`);
 

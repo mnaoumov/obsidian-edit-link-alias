@@ -72,6 +72,15 @@ const POPOVER_FIELD_COUNT = 2;
 
 interface ClickScenarioResult {
   readonly activePath: null | string;
+  /**
+   * The name of the field the popover put the caret in, read from the label of the focused input's row —
+   * `null` when nothing inside the popover was focused.
+   */
+  readonly focusedFieldName: null | string;
+  /**
+   * Whether the focused field's whole value was selected, so typing replaces it rather than appending.
+   */
+  readonly isFocusedFieldSelected: boolean;
   readonly sourceContent: string;
   readonly wasPopoverShown: boolean;
 }
@@ -157,6 +166,24 @@ export function registerLinkClickPopoverSuite(platform: string): void {
       expect(result.wasPopoverShown).toBe(true);
       expect(result.activePath).toBe(SOURCE_PATH);
       expect(result.sourceContent).toBe(getExpectedSourceContent());
+    });
+
+    it('opens with the alias focused and selected, so it can be typed over straight away', async () => {
+      /*
+       * GH #7. The alias is the more frequently edited field, so it is the one the popover opens on — which
+       * it achieves by being declared first, the popover focusing its first input.
+       */
+      const result = await runClickScenario({
+        linkText: TARGET_LINK_TEXT,
+        shouldOpenLinkEditorOnAltClick: true,
+        shouldTargetExist: true,
+        shouldUseAlt: true,
+        viewMode: 'reading'
+      });
+
+      expect(result.wasPopoverShown).toBe(true);
+      expect(result.focusedFieldName).toBe('Alias');
+      expect(result.isFocusedFieldSelected).toBe(true);
     });
 
     it('leaves a plain click alone, so the link still opens', async () => {
@@ -254,7 +281,8 @@ async function runClickScenario(params: RunClickScenarioParams): Promise<ClickSc
       /*
        * The popover comes from `obsidian-dev-utils`, which classes it `obsidian-dev-utils <pluginId>
        * popover` and gives every field the same `text-box` class. The fields are therefore told apart by
-       * their order, which is the order they were handed to `editFieldsInPopover`: URL first, alias second.
+       * their order, which is the order they were handed to `editFieldsInPopover`: alias first, URL second
+       * (the alias leads so the popover focuses it — GH #7).
        */
       function getPopoverEl(): HTMLElement | null {
         return document.body.querySelector<HTMLElement>(`.obsidian-dev-utils.${pluginId}.popover`);
@@ -308,8 +336,31 @@ async function runClickScenario(params: RunClickScenarioParams): Promise<ClickSc
         }
       }
 
+      /**
+       * Reads which field the popover opened on, by the name shown on the focused input's own row. Reading
+       * the LABEL rather than an index is what makes this an assertion about the feature (the alias is the
+       * field you can type over straight away) instead of a restatement of the field order.
+       *
+       * @returns The focused field's name, or `null` when the focus is not on a popover field.
+       */
+      function getFocusedFieldName(): null | string {
+        const activeEl = getPopoverEl()?.doc.activeElement;
+        if (!(activeEl instanceof HTMLInputElement) || !getPopoverEl()?.contains(activeEl)) {
+          return null;
+        }
+        return activeEl.closest('.setting-item')?.querySelector('.setting-item-name')?.textContent ?? null;
+      }
+
+      function isFocusedFieldFullySelected(): boolean {
+        const activeEl = getPopoverEl()?.doc.activeElement;
+        if (!(activeEl instanceof HTMLInputElement)) {
+          return false;
+        }
+        return activeEl.selectionStart === 0 && activeEl.selectionEnd === activeEl.value.length && activeEl.value.length > 0;
+      }
+
       async function applyPopoverEdit(sourceFile: TFile): Promise<void> {
-        const [urlInputEl, aliasInputEl] = getPopoverInputEls();
+        const [aliasInputEl, urlInputEl] = getPopoverInputEls();
         const okButtonEl = getPopoverEl()?.querySelector<HTMLElement>('.ok-button');
         if (!urlInputEl || !aliasInputEl || !okButtonEl) {
           throw new Error('The link editor popover is missing its fields');
@@ -421,6 +472,10 @@ async function runClickScenario(params: RunClickScenarioParams): Promise<ClickSc
         wasPopoverShown = false;
       }
 
+      // Read BEFORE the edit is applied — filling the fields moves the focus and clears the selection.
+      const focusedFieldName = wasPopoverShown ? getFocusedFieldName() : null;
+      const isFocusedFieldSelected = wasPopoverShown && isFocusedFieldFullySelected();
+
       if (wasPopoverShown) {
         await applyPopoverEdit(sourceFile);
       } else {
@@ -434,6 +489,8 @@ async function runClickScenario(params: RunClickScenarioParams): Promise<ClickSc
 
       return {
         activePath,
+        focusedFieldName,
+        isFocusedFieldSelected,
         sourceContent,
         wasPopoverShown
       };

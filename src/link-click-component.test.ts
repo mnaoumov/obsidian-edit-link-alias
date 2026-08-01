@@ -78,8 +78,8 @@ let posAtMouse: ReturnType<typeof vi.fn>;
 let showNotice: ReturnType<typeof vi.fn>;
 let viewMode: 'preview' | 'source';
 /**
- * What the editor reports as the note content. Only the raw-frontmatter click path reads it, so it stays
- * empty (no frontmatter) unless a test sets it.
+ * What the editor reports as the note content. Only the position-resolved click path reads it, so it stays
+ * empty (no link anywhere) unless a test sets it.
  */
 let editorContent: string;
 
@@ -356,23 +356,59 @@ describe('LinkClickComponent', () => {
       expect(mockResolveAndEditLink).not.toHaveBeenCalled();
     });
 
-    it('should ignore a click on a link that is outside the frontmatter', async () => {
-      // Same url, but the click position is on a body line, which the body paths already handle.
-      editorContent = `# Body\n\n\n${PROPERTY_URL}\n`;
-      loadComponent();
-
-      click(containerEl.createEl('p', { text: `${EMPTY}body` }));
-      await waitForAllAsyncOperations();
-
-      expect(mockResolveAndEditLink).not.toHaveBeenCalled();
-    });
-
     it('should ignore a non-link click in Reading view, where there is no editor to ask', async () => {
       viewMode = 'preview';
       editorContent = RAW_FRONTMATTER_CONTENT;
       loadComponent();
 
       click(containerEl.createEl('p', { text: `${EMPTY}reading view` }));
+      await waitForAllAsyncOperations();
+
+      expect(mockResolveAndEditLink).not.toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * An editing view shows a link as plain text whenever it is not decorated — around the caret in Live
+   * Preview, and everywhere in Source mode. There is no element to match then, so the position under the
+   * pointer is what identifies the link (GH #9).
+   */
+  describe('undecorated links', () => {
+    it('should open the editor for a bare url in the body, which carries no link element', async () => {
+      editorContent = `# Body\n\n\n${PROPERTY_URL}\n`;
+      loadComponent();
+
+      click(containerEl.createEl('p', { text: `${EMPTY}body` }));
+      await waitForAllAsyncOperations();
+
+      const params = mockResolveAndEditLink.mock.calls[0]?.[0];
+      // Plain text says nothing about what the link points at, so the position is the whole identity.
+      expect(params?.linkTarget).toEqual({});
+      expect(params?.sourcePosition).toEqual(CLICK_POSITION);
+      expect(params?.propertyKey).toBeUndefined();
+    });
+
+    it('should open the editor when the click lands on the url half of a markdown link', async () => {
+      const markdownLink = `[alias](${PROPERTY_URL})`;
+      editorContent = `# Body\n\n\n${markdownLink}\n`;
+      // Inside the url, past the closing bracket of the alias — the half that carries no link element.
+      const urlHalfPosition: EditorPosition = { ch: markdownLink.indexOf(PROPERTY_URL) + 2, line: 3 };
+      posAtMouse.mockReturnValue(urlHalfPosition);
+      loadComponent();
+
+      click(containerEl.createEl('p', { text: `${EMPTY}body` }));
+      await waitForAllAsyncOperations();
+
+      const params = mockResolveAndEditLink.mock.calls[0]?.[0];
+      expect(params?.linkTarget).toEqual({});
+      expect(params?.sourcePosition).toEqual(urlHalfPosition);
+    });
+
+    it('should ignore a click on body text that is not on a link', async () => {
+      editorContent = '# Body\n\n\nplain prose, no link at all\n';
+      loadComponent();
+
+      click(containerEl.createEl('p', { text: `${EMPTY}body` }));
       await waitForAllAsyncOperations();
 
       expect(mockResolveAndEditLink).not.toHaveBeenCalled();
