@@ -313,12 +313,23 @@ function countLines(text: string): number {
  * Determines whether a frontmatter link's key belongs to the given property. A list item or a nested
  * value carries a dotted key (`links.0`, `meta.url`), so the property it belongs to is a prefix of it.
  *
- * @param key - The key the link was cached under.
- * @param propertyKey - The property the gesture happened in.
+ * The comparison is case-INSENSITIVE, and that is not defensive coding: the Properties panel renders the
+ * attribute the click reads as `key.toLowerCase()`, while the metadata cache keeps the key exactly as the
+ * YAML spells it. Comparing them as written made `Alt` + clicking a link under a `Homepage:` property match
+ * nothing and report "could not locate the link", while the context menu — which carries no property key at
+ * all, so it never reaches here — worked on the very same link (GH #8).
+ *
+ * Two properties differing only in case would both match, and fall through to the existing `selectItem`
+ * picker. That is the right outcome: Obsidian treats them as one property anyway.
+ *
+ * @param key - The key the link was cached under, in the note's own casing.
+ * @param propertyKey - The property the gesture happened in, lowercased by the Properties panel.
  * @returns Whether the key belongs to the property.
  */
 function doesKeyMatch(key: string, propertyKey: string): boolean {
-  return key === propertyKey || key.startsWith(`${propertyKey}.`);
+  const lowerCaseKey = key.toLowerCase();
+  const lowerCasePropertyKey = propertyKey.toLowerCase();
+  return lowerCaseKey === lowerCasePropertyKey || lowerCaseKey.startsWith(`${lowerCasePropertyKey}.`);
 }
 
 function findCandidates(params: FindCandidatesParams): FrontmatterLinkCandidate[] {

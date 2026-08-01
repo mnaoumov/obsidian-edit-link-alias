@@ -35,6 +35,19 @@ const SOURCE_PATH = 'frontmatter-link-source.md';
 const TEXT_PROPERTY_URL = 'https://example.com';
 const FIRST_LIST_URL = 'https://one.example.com';
 const SECOND_LIST_URL = 'https://two.example.com';
+const UPPERCASE_KEY_PROPERTY_URL = 'https://uppercase.example.com';
+
+/**
+ * A property whose key the note spells with capitals. Obsidian renders `data-property-key` lowercased while
+ * the metadata cache keeps this spelling, and the two used to be compared as written — which is GH #8.
+ */
+const UPPERCASE_PROPERTY_KEY = 'Homepage';
+
+/**
+ * The same key as the Properties panel puts it in the attribute the click reads. Written out rather than
+ * derived with `toLowerCase()` so the test states what Obsidian actually renders.
+ */
+const UPPERCASE_PROPERTY_KEY_AS_RENDERED = 'homepage';
 
 const NEW_ALIAS = 'new alias';
 const NEW_URL = 'https://renamed.example.com';
@@ -46,6 +59,7 @@ const NEW_URL = 'https://renamed.example.com';
 const INITIAL_SOURCE_CONTENT = [
   '---',
   `url: ${TEXT_PROPERTY_URL}`,
+  `${UPPERCASE_PROPERTY_KEY}: ${UPPERCASE_KEY_PROPERTY_URL}`,
   'links:',
   `  - ${FIRST_LIST_URL}`,
   `  - ${SECOND_LIST_URL}`,
@@ -68,7 +82,7 @@ const POPOVER_SETTLE_TIMEOUT_IN_MILLISECONDS = 5_000;
  */
 const POPOVER_FIELD_COUNT = 2;
 
-type FrontmatterScenario = 'panel-list' | 'panel-text' | 'raw-yaml';
+type FrontmatterScenario = 'panel-list' | 'panel-text' | 'panel-uppercase-key' | 'raw-yaml';
 
 interface FrontmatterScenarioResult {
   readonly frontmatter: ParsedFrontmatter;
@@ -81,6 +95,7 @@ interface MenuScenarioResult {
 }
 
 interface ParsedFrontmatter {
+  readonly Homepage?: string;
   readonly links?: string[];
   readonly url?: string;
 }
@@ -106,6 +121,19 @@ export function registerFrontmatterLinkSuite(platform: string): void {
 
       expect(result.wasPopoverShown).toBe(true);
       expect(result.frontmatter.links).toEqual([FIRST_LIST_URL, EXPECTED_EDITED_VALUE]);
+      expect(result.frontmatter.url).toBe(TEXT_PROPERTY_URL);
+    });
+
+    it('opens the editor on an Alt click on a property whose key is spelled with capitals', async () => {
+      /*
+       * The GH #8 regression test. The panel hands the click `homepage` (it lowercases every key it renders)
+       * while the cache holds `Homepage`, and comparing them as written reported "Could not locate the link
+       * in the source note" — on a link the context menu could edit perfectly well.
+       */
+      const result = await runClickScenario('panel-uppercase-key');
+
+      expect(result.wasPopoverShown).toBe(true);
+      expect(result.frontmatter.Homepage).toBe(EXPECTED_EDITED_VALUE);
       expect(result.frontmatter.url).toBe(TEXT_PROPERTY_URL);
     });
 
@@ -141,6 +169,7 @@ async function runClickScenario(requestedScenario: FrontmatterScenario): Promise
       secondListUrl: SECOND_LIST_URL,
       sourcePath: SOURCE_PATH,
       textPropertyUrl: TEXT_PROPERTY_URL,
+      uppercasePropertyKeyAsRendered: UPPERCASE_PROPERTY_KEY_AS_RENDERED,
       waitTimeoutInMilliseconds: WAIT_TIMEOUT_IN_MILLISECONDS
     },
     async fn({
@@ -157,6 +186,7 @@ async function runClickScenario(requestedScenario: FrontmatterScenario): Promise
       secondListUrl,
       sourcePath,
       textPropertyUrl,
+      uppercasePropertyKeyAsRendered,
       waitTimeoutInMilliseconds
     }) {
       interface ChildrenHolder {
@@ -195,6 +225,13 @@ async function runClickScenario(requestedScenario: FrontmatterScenario): Promise
         return document.body.querySelector<HTMLElement>(`.obsidian-dev-utils.${pluginId}.popover`);
       }
 
+      /*
+       * Every popover field carries the same `text-box` class, so the fields are told apart by their order —
+       * the order they were handed to `editFieldsInPopover`: alias first, URL second (the alias leads so the
+       * popover focuses it — GH #7).
+       *
+       * @returns The popover's input elements, in declaration order.
+       */
       function getPopoverInputEls(): HTMLInputElement[] {
         return Array.from(getPopoverEl()?.querySelectorAll('input') ?? []);
       }
@@ -277,10 +314,11 @@ async function runClickScenario(requestedScenario: FrontmatterScenario): Promise
 
       if (isRawYaml) {
         /*
-         * The caret is parked on the body: Source mode renders the frontmatter as plain text either way, but
-         * this keeps the gesture identical to a user clicking into the YAML from elsewhere.
+         * The caret is parked on the body heading: Source mode renders the frontmatter as plain text either
+         * way, but this keeps the gesture identical to a user clicking into the YAML from elsewhere. The line
+         * index tracks the fixture — adding a property to the frontmatter pushes the body down.
          */
-        view.editor.setCursor({ ch: 0, line: 7 });
+        view.editor.setCursor({ ch: 0, line: initialSourceContent.split('\n').indexOf('# Body') });
         await waitUntil({
           message: 'the raw frontmatter did not render',
           predicate: () => view.containerEl.textContent.includes(textPropertyUrl),
@@ -290,7 +328,16 @@ async function runClickScenario(requestedScenario: FrontmatterScenario): Promise
         const rect = findTextPoint(view.containerEl, textPropertyUrl);
         clickAt(view.containerEl, rect.left + rect.width / 2, rect.top + rect.height / 2);
       } else {
-        const propertyKey = scenario === 'panel-text' ? 'url' : 'links';
+        /*
+         * The uppercase scenario queries the LOWERCASE key on purpose: that is what the panel puts in the
+         * attribute, and the mismatch with the note's own `Homepage` spelling is exactly what GH #8 was.
+         */
+        const propertyKeyByScenario: Record<string, string> = {
+          'panel-list': 'links',
+          'panel-text': 'url',
+          'panel-uppercase-key': uppercasePropertyKeyAsRendered
+        };
+        const propertyKey = propertyKeyByScenario[scenario] ?? 'url';
         await waitUntil({
           message: `the ${propertyKey} property did not render a link`,
           predicate: () => Boolean(view.containerEl.querySelector(`.metadata-property[data-property-key="${propertyKey}"] .external-link`)),
@@ -301,7 +348,7 @@ async function runClickScenario(requestedScenario: FrontmatterScenario): Promise
           view.containerEl.querySelectorAll<HTMLElement>(`.metadata-property[data-property-key="${propertyKey}"] .external-link`)
         );
         // The list scenario deliberately targets the SECOND pill, so a "first match wins" bug cannot pass.
-        const linkEl = scenario === 'panel-text' ? linkEls[0] : linkEls.find((candidate) => candidate.getAttribute('data-href') === secondListUrl);
+        const linkEl = scenario === 'panel-list' ? linkEls.find((candidate) => candidate.getAttribute('data-href') === secondListUrl) : linkEls[0];
         if (!linkEl) {
           throw new Error('The rendered property link disappeared');
         }
@@ -322,7 +369,7 @@ async function runClickScenario(requestedScenario: FrontmatterScenario): Promise
       }
 
       if (wasPopoverShown) {
-        const [urlInputEl, aliasInputEl] = getPopoverInputEls();
+        const [aliasInputEl, urlInputEl] = getPopoverInputEls();
         const okButtonEl = getPopoverEl()?.querySelector<HTMLElement>('.ok-button');
         if (!urlInputEl || !aliasInputEl || !okButtonEl) {
           throw new Error('The link editor popover is missing its fields');
