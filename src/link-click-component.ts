@@ -7,8 +7,13 @@
  * of several different surfaces, and patching it would also intercept navigation coming from the
  * backlinks pane, search, the graph, and every other place a link can be followed. So this listens for
  * the DOM `click` in the capture phase, which is the only point where the navigation can still be
- * stopped, and only for clicks that actually land on a rendered link. This is a deliberate G51
- * deviation, documented in `AGENTS.md`.
+ * stopped, and only for clicks that actually land on a link. This is a deliberate G51 deviation,
+ * documented in `AGENTS.md`.
+ *
+ * "On a link" is decided two ways, because a link is not always a rendered element. A click is first
+ * matched against {@link LINK_SELECTOR}; when that misses, an editing view is asked what sits at the
+ * click's position instead ({@link LinkClickComponent.handleEditorPositionClick}), which is what covers
+ * raw frontmatter YAML and the undecorated markdown Live Preview shows around the caret.
  *
  * The gesture that opens the editor is chosen by {@link LinkClickAction}; the other gesture is left
  * entirely untouched, so it keeps whatever meaning Obsidian gives it.
@@ -41,7 +46,6 @@ import type { PluginSettings } from './plugin-settings.ts';
 import type { ResolveAndEditLinkParams } from './resolve-link-occurrence.ts';
 
 import { createEditParsedLinkUrlAndAliasInPopover } from './edit-link.ts';
-import { isOffsetInFrontmatter } from './frontmatter-link-occurrence.ts';
 import { COULD_NOT_LOCATE_LINK_NOTICE } from './notices.ts';
 import { resolveAndEditLink } from './resolve-link-occurrence.ts';
 
@@ -212,7 +216,7 @@ export class LinkClickComponent extends AllWindowsEventComponent {
 
     const linkEl = getClickedLinkEl(evt);
     if (!linkEl) {
-      this.handleRawFrontmatterClick(evt);
+      this.handleEditorPositionClick(evt);
       return;
     }
 
@@ -247,13 +251,26 @@ export class LinkClickComponent extends AllWindowsEventComponent {
   }
 
   /**
-   * Handles a click that landed on no rendered link, in case it landed on a link inside the raw YAML of a
-   * note's frontmatter in Source mode. Nothing there is a link element — Obsidian decorates no links inside
-   * the frontmatter block — so the pointer position is the only identity available (GH #6).
+   * Handles a click that landed on no rendered link, by asking the editor what is under the pointer.
+   *
+   * `LINK_SELECTOR` only knows the classes Obsidian puts on a *decorated* link, and there are three ordinary
+   * places an editing view shows a link as undecorated text instead:
+   *
+   * - the raw YAML of a note's frontmatter, where Obsidian decorates nothing at all (GH #6);
+   * - a bare url with the caret inside it or right beside it, which drops back to raw text (GH #9);
+   * - the `(url)` half of a markdown link, once its raw markdown is showing (GH #9).
+   *
+   * All three have the same shape — no element to match, so the pointer position is the only identity
+   * available — which is why this is deliberately NOT scoped to the frontmatter. Where the position turns out
+   * to be matters only to the WRITE, and `resolveAndEditLink` already routes a frontmatter position to the
+   * frontmatter resolver.
+   *
+   * What keeps this from swallowing every `Alt` + click is the check that the position actually falls inside
+   * a parsed link on that line.
    *
    * @param evt - The click event.
    */
-  private handleRawFrontmatterClick(evt: MouseEvent): void {
+  private handleEditorPositionClick(evt: MouseEvent): void {
     const { target } = evt;
     if (!(target instanceof HTMLElement)) {
       return;
@@ -266,9 +283,6 @@ export class LinkClickComponent extends AllWindowsEventComponent {
 
     const { editor } = view;
     const sourcePosition = editor.posAtMouse(evt);
-    if (!isOffsetInFrontmatter(editor.getValue(), editor.posToOffset(sourcePosition))) {
-      return;
-    }
 
     const line = editor.getDoc().getLine(sourcePosition.line);
     const isPointerOnLink = parseLinks(line)
@@ -280,7 +294,7 @@ export class LinkClickComponent extends AllWindowsEventComponent {
     this.interceptAndEdit({
       anchor: createAnchorFromPoint(evt.clientX, evt.clientY, target.doc),
       evt,
-      // Raw YAML says nothing about what the link points at; the position resolves it.
+      // Undecorated text says nothing about what the link points at; the position resolves it.
       linkTarget: {},
       propertyKey: null,
       sourcePosition,
