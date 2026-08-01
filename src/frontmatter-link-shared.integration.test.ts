@@ -285,6 +285,18 @@ async function runClickScenario(requestedScenario: FrontmatterScenario): Promise
       await trashSourceNote();
       const sourceFile = await app.vault.create(sourcePath, initialSourceContent);
 
+      /*
+       * The resolver reads the frontmatter out of the METADATA CACHE, and a note created a moment ago is not
+       * in it yet — the rendered property link appears first, so waiting on the element is not enough. Every
+       * candidate then comes back empty and the click reports "could not locate the link". Only the suite's
+       * FIRST scenario was slow enough to lose this race, which is exactly how it read as a flake.
+       */
+      await waitUntil({
+        message: 'the frontmatter did not reach the metadata cache',
+        predicate: () => Boolean(app.metadataCache.getFileCache(sourceFile)?.frontmatter),
+        timeoutInMilliseconds: waitTimeoutInMilliseconds
+      });
+
       const settingsComponent = findSettingsComponent(app.plugins.getPlugin(pluginId));
       if (!settingsComponent) {
         throw new Error('Could not find the plugin settings component');
