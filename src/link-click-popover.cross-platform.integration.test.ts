@@ -245,7 +245,7 @@ async function runClickScenario(params: RunClickScenarioParams): Promise<ClickSc
       initialSourceContent,
       isEditing,
       isRawSource,
-      lib: { waitUntil },
+      lib: { createNote, waitUntil },
       linkSelector,
       linkText,
       newAlias,
@@ -393,9 +393,9 @@ async function runClickScenario(params: RunClickScenarioParams): Promise<ClickSc
       await trashNotes();
 
       if (shouldTargetExist) {
-        await app.vault.create(targetPath, targetContent);
+        await createNote({ content: targetContent, path: targetPath });
       }
-      const sourceFile = await app.vault.create(sourcePath, initialSourceContent);
+      const sourceFile = await createNote({ content: initialSourceContent, path: sourcePath });
 
       const plugin = app.plugins.getPlugin(pluginId);
       const settingsComponent = findSettingsComponent(plugin);
