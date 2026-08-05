@@ -41,7 +41,7 @@ export class Plugin extends PluginBase {
       })
     );
 
-    this.commandHandlerComponent.registerCommandHandlers([
+    this.commandHandlerComponent.registerCommandHandlers(() => [
       new EditCommandHandler({
         app: this.app,
         pluginNoticeComponent: this.pluginNoticeComponent

@@ -46,7 +46,7 @@ interface CreateMockEditorParams {
 }
 
 interface EditorCommandHandlerProtected {
-  canExecuteEditor(editor: Editor, ctx: MarkdownFileInfo): boolean;
+  canExecuteEditor(editor: Editor, context: MarkdownFileInfo): boolean;
 }
 
 interface MockClickableToken {
@@ -54,16 +54,16 @@ interface MockClickableToken {
 }
 
 class TestableEditCommandHandler extends EditCommandHandler {
-  public testCanExecuteEditor(editor: Editor, ctx: MarkdownFileInfo): boolean {
-    return this.canExecuteEditor(editor, ctx);
+  public testCanExecuteEditor(editor: Editor, context: MarkdownFileInfo): boolean {
+    return this.canExecuteEditor(editor, context);
   }
 
-  public async testExecuteEditor(editor: Editor, ctx: MarkdownFileInfo = createMockCtx()): Promise<void> {
-    return this.executeEditor(editor, ctx);
+  public async testExecuteEditor(editor: Editor, context: MarkdownFileInfo = createMockContext()): Promise<void> {
+    return this.executeEditor(editor, context);
   }
 
-  public testShouldAddToEditorMenu(editor: Editor, ctx: MarkdownFileInfo): boolean {
-    return this.shouldAddToEditorMenu(editor, ctx);
+  public testShouldAddToEditorMenu(editor: Editor, context: MarkdownFileInfo): boolean {
+    return this.shouldAddToEditorMenu(editor, context);
   }
 }
 
@@ -71,7 +71,7 @@ function createMockApp(): import('obsidian').App {
   return strictProxy<import('obsidian').App>({});
 }
 
-function createMockCtx(): MarkdownFileInfo {
+function createMockContext(): MarkdownFileInfo {
   return strictProxy<MarkdownFileInfo>({ file: null });
 }
 
@@ -136,33 +136,33 @@ describe('EditCommandHandler', () => {
       vi.spyOn(castTo<EditorCommandHandlerProtected>(EditorCommandHandler.prototype), 'canExecuteEditor').mockReturnValue(false);
 
       const editor = createMockEditor({ clickableToken: { type: 'internal-link' } });
-      const result = handler.testCanExecuteEditor(editor, createMockCtx());
+      const isResult = handler.testCanExecuteEditor(editor, createMockContext());
 
-      expect(result).toBe(false);
+      expect(isResult).toBe(false);
     });
 
     it('should return false when no clickable token at cursor', () => {
       const editor = createMockEditor({ clickableToken: null });
-      const result = handler.testCanExecuteEditor(editor, createMockCtx());
-      expect(result).toBe(false);
+      const isResult = handler.testCanExecuteEditor(editor, createMockContext());
+      expect(isResult).toBe(false);
     });
 
     it('should return false when clickable token type is not a link', () => {
       const editor = createMockEditor({ clickableToken: { type: 'tag' } });
-      const result = handler.testCanExecuteEditor(editor, createMockCtx());
-      expect(result).toBe(false);
+      const isResult = handler.testCanExecuteEditor(editor, createMockContext());
+      expect(isResult).toBe(false);
     });
 
     it('should return true when clickable token is internal-link', () => {
       const editor = createMockEditor({ clickableToken: { type: 'internal-link' } });
-      const result = handler.testCanExecuteEditor(editor, createMockCtx());
-      expect(result).toBe(true);
+      const isResult = handler.testCanExecuteEditor(editor, createMockContext());
+      expect(isResult).toBe(true);
     });
 
     it('should return true when clickable token is external-link', () => {
       const editor = createMockEditor({ clickableToken: { type: 'external-link' } });
-      const result = handler.testCanExecuteEditor(editor, createMockCtx());
-      expect(result).toBe(true);
+      const isResult = handler.testCanExecuteEditor(editor, createMockContext());
+      expect(isResult).toBe(true);
     });
   });
 
@@ -452,8 +452,8 @@ describe('EditCommandHandler', () => {
   describe('shouldAddToEditorMenu', () => {
     it('should always return true', () => {
       const editor = createMockEditor();
-      const result = handler.testShouldAddToEditorMenu(editor, createMockCtx());
-      expect(result).toBe(true);
+      const isResult = handler.testShouldAddToEditorMenu(editor, createMockContext());
+      expect(isResult).toBe(true);
     });
   });
 });

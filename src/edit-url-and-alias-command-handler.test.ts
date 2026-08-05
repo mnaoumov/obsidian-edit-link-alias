@@ -44,7 +44,7 @@ interface CreateMockEditorParams {
 }
 
 interface EditorCommandHandlerProtected {
-  canExecuteEditor(editor: Editor, ctx: MarkdownFileInfo): boolean;
+  canExecuteEditor(editor: Editor, context: MarkdownFileInfo): boolean;
 }
 
 interface MockClickableToken {
@@ -52,16 +52,16 @@ interface MockClickableToken {
 }
 
 class TestableEditUrlAndAliasCommandHandler extends EditUrlAndAliasCommandHandler {
-  public testCanExecuteEditor(editor: Editor, ctx: MarkdownFileInfo): boolean {
-    return this.canExecuteEditor(editor, ctx);
+  public testCanExecuteEditor(editor: Editor, context: MarkdownFileInfo): boolean {
+    return this.canExecuteEditor(editor, context);
   }
 
-  public async testExecuteEditor(editor: Editor, ctx: MarkdownFileInfo): Promise<void> {
-    return this.executeEditor(editor, ctx);
+  public async testExecuteEditor(editor: Editor, context: MarkdownFileInfo): Promise<void> {
+    return this.executeEditor(editor, context);
   }
 
-  public testShouldAddToEditorMenu(editor: Editor, ctx: MarkdownFileInfo): boolean {
-    return this.shouldAddToEditorMenu(editor, ctx);
+  public testShouldAddToEditorMenu(editor: Editor, context: MarkdownFileInfo): boolean {
+    return this.shouldAddToEditorMenu(editor, context);
   }
 }
 
@@ -69,7 +69,7 @@ function createMockApp(): App {
   return strictProxy<App>({});
 }
 
-function createMockCtx(): MarkdownFileInfo {
+function createMockContext(): MarkdownFileInfo {
   return strictProxy<MarkdownFileInfo>({ file: null });
 }
 
@@ -129,27 +129,27 @@ describe('EditUrlAndAliasCommandHandler', () => {
       vi.spyOn(castTo<EditorCommandHandlerProtected>(EditorCommandHandler.prototype), 'canExecuteEditor').mockReturnValue(false);
 
       const editor = createMockEditor({ clickableToken: { type: 'internal-link' } });
-      expect(handler.testCanExecuteEditor(editor, createMockCtx())).toBe(false);
+      expect(handler.testCanExecuteEditor(editor, createMockContext())).toBe(false);
     });
 
     it('should return false when no clickable token at cursor', () => {
       const editor = createMockEditor({ clickableToken: null });
-      expect(handler.testCanExecuteEditor(editor, createMockCtx())).toBe(false);
+      expect(handler.testCanExecuteEditor(editor, createMockContext())).toBe(false);
     });
 
     it('should return false when clickable token type is not a link', () => {
       const editor = createMockEditor({ clickableToken: { type: 'tag' } });
-      expect(handler.testCanExecuteEditor(editor, createMockCtx())).toBe(false);
+      expect(handler.testCanExecuteEditor(editor, createMockContext())).toBe(false);
     });
 
     it('should return true when clickable token is internal-link', () => {
       const editor = createMockEditor({ clickableToken: { type: 'internal-link' } });
-      expect(handler.testCanExecuteEditor(editor, createMockCtx())).toBe(true);
+      expect(handler.testCanExecuteEditor(editor, createMockContext())).toBe(true);
     });
 
     it('should return true when clickable token is external-link', () => {
       const editor = createMockEditor({ clickableToken: { type: 'external-link' } });
-      expect(handler.testCanExecuteEditor(editor, createMockCtx())).toBe(true);
+      expect(handler.testCanExecuteEditor(editor, createMockContext())).toBe(true);
     });
   });
 
@@ -159,7 +159,7 @@ describe('EditUrlAndAliasCommandHandler', () => {
       const editParsedLink = vi.fn();
       mockCreateEditParsedLinkUrlAndAliasInPopover.mockReturnValue(editParsedLink);
 
-      await handler.testExecuteEditor(editor, createMockCtx());
+      await handler.testExecuteEditor(editor, createMockContext());
 
       // Invoked from the keyboard, so the anchor comes from the caret rather than a pointer.
       expect(mockCreateEditParsedLinkUrlAndAliasInPopover).toHaveBeenCalledWith(expect.objectContaining({ doc: document }));
@@ -182,7 +182,7 @@ describe('EditUrlAndAliasCommandHandler', () => {
         return noopAsync();
       });
 
-      await noticeHandler.testExecuteEditor(createMockEditor(), createMockCtx());
+      await noticeHandler.testExecuteEditor(createMockEditor(), createMockContext());
 
       expect(showNotice).toHaveBeenCalledWith('Could not locate the link in the source note.');
     });
@@ -200,7 +200,7 @@ describe('EditUrlAndAliasCommandHandler', () => {
 
   describe('shouldAddToEditorMenu', () => {
     it('should always return true', () => {
-      expect(handler.testShouldAddToEditorMenu(createMockEditor(), createMockCtx())).toBe(true);
+      expect(handler.testShouldAddToEditorMenu(createMockEditor(), createMockContext())).toBe(true);
     });
   });
 });

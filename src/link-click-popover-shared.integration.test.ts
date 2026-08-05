@@ -62,7 +62,7 @@ const READING_VIEW_LINK_SELECTOR = 'a.internal-link';
 const EDITING_MODE_LINK_SELECTOR = '.cm-hmd-internal-link';
 
 const WAIT_TIMEOUT_IN_MILLISECONDS = 20_000;
-const POPOVER_SETTLE_TIMEOUT_IN_MILLISECONDS = 2_000;
+const POPOVER_SETTLE_TIMEOUT_IN_MILLISECONDS = 2000;
 
 /**
  * The popover's URL and alias fields — the count is what tells "the popover is fully built" apart from
@@ -226,6 +226,7 @@ function getInitialSourceContent(linkText: string): string {
 async function runClickScenario(params: RunClickScenarioParams): Promise<ClickScenarioResult> {
   const isEditingScenario = params.viewMode !== 'reading';
   return await evalInObsidian({
+    // eslint-disable-next-line unicorn/name-replacements -- `args` is an `obsidian-integration-testing` parameter name.
     args: {
       initialSourceContent: getInitialSourceContent(params.linkText),
       isEditing: isEditingScenario,
@@ -246,6 +247,7 @@ async function runClickScenario(params: RunClickScenarioParams): Promise<ClickSc
       targetPath: TARGET_PATH,
       waitTimeoutInMilliseconds: WAIT_TIMEOUT_IN_MILLISECONDS
     },
+    // eslint-disable-next-line unicorn/name-replacements -- `fn` is an `obsidian-integration-testing` parameter name.
     async fn({
       app,
       initialSourceContent,
@@ -289,7 +291,7 @@ async function runClickScenario(params: RunClickScenarioParams): Promise<ClickSc
       }
 
       function getPopoverInputEls(): HTMLInputElement[] {
-        return Array.from(getPopoverEl()?.querySelectorAll('input') ?? []);
+        return [...getPopoverEl()?.querySelectorAll('input') ?? []];
       }
 
       function findSettingsComponent(root: unknown): null | SettingsHolder {

@@ -26,9 +26,9 @@ import {
 import type { EditParsedLinkParams } from './edit-link.ts';
 
 import {
+  didResolveAndEditFrontmatterLink,
   isLineInFrontmatter,
-  isOffsetInFrontmatter,
-  resolveAndEditFrontmatterLink
+  isOffsetInFrontmatter
 } from './frontmatter-link-occurrence.ts';
 
 vi.mock('obsidian-dev-utils/obsidian/modals/select-item', () => ({ selectItem: vi.fn() }));
@@ -56,11 +56,44 @@ let showCouldNotLocateNotice: ReturnType<typeof vi.fn<(this: void) => void>>;
 
 interface ResolveOptions {
   readonly beforeApply?: (() => Promise<void>) | undefined;
-  readonly linkTarget?: Parameters<typeof resolveAndEditFrontmatterLink>[0]['linkTarget'];
+  readonly linkTarget?: Parameters<typeof didResolveAndEditFrontmatterLink>[0]['linkTarget'];
   readonly newRawLink?: string;
   readonly propertyKey?: string;
   readonly rawLink?: string;
   readonly shouldApply?: boolean;
+}
+
+/**
+ * Runs the resolution with an editor that applies the given replacement, which is what a confirmed popover
+ * or prompt does.
+ *
+ * @param options - The scenario options.
+ * @returns Whether a frontmatter link was resolved.
+ */
+async function didResolve(options: ResolveOptions = {}): Promise<boolean> {
+  const {
+    beforeApply,
+    newRawLink = NEW_RAW_LINK,
+    propertyKey,
+    rawLink,
+    shouldApply = true
+  } = options;
+
+  return await didResolveAndEditFrontmatterLink({
+    app,
+    editParsedLink: async (params: EditParsedLinkParams) => {
+      if (!shouldApply) {
+        return;
+      }
+      await beforeApply?.();
+      await params.applyReplacement(newRawLink);
+    },
+    linkTarget: options.linkTarget ?? {},
+    showCouldNotLocateNotice,
+    sourceFile: getSourceFile(),
+    ...propertyKey !== undefined && { propertyKey },
+    ...rawLink !== undefined && { rawLink }
+  });
 }
 
 function getFrontmatter(content: string): unknown {
@@ -77,39 +110,6 @@ function getSourceFile(): TFile {
 
 async function readSource(): Promise<string> {
   return await app.vault.read(getSourceFile());
-}
-
-/**
- * Runs the resolution with an editor that applies the given replacement, which is what a confirmed popover
- * or prompt does.
- *
- * @param options - The scenario options.
- * @returns Whether a frontmatter link was resolved.
- */
-async function resolve(options: ResolveOptions = {}): Promise<boolean> {
-  const {
-    beforeApply,
-    newRawLink = NEW_RAW_LINK,
-    propertyKey,
-    rawLink,
-    shouldApply = true
-  } = options;
-
-  return await resolveAndEditFrontmatterLink({
-    app,
-    editParsedLink: async (params: EditParsedLinkParams) => {
-      if (!shouldApply) {
-        return;
-      }
-      await beforeApply?.();
-      await params.applyReplacement(newRawLink);
-    },
-    linkTarget: options.linkTarget ?? {},
-    showCouldNotLocateNotice,
-    sourceFile: getSourceFile(),
-    ...propertyKey === undefined ? {} : { propertyKey },
-    ...rawLink === undefined ? {} : { rawLink }
-  });
 }
 
 function setUpVault(sourceContent: string): void {
@@ -142,7 +142,7 @@ describe('isLineInFrontmatter', () => {
   });
 });
 
-describe('resolveAndEditFrontmatterLink', () => {
+describe('didResolveAndEditFrontmatterLink', () => {
   beforeEach(() => {
     showCouldNotLocateNotice = vi.fn();
     mockSelectItem.mockReset();
@@ -152,20 +152,20 @@ describe('resolveAndEditFrontmatterLink', () => {
   it('should report no link when the note has no frontmatter', async () => {
     setUpVault('# Body\n');
 
-    expect(await resolve()).toBe(false);
+    expect(await didResolve()).toBe(false);
     expect(showCouldNotLocateNotice).not.toHaveBeenCalled();
   });
 
   it('should report no link when the frontmatter holds no link', async () => {
     setUpVault('---\ntitle: plain text\n---\n');
 
-    expect(await resolve()).toBe(false);
+    expect(await didResolve()).toBe(false);
   });
 
   it('should quote the rebuilt link so the frontmatter stays valid YAML', async () => {
     setUpVault(`---\nurl: ${URL}\n---\n`);
 
-    expect(await resolve()).toBe(true);
+    expect(await didResolve()).toBe(true);
     expect(getFrontmatter(await readSource())).toEqual({ url: NEW_RAW_LINK });
     expect(showCouldNotLocateNotice).not.toHaveBeenCalled();
   });
@@ -173,14 +173,14 @@ describe('resolveAndEditFrontmatterLink', () => {
   it('should edit only the targeted item of a list property', async () => {
     setUpVault(`---\nlinks:\n  - ${URL}\n  - ${OTHER_URL}\n---\n`);
 
-    expect(await resolve({ linkTarget: { externalUrl: OTHER_URL } })).toBe(true);
+    expect(await didResolve({ linkTarget: { externalUrl: OTHER_URL } })).toBe(true);
     expect(getFrontmatter(await readSource())).toEqual({ links: [URL, NEW_RAW_LINK] });
   });
 
   it('should ignore links outside the given property', async () => {
     setUpVault(`---\nurl: ${URL}\nother: ${OTHER_URL}\n---\n`);
 
-    expect(await resolve({ propertyKey: 'other' })).toBe(true);
+    expect(await didResolve({ propertyKey: 'other' })).toBe(true);
     expect(getFrontmatter(await readSource())).toEqual({
       other: NEW_RAW_LINK,
       url: URL
@@ -190,7 +190,7 @@ describe('resolveAndEditFrontmatterLink', () => {
   it('should match a list item by its property key prefix', async () => {
     setUpVault(`---\nlinks:\n  - ${URL}\n---\n`);
 
-    expect(await resolve({ propertyKey: 'links' })).toBe(true);
+    expect(await didResolve({ propertyKey: 'links' })).toBe(true);
     expect(getFrontmatter(await readSource())).toEqual({ links: [NEW_RAW_LINK] });
   });
 
@@ -201,21 +201,21 @@ describe('resolveAndEditFrontmatterLink', () => {
   it('should match a property key whose note spells it with capitals', async () => {
     setUpVault(`---\nHomepage: ${URL}\n---\n`);
 
-    expect(await resolve({ propertyKey: 'homepage' })).toBe(true);
+    expect(await didResolve({ propertyKey: 'homepage' })).toBe(true);
     expect(getFrontmatter(await readSource())).toEqual({ Homepage: NEW_RAW_LINK });
   });
 
   it('should match a list item under a property key spelled with capitals', async () => {
     setUpVault(`---\nBookmarks:\n  - ${URL}\n---\n`);
 
-    expect(await resolve({ propertyKey: 'bookmarks' })).toBe(true);
+    expect(await didResolve({ propertyKey: 'bookmarks' })).toBe(true);
     expect(getFrontmatter(await readSource())).toEqual({ Bookmarks: [NEW_RAW_LINK] });
   });
 
   it('should still ignore links outside the property when the casing differs', async () => {
     setUpVault(`---\nHomepage: ${URL}\nOther: ${OTHER_URL}\n---\n`);
 
-    expect(await resolve({ propertyKey: 'other' })).toBe(true);
+    expect(await didResolve({ propertyKey: 'other' })).toBe(true);
     expect(getFrontmatter(await readSource())).toEqual({
       Homepage: URL,
       Other: NEW_RAW_LINK
@@ -225,14 +225,14 @@ describe('resolveAndEditFrontmatterLink', () => {
   it('should replace only the matching link inside a value holding several', async () => {
     setUpVault(`---\nurls: ${URL} and ${OTHER_URL}\n---\n`);
 
-    expect(await resolve({ rawLink: OTHER_URL })).toBe(true);
+    expect(await didResolve({ rawLink: OTHER_URL })).toBe(true);
     expect(getFrontmatter(await readSource())).toEqual({ urls: `${URL} and ${NEW_RAW_LINK}` });
   });
 
   it('should edit an internal link that Obsidian cached natively', async () => {
     setUpVault('---\nnote: "[[some note]]"\n---\n');
 
-    expect(await resolve({ newRawLink: '[[some note|Alias]]' })).toBe(true);
+    expect(await didResolve({ newRawLink: '[[some note|Alias]]' })).toBe(true);
     expect(getFrontmatter(await readSource())).toEqual({ note: '[[some note|Alias]]' });
   });
 
@@ -254,7 +254,7 @@ describe('resolveAndEditFrontmatterLink', () => {
       multiValueFrontmatterLinks: []
     });
 
-    expect(await resolve({ newRawLink: '[[some note|Alias]]' })).toBe(true);
+    expect(await didResolve({ newRawLink: '[[some note|Alias]]' })).toBe(true);
     expect(mockSelectItem).not.toHaveBeenCalled();
     expect(getFrontmatter(await readSource())).toEqual({ note: '[[some note|Alias]]' });
   });
@@ -263,14 +263,14 @@ describe('resolveAndEditFrontmatterLink', () => {
     setUpVault('---\nnote: "[[some note]]"\n---\n');
     mockParseLink.mockReturnValueOnce(null);
 
-    expect(await resolve()).toBe(false);
+    expect(await didResolve()).toBe(false);
   });
 
   it('should ask which link to edit when several match', async () => {
     setUpVault(`---\nfirst: ${URL}\nsecond: ${OTHER_URL}\n---\n`);
-    mockSelectItem.mockImplementation(async (params) => await Promise.resolve(params.items[1]));
+    mockSelectItem.mockImplementation(async (params) => await params.items[1]);
 
-    expect(await resolve()).toBe(true);
+    expect(await didResolve()).toBe(true);
     expect(mockSelectItem).toHaveBeenCalledOnce();
     expect(getFrontmatter(await readSource())).toEqual({
       first: URL,
@@ -282,12 +282,12 @@ describe('resolveAndEditFrontmatterLink', () => {
     setUpVault(`---\nfirst: ${URL}\nsecond: ${OTHER_URL}\n---\n`);
     mockSelectItem.mockResolvedValue(null);
 
-    await resolve();
+    await didResolve();
 
     const params = mockSelectItem.mock.calls[0]?.[0];
     const firstItem = params?.items[0];
     expect(firstItem).toBeDefined();
-    expect(params?.itemTextFunc(firstItem)).toBe(`first: ${URL}`);
+    expect(params?.itemTextFunction(firstItem)).toBe(`first: ${URL}`);
   });
 
   it('should leave the note alone when the picker is dismissed', async () => {
@@ -296,7 +296,7 @@ describe('resolveAndEditFrontmatterLink', () => {
     mockSelectItem.mockResolvedValue(null);
 
     // The link WAS located, so this counts as handled: a dismissed picker is a cancel, not a failure.
-    expect(await resolve()).toBe(true);
+    expect(await didResolve()).toBe(true);
     expect(await readSource()).toBe(content);
     expect(showCouldNotLocateNotice).not.toHaveBeenCalled();
   });
@@ -305,7 +305,7 @@ describe('resolveAndEditFrontmatterLink', () => {
     const content = `---\nurl: ${URL}\n---\n`;
     setUpVault(content);
 
-    expect(await resolve({ shouldApply: false })).toBe(true);
+    expect(await didResolve({ shouldApply: false })).toBe(true);
     expect(await readSource()).toBe(content);
     expect(showCouldNotLocateNotice).not.toHaveBeenCalled();
   });
@@ -314,7 +314,7 @@ describe('resolveAndEditFrontmatterLink', () => {
     const content = `---\nurl: ${URL}\n---\n`;
     setUpVault(content);
 
-    expect(await resolve({ newRawLink: URL })).toBe(true);
+    expect(await didResolve({ newRawLink: URL })).toBe(true);
     expect(await readSource()).toBe(content);
     expect(showCouldNotLocateNotice).not.toHaveBeenCalled();
   });
@@ -322,7 +322,7 @@ describe('resolveAndEditFrontmatterLink', () => {
   it('should report a failure when the frontmatter changed while the editor was open', async () => {
     setUpVault(`---\nurl: ${URL}\n---\n`);
 
-    await resolve({
+    await didResolve({
       beforeApply: async () => {
         // The value the change was validated against is gone, so the write cannot be applied.
         await app.vault.modify(getSourceFile(), '---\nurl: replaced\n---\n');

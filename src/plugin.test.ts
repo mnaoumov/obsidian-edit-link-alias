@@ -103,6 +103,27 @@ interface ComponentChildrenHolder {
 
 let app: AppOriginal;
 
+// The subset of `App` the dev-utils Notebook Navigator bridge reads on layout-ready.
+interface AppWithPlugins {
+  plugins: PluginRegistryLike;
+}
+
+interface PluginRegistryLike {
+  getPlugin(this: void, id: string): unknown;
+}
+
+// `registerCommandHandlers` takes a factory since obsidian-dev-utils 89.0.0, and the base registers its
+// Own handlers through the same spy — so pick the plugin's own factory by what it builds.
+function buildPluginCommandHandlers(): unknown[] {
+  const commandHandlerBatches = registerCommandHandlers.mock.calls
+    .map(([commandHandlerFactory]) => castTo<() => unknown[]>(commandHandlerFactory)());
+  const pluginCommandHandlers = commandHandlerBatches.find((commandHandlers) => commandHandlers.some((commandHandler) => commandHandler instanceof EditCommandHandler));
+  if (!pluginCommandHandlers) {
+    throw new Error('The plugin did not register its own command handlers.');
+  }
+  return pluginCommandHandlers;
+}
+
 async function createLoadedPlugin(): Promise<Plugin> {
   const plugin = new Plugin(app, manifest);
   // PluginBase.onload is async; driving the real async load path directly (as the obsidian-dev-utils reference test does) runs every universal component plus onloadImpl.
@@ -120,9 +141,12 @@ beforeEach(() => {
   vi.clearAllMocks();
 
   const appMock = App.createConfigured__();
-  appMock.workspace.onLayoutReady = vi.fn((cb: () => void) => {
-    cb();
+  appMock.workspace.onLayoutReady = vi.fn((callback: () => void) => {
+    callback();
   });
+  // Since obsidian-dev-utils 89.0.0 the base bridges its command handlers into Notebook Navigator's
+  // Menus, which looks the plugin up on layout-ready - so `plugins` has to answer on the strict mock.
+  castTo<AppWithPlugins>(appMock).plugins = { getPlugin: vi.fn().mockReturnValue(null) };
   app = appMock.asOriginalType__();
 
   // Seed the obsidianDevUtilsState holder on the raw target behind the strict-proxy App so the real dev-utils universal components can read/write shared state during load.
@@ -136,16 +160,18 @@ describe('Plugin', () => {
   it('should register the edit, edit-url-and-alias, and open-demo-vault command handlers on the shared command handler component on load', async () => {
     await createLoadedPlugin();
 
-    const editCommandHandler = vi.mocked(EditCommandHandler).mock.instances[0];
-    const editUrlAndAliasCommandHandler = vi.mocked(EditUrlAndAliasCommandHandler).mock.instances[0];
-    const openDemoVaultCommandHandler = vi.mocked(OpenDemoVaultCommandHandler).mock.instances[0];
-    expect(registerCommandHandlers).toHaveBeenCalledWith([editCommandHandler, editUrlAndAliasCommandHandler, openDemoVaultCommandHandler]);
+    expect(buildPluginCommandHandlers()).toStrictEqual([
+      expect.any(EditCommandHandler),
+      expect.any(EditUrlAndAliasCommandHandler),
+      expect.any(OpenDemoVaultCommandHandler)
+    ]);
   });
 
   it('should construct the edit command handler with the app', async () => {
     await createLoadedPlugin();
 
-    expect(vi.mocked(EditCommandHandler)).toHaveBeenCalledOnce();
+    buildPluginCommandHandlers();
+    expect(vi.mocked(EditCommandHandler)).toHaveBeenCalled();
     const params = vi.mocked(EditCommandHandler).mock.calls[0]?.[0];
     expect(params?.app).toBe(app);
     expect(params?.pluginNoticeComponent).toBeDefined();
@@ -154,7 +180,8 @@ describe('Plugin', () => {
   it('should construct the edit-url-and-alias command handler with the app', async () => {
     await createLoadedPlugin();
 
-    expect(vi.mocked(EditUrlAndAliasCommandHandler)).toHaveBeenCalledOnce();
+    buildPluginCommandHandlers();
+    expect(vi.mocked(EditUrlAndAliasCommandHandler)).toHaveBeenCalled();
     const params = vi.mocked(EditUrlAndAliasCommandHandler).mock.calls[0]?.[0];
     expect(params?.app).toBe(app);
     expect(params?.pluginNoticeComponent).toBeDefined();
@@ -163,7 +190,8 @@ describe('Plugin', () => {
   it('should construct the open-demo-vault command handler with the app, plugin id, and version', async () => {
     await createLoadedPlugin();
 
-    expect(vi.mocked(OpenDemoVaultCommandHandler)).toHaveBeenCalledOnce();
+    buildPluginCommandHandlers();
+    expect(vi.mocked(OpenDemoVaultCommandHandler)).toHaveBeenCalled();
     const params = vi.mocked(OpenDemoVaultCommandHandler).mock.calls[0]?.[0];
     expect(params?.app).toBe(app);
     expect(params?.pluginId).toBe(manifest.id);
@@ -208,7 +236,7 @@ describe('Plugin', () => {
  * @param componentClass - The component class to look for.
  * @returns The matching component.
  */
-function findAddedChild<T>(plugin: Plugin, componentClass: abstract new (...args: never[]) => T): T {
+function findAddedChild<T>(plugin: Plugin, componentClass: abstract new (...$arguments: never[]) => T): T {
   const queue: Component[] = [...castTo<ComponentChildrenHolder>(plugin)._children];
   while (queue.length > 0) {
     const candidate = queue.shift();

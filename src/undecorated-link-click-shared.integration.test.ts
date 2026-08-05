@@ -47,7 +47,7 @@ const INTRO_LINE = 'intro';
 const LINK_LINE_INDEX = 1;
 
 const WAIT_TIMEOUT_IN_MILLISECONDS = 20_000;
-const POPOVER_SETTLE_TIMEOUT_IN_MILLISECONDS = 5_000;
+const POPOVER_SETTLE_TIMEOUT_IN_MILLISECONDS = 5000;
 
 /**
  * The popover's alias and URL fields — the count is what tells "the popover is fully built" apart from "it is
@@ -97,6 +97,7 @@ function getInitialSourceContent(scenario: UndecoratedScenario): string {
 
 async function runScenario(requestedScenario: UndecoratedScenario): Promise<UndecoratedScenarioResult> {
   return await evalInObsidian({
+    // eslint-disable-next-line unicorn/name-replacements -- `args` is an `obsidian-integration-testing` parameter name.
     args: {
       clickedUrl: requestedScenario === 'bare-url' ? BARE_URL : MARKDOWN_LINK_URL,
       initialSourceContent: getInitialSourceContent(requestedScenario),
@@ -109,6 +110,7 @@ async function runScenario(requestedScenario: UndecoratedScenario): Promise<Unde
       sourcePath: SOURCE_PATH,
       waitTimeoutInMilliseconds: WAIT_TIMEOUT_IN_MILLISECONDS
     },
+    // eslint-disable-next-line unicorn/name-replacements -- `fn` is an `obsidian-integration-testing` parameter name.
     async fn({
       app,
       clickedUrl,
@@ -166,7 +168,7 @@ async function runScenario(requestedScenario: UndecoratedScenario): Promise<Unde
        * @returns The popover's input elements, in declaration order.
        */
       function getPopoverInputEls(): HTMLInputElement[] {
-        return Array.from(getPopoverEl()?.querySelectorAll('input') ?? []);
+        return [...getPopoverEl()?.querySelectorAll('input') ?? []];
       }
 
       /**
@@ -179,10 +181,10 @@ async function runScenario(requestedScenario: UndecoratedScenario): Promise<Unde
        * @returns The rectangle of the innermost element rendering the text.
        */
       function findTextRect(containerEl: HTMLElement, text: string): DOMRect {
-        const candidateEls = Array.from(containerEl.querySelectorAll<HTMLElement>('.cm-line span, .cm-line'));
+        const candidateEls = [...containerEl.querySelectorAll<HTMLElement>(':scope .cm-line span, :scope .cm-line')];
         // The innermost match: an outer `.cm-line` also contains the text, but its centre may miss the url.
         const matchingEls = candidateEls.filter((candidate) => candidate.textContent.includes(text));
-        const el = matchingEls[matchingEls.length - 1];
+        const el = matchingEls.at(-1);
         if (!el) {
           throw new Error(`The editor does not render the text ${text}`);
         }

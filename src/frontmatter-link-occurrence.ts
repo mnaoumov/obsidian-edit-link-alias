@@ -47,9 +47,9 @@ import {
 } from './link-target.ts';
 
 /**
- * Parameters for {@link resolveAndEditFrontmatterLink}.
+ * Parameters for {@link didResolveAndEditFrontmatterLink}.
  */
-export interface ResolveAndEditFrontmatterLinkParams {
+export interface DidResolveAndEditFrontmatterLinkParams {
   /**
    * The Obsidian app instance.
    */
@@ -111,6 +111,74 @@ interface FrontmatterLinkCandidate {
 }
 
 /**
+ * Resolves which frontmatter link the gesture referred to and runs the editor on it, writing the result
+ * back through the frontmatter so the YAML stays valid.
+ *
+ * @param params - The parameters for the resolution.
+ * @returns Whether a frontmatter link was resolved and handed to the editor.
+ */
+export async function didResolveAndEditFrontmatterLink(params: DidResolveAndEditFrontmatterLinkParams): Promise<boolean> {
+  const {
+    app,
+    editParsedLink,
+    linkTarget,
+    propertyKey,
+    rawLink,
+    showCouldNotLocateNotice,
+    sourceFile
+  } = params;
+
+  const candidates = findCandidates({
+    app,
+    linkTarget,
+    sourceFile,
+    ...normalizeOptionalProperties<Pick<FindCandidatesParams, 'propertyKey' | 'rawLink'>>({
+      propertyKey,
+      rawLink
+    })
+  });
+
+  if (candidates.length === 0) {
+    return false;
+  }
+
+  const chosen = candidates.length > 1
+    ? await selectItem({
+      app,
+      items: candidates,
+      itemTextFunction: (candidate) => `${candidate.reference.key}: ${candidate.parsedLink.raw}`,
+      placeholder: 'Select the link to edit'
+    })
+    : candidates[0];
+
+  if (!chosen) {
+    // The picker was dismissed. The link WAS located, so this is a cancel, not a failure to resolve.
+    return true;
+  }
+
+  const candidate = chosen;
+
+  await editParsedLink({
+    app,
+    applyReplacement: async (newRawLink) => {
+      const wasApplied = await didApplyFrontmatterLinkChange({
+        app,
+        candidate,
+        newRawLink,
+        sourceFile
+      });
+
+      if (!wasApplied) {
+        showCouldNotLocateNotice();
+      }
+    },
+    parsedLink: candidate.parsedLink
+  });
+
+  return true;
+}
+
+/**
  * Determines whether a line of the given content lies inside its frontmatter block.
  *
  * @param content - The note content.
@@ -141,71 +209,46 @@ export function isOffsetInFrontmatter(content: string, offset: number): boolean 
 }
 
 /**
- * Resolves which frontmatter link the gesture referred to and runs the editor on it, writing the result
- * back through the frontmatter so the YAML stays valid.
+ * Collects every link in the note's frontmatter, from the two sources that each hold half of them.
  *
- * @param params - The parameters for the resolution.
- * @returns Whether a frontmatter link was resolved and handed to the editor.
+ * Obsidian natively caches only the INTERNAL links whose whole property value is the link
+ * (`cache.frontmatterLinks`); the external ones and any value holding several links come from
+ * `parseFrontmatterLinks`. The two sets are disjoint by construction — `parseFrontmatterLinks` deliberately
+ * skips the internal single-link values Obsidian already covers — but they are de-duplicated anyway, so a
+ * future overlap cannot turn into a spurious "which link did you mean?" prompt.
+ *
+ * @param app - The Obsidian app instance.
+ * @param sourceFile - The note to collect from.
+ * @returns The frontmatter link references.
  */
-export async function resolveAndEditFrontmatterLink(params: ResolveAndEditFrontmatterLinkParams): Promise<boolean> {
-  const {
-    app,
-    editParsedLink,
-    linkTarget,
-    propertyKey,
-    rawLink,
-    showCouldNotLocateNotice,
-    sourceFile
-  } = params;
-
-  const candidates = findCandidates({
-    app,
-    linkTarget,
-    sourceFile,
-    ...normalizeOptionalProperties<Pick<FindCandidatesParams, 'propertyKey' | 'rawLink'>>({
-      propertyKey,
-      rawLink
-    })
-  });
-
-  if (candidates.length === 0) {
-    return false;
+function collectFrontmatterReferences(app: App, sourceFile: TFile): FrontmatterLinkCache[] {
+  const cache = app.metadataCache.getFileCache(sourceFile);
+  if (!cache) {
+    return [];
   }
 
-  const chosen = candidates.length > 1
-    ? await selectItem({
-      app,
-      items: candidates,
-      itemTextFunc: (candidate) => `${candidate.reference.key}: ${candidate.parsedLink.raw}`,
-      placeholder: 'Select the link to edit'
-    })
-    : candidates[0];
+  const parsedFrontmatterLinks = parseFrontmatterLinks(cache.frontmatter);
+  const references: FrontmatterLinkCache[] = [
+    ...cache.frontmatterLinks ?? [],
+    ...parsedFrontmatterLinks.frontmatterExternalLinks,
+    ...parsedFrontmatterLinks.multiValueFrontmatterExternalLinks,
+    ...parsedFrontmatterLinks.multiValueFrontmatterLinks
+  ];
 
-  if (!chosen) {
-    // The picker was dismissed. The link WAS located, so this is a cancel, not a failure to resolve.
+  const seenKeys = new Set<string>();
+  return references.filter((reference) => {
+    const startOffset = isFrontmatterLinkCacheWithOffsets(reference) ? reference.startOffset : 0;
+    const seenKey = `${reference.key}:${String(startOffset)}`;
+    if (seenKeys.has(seenKey)) {
+      return false;
+    }
+    seenKeys.add(seenKey);
     return true;
-  }
-
-  const candidate = chosen;
-
-  await editParsedLink({
-    app,
-    applyReplacement: async (newRawLink) => {
-      const wasApplied = await applyFrontmatterLinkChange({
-        app,
-        candidate,
-        newRawLink,
-        sourceFile
-      });
-
-      if (!wasApplied) {
-        showCouldNotLocateNotice();
-      }
-    },
-    parsedLink: candidate.parsedLink
   });
+}
 
-  return true;
+function countLines(text: string): number {
+  return text.split('\n').length - 1;
 }
 
 /**
@@ -214,7 +257,7 @@ export async function resolveAndEditFrontmatterLink(params: ResolveAndEditFrontm
  * @param params - The parameters for the change.
  * @returns Whether the note was actually rewritten.
  */
-async function applyFrontmatterLinkChange(params: ApplyFrontmatterLinkChangeParams): Promise<boolean> {
+async function didApplyFrontmatterLinkChange(params: ApplyFrontmatterLinkChangeParams): Promise<boolean> {
   const {
     app,
     candidate,
@@ -264,49 +307,6 @@ async function applyFrontmatterLinkChange(params: ApplyFrontmatterLinkChangePara
    * original content when validation fails), so comparing is the only way to know the write landed.
    */
   return contentAfter !== contentBefore;
-}
-
-/**
- * Collects every link in the note's frontmatter, from the two sources that each hold half of them.
- *
- * Obsidian natively caches only the INTERNAL links whose whole property value is the link
- * (`cache.frontmatterLinks`); the external ones and any value holding several links come from
- * `parseFrontmatterLinks`. The two sets are disjoint by construction — `parseFrontmatterLinks` deliberately
- * skips the internal single-link values Obsidian already covers — but they are de-duplicated anyway, so a
- * future overlap cannot turn into a spurious "which link did you mean?" prompt.
- *
- * @param app - The Obsidian app instance.
- * @param sourceFile - The note to collect from.
- * @returns The frontmatter link references.
- */
-function collectFrontmatterReferences(app: App, sourceFile: TFile): FrontmatterLinkCache[] {
-  const cache = app.metadataCache.getFileCache(sourceFile);
-  if (!cache) {
-    return [];
-  }
-
-  const parsedFrontmatterLinks = parseFrontmatterLinks(cache.frontmatter);
-  const references: FrontmatterLinkCache[] = [
-    ...cache.frontmatterLinks ?? [],
-    ...parsedFrontmatterLinks.frontmatterExternalLinks,
-    ...parsedFrontmatterLinks.multiValueFrontmatterExternalLinks,
-    ...parsedFrontmatterLinks.multiValueFrontmatterLinks
-  ];
-
-  const seenKeys = new Set<string>();
-  return references.filter((reference) => {
-    const startOffset = isFrontmatterLinkCacheWithOffsets(reference) ? reference.startOffset : 0;
-    const seenKey = `${reference.key}:${String(startOffset)}`;
-    if (seenKeys.has(seenKey)) {
-      return false;
-    }
-    seenKeys.add(seenKey);
-    return true;
-  });
-}
-
-function countLines(text: string): number {
-  return text.split('\n').length - 1;
 }
 
 /**

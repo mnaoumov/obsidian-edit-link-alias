@@ -94,7 +94,7 @@ function createMockEditor(params: CreateMockEditorParams = {}): Editor {
     getClickableTokenAt: vi.fn().mockReturnValue(clickableTokenType === null ? null : { type: clickableTokenType }),
     getCursor: vi.fn().mockReturnValue(cursor),
     getDoc: vi.fn().mockReturnValue(strictProxy({ getLine })),
-    // A single body line: no frontmatter, so the frontmatter routing in `tryEditLinkAtPosition` is not taken.
+    // A single body line: no frontmatter, so the frontmatter routing in `didEditLinkAtPosition` is not taken.
     getValue: vi.fn().mockReturnValue(line),
     posToOffset: vi.fn().mockReturnValue(0),
     replaceRange
@@ -103,11 +103,11 @@ function createMockEditor(params: CreateMockEditorParams = {}): Editor {
 
 function createMockMenu(): CreateMockMenuResult {
   const items: CapturedMenuItem[] = [];
-  const addItem = vi.fn((cb: (item: MenuItem) => void) => {
+  const addItem = vi.fn((callback: (item: MenuItem) => void) => {
     const captured: CapturedMenuItem = {};
     const item = castTo<MenuItem>({
-      onClick(fn: (this: void) => void) {
-        captured.onClick = fn;
+      onClick($function: (this: void) => void) {
+        captured.onClick = $function;
         return item;
       },
       setIcon(icon: string) {
@@ -123,7 +123,7 @@ function createMockMenu(): CreateMockMenuResult {
         return item;
       }
     });
-    cb(item);
+    callback(item);
     items.push(captured);
     return menu;
   });
@@ -152,7 +152,7 @@ let app: App;
 let sourceContent: string;
 let processContent: null | string;
 let getActiveViewOfType: ReturnType<typeof vi.fn>;
-let getFirstLinkpathDest: ReturnType<typeof vi.fn>;
+let getFirstLinkpathDestination: ReturnType<typeof vi.fn>;
 let read: ReturnType<typeof vi.fn>;
 let process: ReturnType<typeof vi.fn>;
 let showNotice: ReturnType<typeof vi.fn>;
@@ -195,9 +195,9 @@ function createHandler(): LinkMenuHandler {
   sourceContent = '';
   processContent = null;
   getActiveViewOfType = vi.fn().mockReturnValue(null);
-  getFirstLinkpathDest = vi.fn().mockReturnValue(null);
+  getFirstLinkpathDestination = vi.fn().mockReturnValue(null);
   read = vi.fn().mockImplementation(() => Promise.resolve(sourceContent));
-  process = vi.fn((_file: TFile, fn: (data: string) => string) => Promise.resolve(fn(processContent ?? sourceContent)));
+  process = vi.fn((_file: TFile, $function: (data: string) => string) => Promise.resolve($function(processContent ?? sourceContent)));
   showNotice = vi.fn();
   registerEvent = vi.fn();
   on = vi.fn();
@@ -206,7 +206,8 @@ function createHandler(): LinkMenuHandler {
     // No frontmatter cache: these tests exercise the body paths, so frontmatter resolution finds nothing.
     metadataCache: {
       getFileCache: vi.fn().mockReturnValue(null),
-      getFirstLinkpathDest
+      // eslint-disable-next-line unicorn/name-replacements -- `getFirstLinkpathDest` is an Obsidian `MetadataCache` method name.
+      getFirstLinkpathDest: getFirstLinkpathDestination
     },
     vault: {
       process,
@@ -430,7 +431,7 @@ describe('LinkMenuHandler', () => {
       });
       mockActiveView('source', editor);
       mockParseLinks.mockReturnValue([parsedLink()]);
-      getFirstLinkpathDest.mockReturnValue(strictProxy<TFile>({ path: 'target.md' }));
+      getFirstLinkpathDestination.mockReturnValue(strictProxy<TFile>({ path: 'target.md' }));
       mockEditApplies('[[target|new]]');
 
       await clickInternalLinkMenuItem(EDIT_ALIAS_ITEM_INDEX, strictProxy<TFile>({ path: 'target.md' }));
@@ -449,7 +450,7 @@ describe('LinkMenuHandler', () => {
       });
       mockActiveView('source', editor);
       mockParseLinks.mockReturnValue([parsedLink()]);
-      getFirstLinkpathDest.mockReturnValue(strictProxy<TFile>({ path: 'target.md' }));
+      getFirstLinkpathDestination.mockReturnValue(strictProxy<TFile>({ path: 'target.md' }));
       mockEditParsedLinkUrlAndAlias.mockImplementation(async (params) => {
         await params.applyReplacement('[[new-target|new]]');
       });
@@ -469,7 +470,7 @@ describe('LinkMenuHandler', () => {
       mockActiveView('source', editor);
       // Cursor line has no matching link; the file scan finds it on another line.
       mockParseLinks.mockImplementation((text: string) => text.includes('[[target') ? [parsedLink()] : []);
-      getFirstLinkpathDest.mockReturnValue(strictProxy<TFile>({ path: 'target.md' }));
+      getFirstLinkpathDestination.mockReturnValue(strictProxy<TFile>({ path: 'target.md' }));
       sourceContent = '[[other|old]]\n[[target|old]]';
       mockEditApplies('[[target|new]]');
 
@@ -484,14 +485,14 @@ describe('LinkMenuHandler', () => {
       mockActiveView('preview');
       sourceContent = 'intro\n[[target|old]]\noutro';
       mockParseLinks.mockImplementation((text: string) => text.includes('[[target') ? [parsedLink()] : []);
-      getFirstLinkpathDest.mockReturnValue(strictProxy<TFile>({ path: 'target.md' }));
+      getFirstLinkpathDestination.mockReturnValue(strictProxy<TFile>({ path: 'target.md' }));
       mockEditApplies('[[target|new]]');
 
       await clickInternalLinkMenuItem(EDIT_ALIAS_ITEM_INDEX, strictProxy<TFile>({ path: 'target.md' }));
 
       expect(process).toHaveBeenCalledOnce();
-      const processFn = process.mock.calls[0]?.[1] as (data: string) => string;
-      expect(processFn('intro\n[[target|old]]\noutro')).toBe('intro\n[[target|new]]\noutro');
+      const processFunction = process.mock.calls[0]?.[1] as (data: string) => string;
+      expect(processFunction('intro\n[[target|old]]\noutro')).toBe('intro\n[[target|new]]\noutro');
       expect(showNotice).not.toHaveBeenCalled();
     });
 
@@ -509,11 +510,11 @@ describe('LinkMenuHandler', () => {
         }
         return [];
       });
-      getFirstLinkpathDest.mockReturnValue(strictProxy<TFile>({ path: 'target.md' }));
+      getFirstLinkpathDestination.mockReturnValue(strictProxy<TFile>({ path: 'target.md' }));
       const chosen = { line: 1, parsedLink: second };
       mockSelectItem.mockImplementation((params) => {
         // Exercise the display-text formatter for each candidate.
-        const labels = params.items.map((item) => params.itemTextFunc(item));
+        const labels = params.items.map((item) => params.itemTextFunction(item));
         expect(labels).toStrictEqual(['Line 1: [[target|a]]', 'Line 2: [[target|b]]']);
         return Promise.resolve(chosen);
       });
@@ -529,7 +530,7 @@ describe('LinkMenuHandler', () => {
       mockActiveView('preview');
       sourceContent = '[[target|a]]\n[[target|b]]';
       mockParseLinks.mockImplementation((text: string) => text.startsWith('[[target') ? [parsedLink({ raw: text })] : []);
-      getFirstLinkpathDest.mockReturnValue(strictProxy<TFile>({ path: 'target.md' }));
+      getFirstLinkpathDestination.mockReturnValue(strictProxy<TFile>({ path: 'target.md' }));
       mockSelectItem.mockResolvedValue(null);
 
       await clickInternalLinkMenuItem(EDIT_ALIAS_ITEM_INDEX, strictProxy<TFile>({ path: 'target.md' }));
@@ -564,7 +565,7 @@ describe('LinkMenuHandler', () => {
       await clickExternalLinkMenuItem(EDIT_ALIAS_ITEM_INDEX, 'https://example.com');
 
       expect(process).toHaveBeenCalledOnce();
-      expect(getFirstLinkpathDest).not.toHaveBeenCalled();
+      expect(getFirstLinkpathDestination).not.toHaveBeenCalled();
     });
 
     it('should resolve the source view from the provided leaf when it is a markdown view', async () => {
@@ -573,7 +574,7 @@ describe('LinkMenuHandler', () => {
       const activeView = mockActiveView('preview');
       sourceContent = '[[target|old]]';
       mockParseLinks.mockReturnValue([parsedLink()]);
-      getFirstLinkpathDest.mockReturnValue(strictProxy<TFile>({ path: 'target.md' }));
+      getFirstLinkpathDestination.mockReturnValue(strictProxy<TFile>({ path: 'target.md' }));
       mockEditApplies('[[target|new]]');
 
       await clickInternalLinkMenuItem(EDIT_ALIAS_ITEM_INDEX, strictProxy<TFile>({ path: 'target.md' }), leaf);
@@ -589,13 +590,13 @@ describe('LinkMenuHandler', () => {
       // The link is still present at save time but no longer at the scanned offset.
       processContent = 'XX[[target|old]]';
       mockParseLinks.mockImplementation((text: string) => text.includes('[[target') ? [parsedLink()] : []);
-      getFirstLinkpathDest.mockReturnValue(strictProxy<TFile>({ path: 'target.md' }));
+      getFirstLinkpathDestination.mockReturnValue(strictProxy<TFile>({ path: 'target.md' }));
       mockEditApplies('[[target|new]]');
 
       await clickInternalLinkMenuItem(EDIT_ALIAS_ITEM_INDEX, strictProxy<TFile>({ path: 'target.md' }));
 
-      const processFn = process.mock.calls[0]?.[1] as (data: string) => string;
-      expect(processFn('XX[[target|old]]')).toBe('XX[[target|new]]');
+      const processFunction = process.mock.calls[0]?.[1] as (data: string) => string;
+      expect(processFunction('XX[[target|old]]')).toBe('XX[[target|new]]');
       expect(showNotice).not.toHaveBeenCalled();
     });
 
@@ -604,7 +605,7 @@ describe('LinkMenuHandler', () => {
       sourceContent = 'a\nb\n[[target|old]]';
       processContent = 'a';
       mockParseLinks.mockImplementation((text: string) => text.includes('[[target') ? [parsedLink()] : []);
-      getFirstLinkpathDest.mockReturnValue(strictProxy<TFile>({ path: 'target.md' }));
+      getFirstLinkpathDestination.mockReturnValue(strictProxy<TFile>({ path: 'target.md' }));
       mockEditApplies('[[target|new]]');
 
       await clickInternalLinkMenuItem(EDIT_ALIAS_ITEM_INDEX, strictProxy<TFile>({ path: 'target.md' }));
@@ -617,7 +618,7 @@ describe('LinkMenuHandler', () => {
       sourceContent = '[[target|old]]';
       processContent = 'completely different';
       mockParseLinks.mockImplementation((text: string) => text.includes('[[target') ? [parsedLink()] : []);
-      getFirstLinkpathDest.mockReturnValue(strictProxy<TFile>({ path: 'target.md' }));
+      getFirstLinkpathDestination.mockReturnValue(strictProxy<TFile>({ path: 'target.md' }));
       mockEditApplies('[[target|new]]');
 
       await clickInternalLinkMenuItem(EDIT_ALIAS_ITEM_INDEX, strictProxy<TFile>({ path: 'target.md' }));
@@ -643,7 +644,7 @@ describe('LinkMenuHandler', () => {
         }
         return [];
       });
-      getFirstLinkpathDest.mockReturnValue(strictProxy<TFile>({ path: 'target.md' }));
+      getFirstLinkpathDestination.mockReturnValue(strictProxy<TFile>({ path: 'target.md' }));
       mockEditApplies('[[target|new]]');
 
       await clickInternalLinkMenuItem(EDIT_ALIAS_ITEM_INDEX, strictProxy<TFile>({ path: 'target.md' }));
@@ -723,7 +724,7 @@ describe('LinkMenuHandler', () => {
           startOffset: 13
         })
       ]);
-      getFirstLinkpathDest.mockReturnValue(strictProxy<TFile>({ path: 'target.md' }));
+      getFirstLinkpathDestination.mockReturnValue(strictProxy<TFile>({ path: 'target.md' }));
       mockEditApplies('[[target|second]]');
 
       await resolveAndEditLink({
@@ -764,7 +765,7 @@ describe('LinkMenuHandler', () => {
       const view = mockActiveView('source', createMockEditor({ line: '[[other|old]]' }));
       sourceContent = '[[other|old]]\n[[target|old]]';
       mockParseLinks.mockImplementation((text: string) => text.includes('[[target') ? [parsedLink()] : [parsedLink({ raw: '[[other|old]]', url: 'other' })]);
-      getFirstLinkpathDest.mockImplementation((linkpath: string) => linkpath === 'target' ? strictProxy<TFile>({ path: 'target.md' }) : null);
+      getFirstLinkpathDestination.mockImplementation((linkpath: string) => linkpath === 'target' ? strictProxy<TFile>({ path: 'target.md' }) : null);
       mockEditApplies('[[target|new]]');
 
       await resolveAndEditLink({
@@ -838,7 +839,7 @@ describe('LinkMenuHandler', () => {
       });
 
       // `getFirstLinkpathDest` is never consulted: there is no file to resolve to.
-      expect(getFirstLinkpathDest).not.toHaveBeenCalled();
+      expect(getFirstLinkpathDestination).not.toHaveBeenCalled();
       expect(replaceRange).toHaveBeenCalledWith('[[missing|new]]', { ch: 0, line: 0 }, { ch: 15, line: 0 });
     });
 
@@ -863,8 +864,8 @@ describe('LinkMenuHandler', () => {
       });
 
       expect(process).toHaveBeenCalledOnce();
-      const processFn = process.mock.calls[0]?.[1] as (data: string) => string;
-      expect(processFn('intro\n[[missing|old]]')).toBe('intro\n[[missing|new]]');
+      const processFunction = process.mock.calls[0]?.[1] as (data: string) => string;
+      expect(processFunction('intro\n[[missing|old]]')).toBe('intro\n[[missing|new]]');
       expect(showNotice).not.toHaveBeenCalled();
     });
 
