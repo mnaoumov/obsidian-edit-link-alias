@@ -21,8 +21,8 @@
  * Note that `defaultPrevented` is NOT usable as evidence here — Obsidian calls `preventDefault()` on
  * link clicks itself — so the assertions are on which note ends up active.
  *
- * Registered by the platform entry points (`plugin.desktop.integration.test.ts`,
- * `plugin.android.integration.test.ts`) so the same flow runs on Desktop and Android.
+ * Named `*.cross-platform.integration.test.ts` (per G47), so the desktop AND android projects both
+ * collect it and the same flow is verified on each.
  */
 
 import type { TFile } from 'obsidian';
@@ -92,128 +92,120 @@ interface RunClickScenarioParams {
   readonly shouldUseAlt: boolean;
   readonly viewMode: 'live-preview' | 'reading' | 'source';
 }
-
-/**
- * Registers the Alt-click-to-edit integration suite for the given platform.
- *
- * @param platform - Human-readable platform label used in the test names (e.g. `'Desktop'`).
- */
-export function registerLinkClickPopoverSuite(platform: string): void {
-  describe(`Edit a link by Alt + clicking it (${platform})`, () => {
-    it('opens the popover on an Alt click in Reading view, rewrites the link, and does not open it', async () => {
-      const result = await runClickScenario({
-        linkText: TARGET_LINK_TEXT,
-        shouldOpenLinkEditorOnAltClick: true,
-        shouldTargetExist: true,
-        shouldUseAlt: true,
-        viewMode: 'reading'
-      });
-
-      expect(result.wasPopoverShown).toBe(true);
-      // Still on the source note: the navigation the click would normally trigger was suppressed.
-      expect(result.activePath).toBe(SOURCE_PATH);
-      expect(result.sourceContent).toBe(getExpectedSourceContent());
+describe('Edit a link by Alt + clicking it', () => {
+  it('opens the popover on an Alt click in Reading view, rewrites the link, and does not open it', async () => {
+    const result = await runClickScenario({
+      linkText: TARGET_LINK_TEXT,
+      shouldOpenLinkEditorOnAltClick: true,
+      shouldTargetExist: true,
+      shouldUseAlt: true,
+      viewMode: 'reading'
     });
 
-    it('opens the popover on an Alt click in Live Preview, rewrites the link, and does not open it', async () => {
-      /*
-       * The GH #4 regression test. Live Preview gives the clicked element no href, so the link is identified
-       * by the click's own coordinates; before the fix this reported "Could not locate the link in the
-       * source note".
-       */
-      const result = await runClickScenario({
-        linkText: TARGET_LINK_TEXT,
-        shouldOpenLinkEditorOnAltClick: true,
-        shouldTargetExist: true,
-        shouldUseAlt: true,
-        viewMode: 'live-preview'
-      });
-
-      expect(result.wasPopoverShown).toBe(true);
-      expect(result.activePath).toBe(SOURCE_PATH);
-      expect(result.sourceContent).toBe(getExpectedSourceContent());
-    });
-
-    it('opens the popover on an Alt click in Source mode, rewrites the link, and does not open it', async () => {
-      /*
-       * Source mode shares Live Preview's code path (`getMode()` is `source` for both), but GH #4 reported
-       * both, and Source mode wraps the link PATH rather than the displayed alias — so the resolved position
-       * lands in a different part of the same link.
-       */
-      const result = await runClickScenario({
-        linkText: TARGET_LINK_TEXT,
-        shouldOpenLinkEditorOnAltClick: true,
-        shouldTargetExist: true,
-        shouldUseAlt: true,
-        viewMode: 'source'
-      });
-
-      expect(result.wasPopoverShown).toBe(true);
-      expect(result.activePath).toBe(SOURCE_PATH);
-      expect(result.sourceContent).toBe(getExpectedSourceContent());
-    });
-
-    it('opens the popover on an Alt click on a link whose target note does not exist', async () => {
-      // No target to resolve to, so the link is matched by its path text instead.
-      const result = await runClickScenario({
-        linkText: MISSING_LINK_TEXT,
-        shouldOpenLinkEditorOnAltClick: true,
-        shouldTargetExist: false,
-        shouldUseAlt: true,
-        viewMode: 'reading'
-      });
-
-      expect(result.wasPopoverShown).toBe(true);
-      expect(result.activePath).toBe(SOURCE_PATH);
-      expect(result.sourceContent).toBe(getExpectedSourceContent());
-    });
-
-    it('opens with the alias focused and selected, so it can be typed over straight away', async () => {
-      /*
-       * GH #7. The alias is the more frequently edited field, so it is the one the popover opens on — which
-       * it achieves by being declared first, the popover focusing its first input.
-       */
-      const result = await runClickScenario({
-        linkText: TARGET_LINK_TEXT,
-        shouldOpenLinkEditorOnAltClick: true,
-        shouldTargetExist: true,
-        shouldUseAlt: true,
-        viewMode: 'reading'
-      });
-
-      expect(result.wasPopoverShown).toBe(true);
-      expect(result.focusedFieldName).toBe('Alias');
-      expect(result.isFocusedFieldSelected).toBe(true);
-    });
-
-    it('leaves a plain click alone, so the link still opens', async () => {
-      const result = await runClickScenario({
-        linkText: TARGET_LINK_TEXT,
-        shouldOpenLinkEditorOnAltClick: true,
-        shouldTargetExist: true,
-        shouldUseAlt: false,
-        viewMode: 'reading'
-      });
-
-      expect(result.wasPopoverShown).toBe(false);
-      expect(result.activePath).toBe(TARGET_PATH);
-      expect(result.sourceContent).toBe(getInitialSourceContent(TARGET_LINK_TEXT));
-    });
-
-    it('leaves the Alt click alone when the setting is turned off', async () => {
-      const result = await runClickScenario({
-        linkText: TARGET_LINK_TEXT,
-        shouldOpenLinkEditorOnAltClick: false,
-        shouldTargetExist: true,
-        shouldUseAlt: true,
-        viewMode: 'reading'
-      });
-
-      expect(result.wasPopoverShown).toBe(false);
-      expect(result.sourceContent).toBe(getInitialSourceContent(TARGET_LINK_TEXT));
-    });
+    expect(result.wasPopoverShown).toBe(true);
+    // Still on the source note: the navigation the click would normally trigger was suppressed.
+    expect(result.activePath).toBe(SOURCE_PATH);
+    expect(result.sourceContent).toBe(getExpectedSourceContent());
   });
-}
+
+  it('opens the popover on an Alt click in Live Preview, rewrites the link, and does not open it', async () => {
+    /*
+     * The GH #4 regression test. Live Preview gives the clicked element no href, so the link is identified
+     * by the click's own coordinates; before the fix this reported "Could not locate the link in the
+     * source note".
+     */
+    const result = await runClickScenario({
+      linkText: TARGET_LINK_TEXT,
+      shouldOpenLinkEditorOnAltClick: true,
+      shouldTargetExist: true,
+      shouldUseAlt: true,
+      viewMode: 'live-preview'
+    });
+
+    expect(result.wasPopoverShown).toBe(true);
+    expect(result.activePath).toBe(SOURCE_PATH);
+    expect(result.sourceContent).toBe(getExpectedSourceContent());
+  });
+
+  it('opens the popover on an Alt click in Source mode, rewrites the link, and does not open it', async () => {
+    /*
+     * Source mode shares Live Preview's code path (`getMode()` is `source` for both), but GH #4 reported
+     * both, and Source mode wraps the link PATH rather than the displayed alias — so the resolved position
+     * lands in a different part of the same link.
+     */
+    const result = await runClickScenario({
+      linkText: TARGET_LINK_TEXT,
+      shouldOpenLinkEditorOnAltClick: true,
+      shouldTargetExist: true,
+      shouldUseAlt: true,
+      viewMode: 'source'
+    });
+
+    expect(result.wasPopoverShown).toBe(true);
+    expect(result.activePath).toBe(SOURCE_PATH);
+    expect(result.sourceContent).toBe(getExpectedSourceContent());
+  });
+
+  it('opens the popover on an Alt click on a link whose target note does not exist', async () => {
+    // No target to resolve to, so the link is matched by its path text instead.
+    const result = await runClickScenario({
+      linkText: MISSING_LINK_TEXT,
+      shouldOpenLinkEditorOnAltClick: true,
+      shouldTargetExist: false,
+      shouldUseAlt: true,
+      viewMode: 'reading'
+    });
+
+    expect(result.wasPopoverShown).toBe(true);
+    expect(result.activePath).toBe(SOURCE_PATH);
+    expect(result.sourceContent).toBe(getExpectedSourceContent());
+  });
+
+  it('opens with the alias focused and selected, so it can be typed over straight away', async () => {
+    /*
+     * GH #7. The alias is the more frequently edited field, so it is the one the popover opens on — which
+     * it achieves by being declared first, the popover focusing its first input.
+     */
+    const result = await runClickScenario({
+      linkText: TARGET_LINK_TEXT,
+      shouldOpenLinkEditorOnAltClick: true,
+      shouldTargetExist: true,
+      shouldUseAlt: true,
+      viewMode: 'reading'
+    });
+
+    expect(result.wasPopoverShown).toBe(true);
+    expect(result.focusedFieldName).toBe('Alias');
+    expect(result.isFocusedFieldSelected).toBe(true);
+  });
+
+  it('leaves a plain click alone, so the link still opens', async () => {
+    const result = await runClickScenario({
+      linkText: TARGET_LINK_TEXT,
+      shouldOpenLinkEditorOnAltClick: true,
+      shouldTargetExist: true,
+      shouldUseAlt: false,
+      viewMode: 'reading'
+    });
+
+    expect(result.wasPopoverShown).toBe(false);
+    expect(result.activePath).toBe(TARGET_PATH);
+    expect(result.sourceContent).toBe(getInitialSourceContent(TARGET_LINK_TEXT));
+  });
+
+  it('leaves the Alt click alone when the setting is turned off', async () => {
+    const result = await runClickScenario({
+      linkText: TARGET_LINK_TEXT,
+      shouldOpenLinkEditorOnAltClick: false,
+      shouldTargetExist: true,
+      shouldUseAlt: true,
+      viewMode: 'reading'
+    });
+
+    expect(result.wasPopoverShown).toBe(false);
+    expect(result.sourceContent).toBe(getInitialSourceContent(TARGET_LINK_TEXT));
+  });
+});
 
 function getExpectedSourceContent(): string {
   return `${SOURCE_INTRO_LINE}\n[[${NEW_URL_LINK_TEXT}|${NEW_ALIAS}]]`;
