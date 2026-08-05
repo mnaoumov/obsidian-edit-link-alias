@@ -3,7 +3,7 @@
  *
  * Shared integration suite for `Alt` + clicking a link an editing view is showing as PLAIN TEXT.
  *
- * `link-click-popover-shared.integration.test.ts` covers the decorated link — the one Obsidian renders as an
+ * `link-click-popover.cross-platform.integration.test.ts` covers the decorated link — the one Obsidian renders as an
  * anchor or wraps in its own CodeMirror classes, which `LINK_SELECTOR` can match. This file covers the case
  * that has no element to match at all, which is GH #9:
  *
@@ -15,8 +15,8 @@
  * would pass or fail for the wrong reason. And unlike the decorated suite, the caret is deliberately parked
  * **on** the link's line: that is what makes Live Preview show the raw markdown these cases need.
  *
- * Registered by the platform entry points (`plugin.desktop.integration.test.ts`,
- * `plugin.android.integration.test.ts`) so the same flows run on Desktop and Android.
+ * Named `*.cross-platform.integration.test.ts` (per G47), so the desktop AND android projects both
+ * collect it and the same flow is verified on each.
  */
 
 import { evalInObsidian } from 'obsidian-integration-testing';
@@ -61,34 +61,26 @@ interface UndecoratedScenarioResult {
   readonly sourceContent: string;
   readonly wasPopoverShown: boolean;
 }
+describe('Edit an undecorated link by Alt + clicking it', () => {
+  it('opens the popover on a bare url the caret is sitting in, and rewrites it', async () => {
+    /*
+     * Half of GH #9: with the caret elsewhere the bare url renders as a clickable link and this worked, but
+     * with the caret inside it there is no link element left for the selector to match.
+     */
+    const result = await runScenario('bare-url');
 
-/**
- * Registers the undecorated-link click integration suite for the given platform.
- *
- * @param platform - Human-readable platform label used in the test names (e.g. `'Desktop'`).
- */
-export function registerUndecoratedLinkClickSuite(platform: string): void {
-  describe(`Edit an undecorated link by Alt + clicking it (${platform})`, () => {
-    it('opens the popover on a bare url the caret is sitting in, and rewrites it', async () => {
-      /*
-       * Half of GH #9: with the caret elsewhere the bare url renders as a clickable link and this worked, but
-       * with the caret inside it there is no link element left for the selector to match.
-       */
-      const result = await runScenario('bare-url');
-
-      expect(result.wasPopoverShown).toBe(true);
-      expect(result.sourceContent).toBe(`${INTRO_LINE}\n${EXPECTED_EDITED_LINK}`);
-    });
-
-    it('opens the popover when the click lands on the url half of a markdown link', async () => {
-      // The other half of GH #9: only the alias was clickable, because only the alias is decorated.
-      const result = await runScenario('markdown-link-url-half');
-
-      expect(result.wasPopoverShown).toBe(true);
-      expect(result.sourceContent).toBe(`${INTRO_LINE}\n${EXPECTED_EDITED_LINK}`);
-    });
+    expect(result.wasPopoverShown).toBe(true);
+    expect(result.sourceContent).toBe(`${INTRO_LINE}\n${EXPECTED_EDITED_LINK}`);
   });
-}
+
+  it('opens the popover when the click lands on the url half of a markdown link', async () => {
+    // The other half of GH #9: only the alias was clickable, because only the alias is decorated.
+    const result = await runScenario('markdown-link-url-half');
+
+    expect(result.wasPopoverShown).toBe(true);
+    expect(result.sourceContent).toBe(`${INTRO_LINE}\n${EXPECTED_EDITED_LINK}`);
+  });
+});
 
 function getInitialSourceContent(scenario: UndecoratedScenario): string {
   const link = scenario === 'bare-url' ? BARE_URL : `[${MARKDOWN_LINK_ALIAS}](${MARKDOWN_LINK_URL})`;

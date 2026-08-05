@@ -15,8 +15,8 @@
  * Properties panel by the `data-property-key` it rendered, the raw YAML by the pointer position, and the
  * context menu by the url alone (the `url-menu` event carries nothing else).
  *
- * Registered by the platform entry points (`plugin.desktop.integration.test.ts`,
- * `plugin.android.integration.test.ts`) so the same flows run on Desktop and Android.
+ * Named `*.cross-platform.integration.test.ts` (per G47), so the desktop AND android projects both
+ * collect it and the same flow is verified on each.
  */
 
 import type { MenuItem } from 'obsidian';
@@ -99,61 +99,53 @@ interface ParsedFrontmatter {
   readonly links?: string[];
   readonly url?: string;
 }
+describe('Edit a link in the frontmatter', () => {
+  it('opens the editor on an Alt click on a text property link and writes valid quoted YAML', async () => {
+    const result = await runClickScenario('panel-text');
 
-/**
- * Registers the frontmatter-link integration suite for the given platform.
- *
- * @param platform - Human-readable platform label used in the test names (e.g. `'Desktop'`).
- */
-export function registerFrontmatterLinkSuite(platform: string): void {
-  describe(`Edit a link in the frontmatter (${platform})`, () => {
-    it('opens the editor on an Alt click on a text property link and writes valid quoted YAML', async () => {
-      const result = await runClickScenario('panel-text');
-
-      expect(result.wasPopoverShown).toBe(true);
-      // Parsed back by Obsidian's own YAML parser, so this is proof the block still parses (GH #5).
-      expect(result.frontmatter.url).toBe(EXPECTED_EDITED_VALUE);
-      expect(result.frontmatter.links).toEqual([FIRST_LIST_URL, SECOND_LIST_URL]);
-    });
-
-    it('opens the editor on an Alt click on a list property pill and rewrites only that item', async () => {
-      const result = await runClickScenario('panel-list');
-
-      expect(result.wasPopoverShown).toBe(true);
-      expect(result.frontmatter.links).toEqual([FIRST_LIST_URL, EXPECTED_EDITED_VALUE]);
-      expect(result.frontmatter.url).toBe(TEXT_PROPERTY_URL);
-    });
-
-    it('opens the editor on an Alt click on a property whose key is spelled with capitals', async () => {
-      /*
-       * The GH #8 regression test. The panel hands the click `homepage` (it lowercases every key it renders)
-       * while the cache holds `Homepage`, and comparing them as written reported "Could not locate the link
-       * in the source note" — on a link the context menu could edit perfectly well.
-       */
-      const result = await runClickScenario('panel-uppercase-key');
-
-      expect(result.wasPopoverShown).toBe(true);
-      expect(result.frontmatter.Homepage).toBe(EXPECTED_EDITED_VALUE);
-      expect(result.frontmatter.url).toBe(TEXT_PROPERTY_URL);
-    });
-
-    it('opens the editor on an Alt click on a link in the raw YAML in Source mode', async () => {
-      const result = await runClickScenario('raw-yaml');
-
-      expect(result.wasPopoverShown).toBe(true);
-      expect(result.frontmatter.url).toBe(EXPECTED_EDITED_VALUE);
-    });
-
-    it('rewrites a frontmatter link from the link context menu without breaking the YAML', async () => {
-      // The literal GH #5 repro: the menu path is what the reporter used.
-      const result = await runMenuScenario();
-
-      expect(result.wasItemFound).toBe(true);
-      expect(result.frontmatter.url).toBe(EXPECTED_ALIAS_ONLY_VALUE);
-      expect(result.frontmatter.links).toEqual([FIRST_LIST_URL, SECOND_LIST_URL]);
-    });
+    expect(result.wasPopoverShown).toBe(true);
+    // Parsed back by Obsidian's own YAML parser, so this is proof the block still parses (GH #5).
+    expect(result.frontmatter.url).toBe(EXPECTED_EDITED_VALUE);
+    expect(result.frontmatter.links).toEqual([FIRST_LIST_URL, SECOND_LIST_URL]);
   });
-}
+
+  it('opens the editor on an Alt click on a list property pill and rewrites only that item', async () => {
+    const result = await runClickScenario('panel-list');
+
+    expect(result.wasPopoverShown).toBe(true);
+    expect(result.frontmatter.links).toEqual([FIRST_LIST_URL, EXPECTED_EDITED_VALUE]);
+    expect(result.frontmatter.url).toBe(TEXT_PROPERTY_URL);
+  });
+
+  it('opens the editor on an Alt click on a property whose key is spelled with capitals', async () => {
+    /*
+     * The GH #8 regression test. The panel hands the click `homepage` (it lowercases every key it renders)
+     * while the cache holds `Homepage`, and comparing them as written reported "Could not locate the link
+     * in the source note" — on a link the context menu could edit perfectly well.
+     */
+    const result = await runClickScenario('panel-uppercase-key');
+
+    expect(result.wasPopoverShown).toBe(true);
+    expect(result.frontmatter.Homepage).toBe(EXPECTED_EDITED_VALUE);
+    expect(result.frontmatter.url).toBe(TEXT_PROPERTY_URL);
+  });
+
+  it('opens the editor on an Alt click on a link in the raw YAML in Source mode', async () => {
+    const result = await runClickScenario('raw-yaml');
+
+    expect(result.wasPopoverShown).toBe(true);
+    expect(result.frontmatter.url).toBe(EXPECTED_EDITED_VALUE);
+  });
+
+  it('rewrites a frontmatter link from the link context menu without breaking the YAML', async () => {
+    // The literal GH #5 repro: the menu path is what the reporter used.
+    const result = await runMenuScenario();
+
+    expect(result.wasItemFound).toBe(true);
+    expect(result.frontmatter.url).toBe(EXPECTED_ALIAS_ONLY_VALUE);
+    expect(result.frontmatter.links).toEqual([FIRST_LIST_URL, SECOND_LIST_URL]);
+  });
+});
 
 async function runClickScenario(requestedScenario: FrontmatterScenario): Promise<FrontmatterScenarioResult> {
   return await evalInObsidian({
