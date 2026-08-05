@@ -73,7 +73,7 @@ interface CreatePropertyLinkElOptions {
 let app: AppOriginal;
 let component: LinkClickComponent;
 let containerEl: HTMLElement;
-let getFirstLinkpathDest: ReturnType<typeof vi.fn>;
+let getFirstLinkpathDestination: ReturnType<typeof vi.fn>;
 let posAtMouse: ReturnType<typeof vi.fn>;
 let showNotice: ReturnType<typeof vi.fn>;
 let viewMode: 'preview' | 'source';
@@ -166,11 +166,11 @@ beforeEach(() => {
   posAtMouse = vi.fn().mockReturnValue(CLICK_POSITION);
   editorContent = '';
 
-  getFirstLinkpathDest = vi.fn().mockReturnValue(strictProxy<TFile>({ path: TARGET_PATH }));
+  getFirstLinkpathDestination = vi.fn().mockReturnValue(strictProxy<TFile>({ path: TARGET_PATH }));
 
   const appMock = App.createConfigured__();
-  appMock.workspace.onLayoutReady = vi.fn((cb: () => void) => {
-    cb();
+  appMock.workspace.onLayoutReady = vi.fn((callback: () => void) => {
+    callback();
   });
   app = appMock.asOriginalType__();
 
@@ -190,7 +190,8 @@ beforeEach(() => {
   app.workspace.iterateAllLeaves = vi.fn((callback: (leaf: WorkspaceLeaf) => unknown) => {
     callback(castTo<WorkspaceLeaf>({ view }));
   });
-  app.metadataCache.getFirstLinkpathDest = castTo<AppOriginal['metadataCache']['getFirstLinkpathDest']>(getFirstLinkpathDest);
+  // eslint-disable-next-line unicorn/name-replacements -- `getFirstLinkpathDest` is an Obsidian `MetadataCache` method name.
+  app.metadataCache.getFirstLinkpathDest = castTo<AppOriginal['metadataCache']['getFirstLinkpathDest']>(getFirstLinkpathDestination);
 
   mockCreateEditParsedLinkUrlAndAliasInPopover.mockReset().mockReturnValue(vi.fn());
   mockResolveAndEditLink.mockReset().mockResolvedValue();
@@ -222,15 +223,15 @@ describe('LinkClickComponent', () => {
     loadComponent();
     const linkEl = createInternalLinkEl();
 
-    const evt = new MouseEvent('click', {
+    const $event = new MouseEvent('click', {
       altKey: true,
       bubbles: true,
       cancelable: true
     });
-    linkEl.dispatchEvent(evt);
+    linkEl.dispatchEvent($event);
     await waitForAllAsyncOperations();
 
-    expect(evt.defaultPrevented).toBe(true);
+    expect($event.defaultPrevented).toBe(true);
     expect(mockCreateEditParsedLinkUrlAndAliasInPopover).toHaveBeenCalledWith(expect.objectContaining({ doc: document }));
     const resolveParams = mockResolveAndEditLink.mock.calls[0]?.[0];
     expect(resolveParams?.app).toBe(app);
@@ -473,7 +474,7 @@ describe('LinkClickComponent', () => {
 
   it('should carry the link path when the target note does not exist', async () => {
     loadComponent();
-    getFirstLinkpathDest.mockReturnValue(null);
+    getFirstLinkpathDestination.mockReturnValue(null);
 
     click(createInternalLinkEl('missing'));
     await waitForAllAsyncOperations();

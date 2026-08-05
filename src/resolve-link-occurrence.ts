@@ -37,9 +37,9 @@ import type { EditParsedLink } from './edit-link.ts';
 import type { LinkTarget } from './link-target.ts';
 
 import {
+  didResolveAndEditFrontmatterLink,
   isLineInFrontmatter,
-  isOffsetInFrontmatter,
-  resolveAndEditFrontmatterLink
+  isOffsetInFrontmatter
 } from './frontmatter-link-occurrence.ts';
 import {
   doesLinkMatchTarget,
@@ -145,7 +145,7 @@ export async function resolveAndEditLink(params: ResolveAndEditLinkParams): Prom
    * user last left it in the body, so a position would resolve a different link entirely.
    */
   if (propertyKey !== undefined) {
-    const wasEditedInFrontmatter = await resolveAndEditFrontmatterLink({
+    const wasEditedInFrontmatter = await didResolveAndEditFrontmatterLink({
       app,
       editParsedLink,
       linkTarget,
@@ -161,7 +161,7 @@ export async function resolveAndEditLink(params: ResolveAndEditLinkParams): Prom
 
   // `source` covers Live Preview and raw Source mode alike; only Reading view has no editor to ask.
   if (view.getMode() === 'source') {
-    const wasEditedAtPosition = await tryEditLinkAtPosition({
+    const wasEditedAtPosition = await didEditLinkAtPosition({
       app,
       editorPosition: sourcePosition ?? view.editor.getCursor(),
       editParsedLink,
@@ -175,7 +175,7 @@ export async function resolveAndEditLink(params: ResolveAndEditLinkParams): Prom
     }
   }
 
-  const wasEditedViaScan = await editLinkOccurrenceViaSourceScan({
+  const wasEditedViaScan = await didEditLinkOccurrenceViaSourceScan({
     app,
     editParsedLink,
     linkTarget,
@@ -190,7 +190,7 @@ export async function resolveAndEditLink(params: ResolveAndEditLinkParams): Prom
    * The body holds no such link. A right-click on a Properties panel link lands here — the `url-menu` /
    * `file-menu` events carry no property key — so the frontmatter is the remaining place to look.
    */
-  const wasEditedInFrontmatter = await resolveAndEditFrontmatterLink({
+  const wasEditedInFrontmatter = await didResolveAndEditFrontmatterLink({
     app,
     editParsedLink,
     linkTarget,
@@ -202,6 +202,73 @@ export async function resolveAndEditLink(params: ResolveAndEditLinkParams): Prom
   }
 }
 
+async function didEditLinkAtPosition(params: TryEditLinkAtPositionParams): Promise<boolean> {
+  const {
+    app,
+    editorPosition,
+    editParsedLink,
+    linkTarget,
+    showCouldNotLocateNotice,
+    sourceFile,
+    view
+  } = params;
+
+  const { editor } = view;
+  const line = editor.getDoc().getLine(editorPosition.line);
+  const parsedLink = parseLinks(line).find((link) => link.startOffset <= editorPosition.ch && editorPosition.ch <= link.endOffset);
+  if (!parsedLink) {
+    return false;
+  }
+
+  /*
+   * A known target always wins: it is what the gesture actually named, so a position that disagrees with
+   * it is resolving something else and must fall through to the scan. The case that makes this matter is a
+   * link inside an `![[embed]]`-rendered block in Live Preview — the clicked anchor names the embedded
+   * note's link, while the source position holds the embed link.
+   *
+   * An unknown target has nothing to verify against, and the position is then the whole identity. It comes
+   * from the click's own coordinates, so there is no staleness to guard against either.
+   */
+  if (
+    isTargetKnown(linkTarget) && !doesLinkMatchTarget({
+      app,
+      linkTarget,
+      parsedLink,
+      sourcePath: sourceFile.path
+    })
+  ) {
+    return false;
+  }
+
+  /*
+   * Raw YAML in Source mode: the position is inside the frontmatter, so the edit must go through the
+   * frontmatter rather than `replaceRange` — the same reason the scan skips those lines.
+   */
+  if (isOffsetInFrontmatter(editor.getValue(), editor.posToOffset(editorPosition))) {
+    return await didResolveAndEditFrontmatterLink({
+      app,
+      editParsedLink,
+      linkTarget,
+      rawLink: parsedLink.raw,
+      showCouldNotLocateNotice,
+      sourceFile
+    });
+  }
+
+  await editParsedLink({
+    app,
+    applyReplacement: (newRawLink) => {
+      editor.replaceRange(
+        newRawLink,
+        { ch: parsedLink.startOffset, line: editorPosition.line },
+        { ch: parsedLink.endOffset, line: editorPosition.line }
+      );
+    },
+    parsedLink
+  });
+  return true;
+}
+
 /**
  * Scans the source note's BODY for links pointing at the given target, asks which one to edit when there is
  * more than one, and runs the editor on it, writing the result back to the note.
@@ -209,7 +276,7 @@ export async function resolveAndEditLink(params: ResolveAndEditLinkParams): Prom
  * @param params - The parameters for the scan.
  * @returns Whether a link occurrence was found and handed to the editor.
  */
-async function editLinkOccurrenceViaSourceScan(params: EditLinkOccurrenceViaSourceScanParams): Promise<boolean> {
+async function didEditLinkOccurrenceViaSourceScan(params: EditLinkOccurrenceViaSourceScanParams): Promise<boolean> {
   const {
     app,
     editParsedLink,
@@ -229,7 +296,7 @@ async function editLinkOccurrenceViaSourceScan(params: EditLinkOccurrenceViaSour
     ? await selectItem({
       app,
       items: matches,
-      itemTextFunc: (match) => `Line ${String(match.line + 1)}: ${match.parsedLink.raw}`,
+      itemTextFunction: (match) => `Line ${String(match.line + 1)}: ${match.parsedLink.raw}`,
       placeholder: 'Select the link to edit'
     })
     : matches[0];
@@ -290,13 +357,13 @@ async function editLinkOccurrenceViaSourceScan(params: EditLinkOccurrenceViaSour
 function findMatches(app: App, content: string, sourcePath: string, linkTarget: LinkTarget): LinkMatch[] {
   const matches: LinkMatch[] = [];
   const lines = content.split('\n');
-  lines.forEach((lineText, line) => {
+  for (const [line, lineText] of lines.entries()) {
     /*
      * Frontmatter is YAML, not markdown: splicing a rebuilt link into its raw text produces a syntax error
      * (GH #5). Those links are resolved and written by `frontmatter-link-occurrence.ts` instead.
      */
     if (isLineInFrontmatter(content, line)) {
-      return;
+      continue;
     }
 
     for (const parsedLink of parseLinks(lineText)) {
@@ -314,73 +381,6 @@ function findMatches(app: App, content: string, sourcePath: string, linkTarget: 
         });
       }
     }
-  });
+  }
   return matches;
-}
-
-async function tryEditLinkAtPosition(params: TryEditLinkAtPositionParams): Promise<boolean> {
-  const {
-    app,
-    editorPosition,
-    editParsedLink,
-    linkTarget,
-    showCouldNotLocateNotice,
-    sourceFile,
-    view
-  } = params;
-
-  const { editor } = view;
-  const line = editor.getDoc().getLine(editorPosition.line);
-  const parsedLink = parseLinks(line).find((link) => link.startOffset <= editorPosition.ch && editorPosition.ch <= link.endOffset);
-  if (!parsedLink) {
-    return false;
-  }
-
-  /*
-   * A known target always wins: it is what the gesture actually named, so a position that disagrees with
-   * it is resolving something else and must fall through to the scan. The case that makes this matter is a
-   * link inside an `![[embed]]`-rendered block in Live Preview — the clicked anchor names the embedded
-   * note's link, while the source position holds the embed link.
-   *
-   * An unknown target has nothing to verify against, and the position is then the whole identity. It comes
-   * from the click's own coordinates, so there is no staleness to guard against either.
-   */
-  if (
-    isTargetKnown(linkTarget) && !doesLinkMatchTarget({
-      app,
-      linkTarget,
-      parsedLink,
-      sourcePath: sourceFile.path
-    })
-  ) {
-    return false;
-  }
-
-  /*
-   * Raw YAML in Source mode: the position is inside the frontmatter, so the edit must go through the
-   * frontmatter rather than `replaceRange` — the same reason the scan skips those lines.
-   */
-  if (isOffsetInFrontmatter(editor.getValue(), editor.posToOffset(editorPosition))) {
-    return await resolveAndEditFrontmatterLink({
-      app,
-      editParsedLink,
-      linkTarget,
-      rawLink: parsedLink.raw,
-      showCouldNotLocateNotice,
-      sourceFile
-    });
-  }
-
-  await editParsedLink({
-    app,
-    applyReplacement: (newRawLink) => {
-      editor.replaceRange(
-        newRawLink,
-        { ch: parsedLink.startOffset, line: editorPosition.line },
-        { ch: parsedLink.endOffset, line: editorPosition.line }
-      );
-    },
-    parsedLink
-  });
-  return true;
 }

@@ -5,7 +5,7 @@
  *
  * Lives in its own module because BOTH occurrence resolvers need it — the body one
  * ({@link resolveAndEditLink} in `resolve-link-occurrence.ts`) and the frontmatter one
- * ({@link resolveAndEditFrontmatterLink} in `frontmatter-link-occurrence.ts`) — and the body resolver
+ * ({@link didResolveAndEditFrontmatterLink} in `frontmatter-link-occurrence.ts`) — and the body resolver
  * routes into the frontmatter resolver, so keeping this vocabulary in either of them would make the two
  * modules import each other.
  */
@@ -98,8 +98,8 @@ export function doesLinkMatchTarget(params: DoesLinkMatchTargetParams): boolean 
   }
 
   if (target) {
-    const dest = app.metadataCache.getFirstLinkpathDest(getLinkpath(parsedLink.url), sourcePath);
-    return dest?.path === target.path;
+    const destination = app.metadataCache.getFirstLinkpathDest(getLinkpath(parsedLink.url), sourcePath);
+    return destination?.path === target.path;
   }
 
   /*

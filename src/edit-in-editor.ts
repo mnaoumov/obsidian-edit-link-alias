@@ -18,8 +18,8 @@ import { parseLinks } from 'obsidian-dev-utils/obsidian/parse-link';
 import type { EditParsedLink } from './edit-link.ts';
 
 import {
-  isOffsetInFrontmatter,
-  resolveAndEditFrontmatterLink
+  didResolveAndEditFrontmatterLink,
+  isOffsetInFrontmatter
 } from './frontmatter-link-occurrence.ts';
 
 /**
@@ -76,7 +76,7 @@ export function checkIsCursorOnEditableLink(editor: Editor): boolean {
  * Resolves the link occurrence under the editor cursor and applies the given editor to it in place. Does
  * nothing when the cursor is not inside a parsed link.
  *
- * A cursor inside the note's frontmatter is routed to {@link resolveAndEditFrontmatterLink} instead: the
+ * A cursor inside the note's frontmatter is routed to {@link didResolveAndEditFrontmatterLink} instead: the
  * `replaceRange` below would splice the rebuilt link into raw YAML and break it (GH #5).
  *
  * @param params - The parameters for the edit.
@@ -108,7 +108,7 @@ export async function editLinkAtEditorCursor(params: EditLinkAtEditorCursorParam
       return;
     }
 
-    const wasEditedInFrontmatter = await resolveAndEditFrontmatterLink({
+    const wasEditedInFrontmatter = await didResolveAndEditFrontmatterLink({
       app,
       editParsedLink,
       linkTarget: {},

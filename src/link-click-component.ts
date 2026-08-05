@@ -94,14 +94,14 @@ interface ContainingViewState {
 
 interface LinkClickComponentInterceptAndEditParams {
   /**
+   * The click being intercepted.
+   */
+  readonly $event: MouseEvent;
+
+  /**
    * Where to place the link editor.
    */
   readonly anchor: PopoverAnchor;
-
-  /**
-   * The click being intercepted.
-   */
-  readonly evt: MouseEvent;
 
   /**
    * What the click said the link points at.
@@ -149,8 +149,8 @@ export class LinkClickComponent extends AllWindowsEventComponent {
     super.onload();
 
     this.registerAllDocumentsDomEvent({
-      callback: (evt: MouseEvent) => {
-        this.handleClick(evt);
+      callback: ($event: MouseEvent) => {
+        this.handleClick($event);
       },
       // Capture, because by the time the click bubbles Obsidian has already handled it.
       options: { capture: true },
@@ -167,7 +167,7 @@ export class LinkClickComponent extends AllWindowsEventComponent {
    * @returns The link target, or `null` when the element points nowhere resolvable.
    */
   private getLinkTarget(linkEl: HTMLElement, view: MarkdownView | null): LinkTarget | null {
-    const dataHref = linkEl.getAttribute('data-href');
+    const dataHref = linkEl.dataset['href'];
     const href = linkEl.getAttribute('href');
 
     if (linkEl.hasClass(EXTERNAL_LINK_CSS_CLASS)) {
@@ -175,7 +175,7 @@ export class LinkClickComponent extends AllWindowsEventComponent {
        * A rendered anchor carries its url in `href`; a Properties panel link is a `div` and carries it in
        * `data-href` instead, so both are read here.
        */
-      const externalUrl = href ?? dataHref;
+      const externalUrl = href ?? dataHref ?? null;
       return externalUrl === null ? null : { externalUrl };
     }
 
@@ -209,14 +209,14 @@ export class LinkClickComponent extends AllWindowsEventComponent {
     return state.view;
   }
 
-  private handleClick(evt: MouseEvent): void {
-    if (!this.shouldOpenEditor(evt)) {
+  private handleClick($event: MouseEvent): void {
+    if (!this.shouldOpenEditor($event)) {
       return;
     }
 
-    const linkEl = getClickedLinkEl(evt);
+    const linkEl = getClickedLinkEl($event);
     if (!linkEl) {
-      this.handleEditorPositionClick(evt);
+      this.handleEditorPositionClick($event);
       return;
     }
 
@@ -238,11 +238,11 @@ export class LinkClickComponent extends AllWindowsEventComponent {
      * coordinates resolve to an unrelated position, and the property key it carries is the better
      * identity anyway.
      */
-    const sourcePosition = propertyKey === null && view?.getMode() === 'source' ? view.editor.posAtMouse(evt) : undefined;
+    const sourcePosition = propertyKey === null && view?.getMode() === 'source' ? view.editor.posAtMouse($event) : undefined;
 
     this.interceptAndEdit({
+      $event,
       anchor: createAnchorFromElement(linkEl),
-      evt,
       linkTarget,
       propertyKey,
       view,
@@ -268,10 +268,10 @@ export class LinkClickComponent extends AllWindowsEventComponent {
    * What keeps this from swallowing every `Alt` + click is the check that the position actually falls inside
    * a parsed link on that line.
    *
-   * @param evt - The click event.
+   * @param $event - The click event.
    */
-  private handleEditorPositionClick(evt: MouseEvent): void {
-    const { target } = evt;
+  private handleEditorPositionClick($event: MouseEvent): void {
+    const { target } = $event;
     if (!(target instanceof HTMLElement)) {
       return;
     }
@@ -282,7 +282,7 @@ export class LinkClickComponent extends AllWindowsEventComponent {
     }
 
     const { editor } = view;
-    const sourcePosition = editor.posAtMouse(evt);
+    const sourcePosition = editor.posAtMouse($event);
 
     const line = editor.getDoc().getLine(sourcePosition.line);
     const isPointerOnLink = parseLinks(line)
@@ -292,8 +292,8 @@ export class LinkClickComponent extends AllWindowsEventComponent {
     }
 
     this.interceptAndEdit({
-      anchor: createAnchorFromPoint(evt.clientX, evt.clientY, target.doc),
-      evt,
+      $event,
+      anchor: createAnchorFromPoint($event.clientX, $event.clientY, target.doc),
       // Undecorated text says nothing about what the link points at; the position resolves it.
       linkTarget: {},
       propertyKey: null,
@@ -309,17 +309,17 @@ export class LinkClickComponent extends AllWindowsEventComponent {
    */
   private interceptAndEdit(params: LinkClickComponentInterceptAndEditParams): void {
     const {
+      $event,
       anchor,
-      evt,
       linkTarget,
       propertyKey,
       sourcePosition,
       view
     } = params;
 
-    evt.preventDefault();
-    evt.stopPropagation();
-    evt.stopImmediatePropagation();
+    $event.preventDefault();
+    $event.stopPropagation();
+    $event.stopImmediatePropagation();
 
     invokeAsyncSafely(async () => {
       await resolveAndEditLink({
@@ -338,8 +338,8 @@ export class LinkClickComponent extends AllWindowsEventComponent {
     });
   }
 
-  private shouldOpenEditor(evt: MouseEvent): boolean {
-    if (evt.button !== PRIMARY_MOUSE_BUTTON) {
+  private shouldOpenEditor($event: MouseEvent): boolean {
+    if ($event.button !== PRIMARY_MOUSE_BUTTON) {
       return false;
     }
 
@@ -354,16 +354,16 @@ export class LinkClickComponent extends AllWindowsEventComponent {
      * Requiring that no OTHER modifier is held keeps every gesture Obsidian does assign a meaning to —
      * Ctrl/Cmd, Shift, and their combinations with Alt — reaching Obsidian untouched.
      */
-    if (Keymap.isModifier(evt, 'Mod') || Keymap.isModifier(evt, 'Shift')) {
+    if (Keymap.isModifier($event, 'Mod') || Keymap.isModifier($event, 'Shift')) {
       return false;
     }
 
-    return Keymap.isModifier(evt, 'Alt');
+    return Keymap.isModifier($event, 'Alt');
   }
 }
 
-function getClickedLinkEl(evt: MouseEvent): HTMLElement | null {
-  const { target } = evt;
+function getClickedLinkEl($event: MouseEvent): HTMLElement | null {
+  const { target } = $event;
   if (!(target instanceof HTMLElement)) {
     return null;
   }
@@ -377,5 +377,5 @@ function getClickedLinkEl(evt: MouseEvent): HTMLElement | null {
  * @returns The property key, or `null` when the link was not rendered by the Properties panel.
  */
 function getClickedPropertyKey(linkEl: HTMLElement): null | string {
-  return linkEl.closest<HTMLElement>(`[${PROPERTY_KEY_ATTRIBUTE}]`)?.getAttribute(PROPERTY_KEY_ATTRIBUTE) ?? null;
+  return linkEl.closest<HTMLElement>(`[${CSS.escape(PROPERTY_KEY_ATTRIBUTE)}]`)?.getAttribute(PROPERTY_KEY_ATTRIBUTE) ?? null;
 }

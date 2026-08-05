@@ -74,7 +74,7 @@ const EXPECTED_ALIAS_ONLY_VALUE = `[${NEW_ALIAS}](${TEXT_PROPERTY_URL})`;
 
 const MENU_ITEM_TITLE = 'Edit link alias';
 const WAIT_TIMEOUT_IN_MILLISECONDS = 20_000;
-const POPOVER_SETTLE_TIMEOUT_IN_MILLISECONDS = 5_000;
+const POPOVER_SETTLE_TIMEOUT_IN_MILLISECONDS = 5000;
 
 /**
  * The popover's URL and alias fields — the count is what tells "the popover is fully built" apart from "it is
@@ -157,6 +157,7 @@ export function registerFrontmatterLinkSuite(platform: string): void {
 
 async function runClickScenario(requestedScenario: FrontmatterScenario): Promise<FrontmatterScenarioResult> {
   return await evalInObsidian({
+    // eslint-disable-next-line unicorn/name-replacements -- `args` is an `obsidian-integration-testing` parameter name.
     args: {
       firstListUrl: FIRST_LIST_URL,
       initialSourceContent: INITIAL_SOURCE_CONTENT,
@@ -172,6 +173,7 @@ async function runClickScenario(requestedScenario: FrontmatterScenario): Promise
       uppercasePropertyKeyAsRendered: UPPERCASE_PROPERTY_KEY_AS_RENDERED,
       waitTimeoutInMilliseconds: WAIT_TIMEOUT_IN_MILLISECONDS
     },
+    // eslint-disable-next-line unicorn/name-replacements -- `fn` is an `obsidian-integration-testing` parameter name.
     async fn({
       app,
       initialSourceContent,
@@ -233,7 +235,7 @@ async function runClickScenario(requestedScenario: FrontmatterScenario): Promise
        * @returns The popover's input elements, in declaration order.
        */
       function getPopoverInputEls(): HTMLInputElement[] {
-        return Array.from(getPopoverEl()?.querySelectorAll('input') ?? []);
+        return [...getPopoverEl()?.querySelectorAll('input') ?? []];
       }
 
       /*
@@ -267,7 +269,7 @@ async function runClickScenario(requestedScenario: FrontmatterScenario): Promise
        * @returns The centre of the text's rectangle.
        */
       function findTextPoint(containerEl: HTMLElement, text: string): DOMRect {
-        const spanEls = Array.from(containerEl.querySelectorAll<HTMLElement>('.cm-line span, .cm-line'));
+        const spanEls = [...containerEl.querySelectorAll<HTMLElement>(':scope .cm-line span, :scope .cm-line')];
         const spanEl = spanEls.find((candidate) => candidate.textContent.includes(text));
         if (!spanEl) {
           throw new Error(`The raw YAML does not render the text ${text}`);
@@ -352,15 +354,13 @@ async function runClickScenario(requestedScenario: FrontmatterScenario): Promise
         const propertyKey = propertyKeyByScenario[scenario] ?? 'url';
         await waitUntil({
           message: `the ${propertyKey} property did not render a link`,
-          predicate: () => Boolean(view.containerEl.querySelector(`.metadata-property[data-property-key="${propertyKey}"] .external-link`)),
+          predicate: () => Boolean(view.containerEl.querySelector(`.metadata-property[data-property-key="${CSS.escape(propertyKey)}"] .external-link`)),
           timeoutInMilliseconds: waitTimeoutInMilliseconds
         });
 
-        const linkEls = Array.from(
-          view.containerEl.querySelectorAll<HTMLElement>(`.metadata-property[data-property-key="${propertyKey}"] .external-link`)
-        );
+        const linkEls = [...view.containerEl.querySelectorAll<HTMLElement>(`.metadata-property[data-property-key="${CSS.escape(propertyKey)}"] .external-link`)];
         // The list scenario deliberately targets the SECOND pill, so a "first match wins" bug cannot pass.
-        const linkEl = scenario === 'panel-list' ? linkEls.find((candidate) => candidate.getAttribute('data-href') === secondListUrl) : linkEls[0];
+        const linkEl = scenario === 'panel-list' ? linkEls.find((candidate) => candidate.dataset['href'] === secondListUrl) : linkEls[0];
         if (!linkEl) {
           throw new Error('The rendered property link disappeared');
         }
@@ -420,6 +420,7 @@ async function runClickScenario(requestedScenario: FrontmatterScenario): Promise
 
 async function runMenuScenario(): Promise<MenuScenarioResult> {
   return await evalInObsidian({
+    // eslint-disable-next-line unicorn/name-replacements -- `args` is an `obsidian-integration-testing` parameter name.
     args: {
       initialSourceContent: INITIAL_SOURCE_CONTENT,
       menuItemTitle: MENU_ITEM_TITLE,
@@ -428,6 +429,7 @@ async function runMenuScenario(): Promise<MenuScenarioResult> {
       textPropertyUrl: TEXT_PROPERTY_URL,
       waitTimeoutInMilliseconds: WAIT_TIMEOUT_IN_MILLISECONDS
     },
+    // eslint-disable-next-line unicorn/name-replacements -- `fn` is an `obsidian-integration-testing` parameter name.
     async fn({
       app,
       initialSourceContent,

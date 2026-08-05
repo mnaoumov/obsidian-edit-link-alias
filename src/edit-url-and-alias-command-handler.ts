@@ -52,21 +52,21 @@ export class EditUrlAndAliasCommandHandler extends EditorCommandHandler {
     this.pluginNoticeComponent = params.pluginNoticeComponent;
   }
 
-  protected override canExecuteEditor(editor: Editor, ctx: MarkdownFileInfo): boolean {
-    if (!super.canExecuteEditor(editor, ctx)) {
+  protected override canExecuteEditor(editor: Editor, context: MarkdownFileInfo): boolean {
+    if (!super.canExecuteEditor(editor, context)) {
       return false;
     }
 
     return checkIsCursorOnEditableLink(editor);
   }
 
-  protected override async executeEditor(editor: Editor, ctx: MarkdownFileInfo): Promise<void> {
+  protected override async executeEditor(editor: Editor, context: MarkdownFileInfo): Promise<void> {
     /*
      * Invoked from the keyboard or the editor menu, so there is no pointer to anchor to — but the
      * command only runs with the cursor inside a link, which makes the caret the right place to put
      * the editor. The document is taken from the view so a pop-out window anchors in its own window.
      */
-    const doc = ctx instanceof MarkdownView ? ctx.containerEl.doc : document;
+    const doc = context instanceof MarkdownView ? context.containerEl.doc : document;
     await editLinkAtEditorCursor({
       app: this.app,
       editor,
@@ -74,12 +74,12 @@ export class EditUrlAndAliasCommandHandler extends EditorCommandHandler {
       showCouldNotLocateNotice: () => {
         this.pluginNoticeComponent.showNotice(COULD_NOT_LOCATE_LINK_NOTICE);
       },
-      sourceFile: ctx.file ?? null
+      sourceFile: context.file ?? null
     });
   }
 
-  protected override shouldAddToEditorMenu(editor: Editor, ctx: MarkdownFileInfo): boolean {
-    super.shouldAddToEditorMenu(editor, ctx);
+  protected override shouldAddToEditorMenu(editor: Editor, context: MarkdownFileInfo): boolean {
+    super.shouldAddToEditorMenu(editor, context);
     return true;
   }
 }

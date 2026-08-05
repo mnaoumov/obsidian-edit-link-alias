@@ -155,7 +155,8 @@ describe('resolveAndEditLink', () => {
     });
 
     expect(replaceRange).not.toHaveBeenCalled();
-    expect(parseYaml(getFrontMatterInfo(await app.vault.read(getSourceFile())).frontmatter)).toEqual({ url: NEW_RAW_LINK });
+    const sourceContent = await app.vault.read(getSourceFile());
+    expect(parseYaml(getFrontMatterInfo(sourceContent).frontmatter)).toEqual({ url: NEW_RAW_LINK });
     expect(showCouldNotLocateNotice).not.toHaveBeenCalled();
   });
 

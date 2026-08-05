@@ -46,6 +46,7 @@ export function registerEditAliasMenuSuite(platform: string): void {
   describe(`Edit link alias via link context menu (${platform})`, () => {
     it('adds the menu item on a link long-press and rewrites the alias when invoked', async () => {
       const result = await evalInObsidian({
+        // eslint-disable-next-line unicorn/name-replacements -- `args` is an `obsidian-integration-testing` parameter name.
         args: {
           expectedSourceContent: EXPECTED_SOURCE_CONTENT,
           initialSourceContent: INITIAL_SOURCE_CONTENT,
@@ -57,6 +58,7 @@ export function registerEditAliasMenuSuite(platform: string): void {
           targetPath: TARGET_PATH,
           waitTimeoutInMilliseconds: WAIT_TIMEOUT_IN_MILLISECONDS
         },
+        // eslint-disable-next-line unicorn/name-replacements -- `fn` is an `obsidian-integration-testing` parameter name.
         async fn({
           app,
           expectedSourceContent,
@@ -179,6 +181,7 @@ export function registerEditUrlAndAliasMenuSuite(platform: string): void {
   describe(`Edit link URL and alias via link context menu (${platform})`, () => {
     it('adds the url-and-alias menu item on a link long-press and rewrites both url and alias when invoked', async () => {
       const result = await evalInObsidian({
+        // eslint-disable-next-line unicorn/name-replacements -- `args` is an `obsidian-integration-testing` parameter name.
         args: {
           expectedSourceContent: URL_AND_ALIAS_EXPECTED_SOURCE_CONTENT,
           initialSourceContent: INITIAL_SOURCE_CONTENT,
@@ -193,6 +196,7 @@ export function registerEditUrlAndAliasMenuSuite(platform: string): void {
           targetPath: TARGET_PATH,
           waitTimeoutInMilliseconds: WAIT_TIMEOUT_IN_MILLISECONDS
         },
+        // eslint-disable-next-line unicorn/name-replacements -- `fn` is an `obsidian-integration-testing` parameter name.
         async fn({
           app,
           expectedSourceContent,
@@ -221,7 +225,7 @@ export function registerEditUrlAndAliasMenuSuite(platform: string): void {
           }
 
           function getPopoverInputEls(): HTMLInputElement[] {
-            return Array.from(getPopoverEl()?.querySelectorAll('input') ?? []);
+            return [...getPopoverEl()?.querySelectorAll('input') ?? []];
           }
 
           for (const path of [sourcePath, targetPath]) {

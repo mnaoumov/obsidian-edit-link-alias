@@ -50,15 +50,15 @@ export class EditCommandHandler extends EditorCommandHandler {
     this.pluginNoticeComponent = params.pluginNoticeComponent;
   }
 
-  protected override canExecuteEditor(editor: Editor, ctx: MarkdownFileInfo): boolean {
-    if (!super.canExecuteEditor(editor, ctx)) {
+  protected override canExecuteEditor(editor: Editor, context: MarkdownFileInfo): boolean {
+    if (!super.canExecuteEditor(editor, context)) {
       return false;
     }
 
     return checkIsCursorOnEditableLink(editor);
   }
 
-  protected override async executeEditor(editor: Editor, ctx: MarkdownFileInfo): Promise<void> {
+  protected override async executeEditor(editor: Editor, context: MarkdownFileInfo): Promise<void> {
     await editLinkAtEditorCursor({
       app: this.app,
       editor,
@@ -66,12 +66,12 @@ export class EditCommandHandler extends EditorCommandHandler {
       showCouldNotLocateNotice: () => {
         this.pluginNoticeComponent.showNotice(COULD_NOT_LOCATE_LINK_NOTICE);
       },
-      sourceFile: ctx.file ?? null
+      sourceFile: context.file ?? null
     });
   }
 
-  protected override shouldAddToEditorMenu(editor: Editor, ctx: MarkdownFileInfo): boolean {
-    super.shouldAddToEditorMenu(editor, ctx);
+  protected override shouldAddToEditorMenu(editor: Editor, context: MarkdownFileInfo): boolean {
+    super.shouldAddToEditorMenu(editor, context);
     return true;
   }
 }
