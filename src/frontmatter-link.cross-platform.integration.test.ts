@@ -169,7 +169,7 @@ async function runClickScenario(requestedScenario: FrontmatterScenario): Promise
     async fn({
       app,
       initialSourceContent,
-      lib: { waitUntil },
+      lib: { createNote, waitUntil },
       newAlias,
       newUrl,
       obsidianModule,
@@ -277,7 +277,7 @@ async function runClickScenario(requestedScenario: FrontmatterScenario): Promise
       }
 
       await trashSourceNote();
-      const sourceFile = await app.vault.create(sourcePath, initialSourceContent);
+      const sourceFile = await createNote({ content: initialSourceContent, path: sourcePath });
 
       /*
        * The resolver reads the frontmatter out of the METADATA CACHE, and a note created a moment ago is not
@@ -425,7 +425,7 @@ async function runMenuScenario(): Promise<MenuScenarioResult> {
     async fn({
       app,
       initialSourceContent,
-      lib: { waitUntil },
+      lib: { createNote, waitUntil },
       menuItemTitle,
       newAlias,
       obsidianModule,
@@ -441,7 +441,7 @@ async function runMenuScenario(): Promise<MenuScenarioResult> {
       }
 
       await trashSourceNote();
-      const sourceFile = await app.vault.create(sourcePath, initialSourceContent);
+      const sourceFile = await createNote({ content: initialSourceContent, path: sourcePath });
 
       const leaf = app.workspace.getLeaf(true);
       await leaf.openFile(sourceFile, { state: { mode: 'preview' } });

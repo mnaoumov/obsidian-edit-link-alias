@@ -107,7 +107,7 @@ async function runScenario(requestedScenario: UndecoratedScenario): Promise<Unde
       app,
       clickedUrl,
       initialSourceContent,
-      lib: { waitUntil },
+      lib: { createNote, waitUntil },
       linkLineIndex,
       newAlias,
       newUrl,
@@ -191,7 +191,7 @@ async function runScenario(requestedScenario: UndecoratedScenario): Promise<Unde
       }
 
       await trashSourceNote();
-      const sourceFile = await app.vault.create(sourcePath, initialSourceContent);
+      const sourceFile = await createNote({ content: initialSourceContent, path: sourcePath });
 
       const settingsComponent = findSettingsComponent(app.plugins.getPlugin(pluginId));
       if (!settingsComponent) {

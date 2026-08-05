@@ -53,7 +53,7 @@ describe('Edit link alias via link context menu', () => {
         app,
         expectedSourceContent,
         initialSourceContent,
-        lib: { waitUntil },
+        lib: { createNote, waitUntil },
         menuItemTitle,
         newAlias,
         obsidianModule,
@@ -70,8 +70,8 @@ describe('Edit link alias via link context menu', () => {
           }
         }
 
-        await app.vault.create(targetPath, targetContent);
-        const sourceFile = await app.vault.create(sourcePath, initialSourceContent);
+        await createNote({ content: targetContent, path: targetPath });
+        const sourceFile = await createNote({ content: initialSourceContent, path: sourcePath });
 
         const leaf = app.workspace.getLeaf(true);
         await leaf.openFile(sourceFile, { state: { mode: 'preview' } });
@@ -181,7 +181,7 @@ describe('Edit link URL and alias via link context menu', () => {
         app,
         expectedSourceContent,
         initialSourceContent,
-        lib: { waitUntil },
+        lib: { createNote, waitUntil },
         menuItemTitle,
         newAlias,
         newUrl,
@@ -215,8 +215,8 @@ describe('Edit link URL and alias via link context menu', () => {
           }
         }
 
-        await app.vault.create(targetPath, targetContent);
-        const sourceFile = await app.vault.create(sourcePath, initialSourceContent);
+        await createNote({ content: targetContent, path: targetPath });
+        const sourceFile = await createNote({ content: initialSourceContent, path: sourcePath });
 
         const leaf = app.workspace.getLeaf(true);
         await leaf.openFile(sourceFile, { state: { mode: 'preview' } });
