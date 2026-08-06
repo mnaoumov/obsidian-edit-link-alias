@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 1.5.1
+
+- chore: update libs
+- test: adopt the createNote helper in the cross-platform suites
+- refactor(test): collapse the shared integration suites per G47
+- chore: update libs
+- chore(vitest): adopt the shared Obsidian plugin vitest configuration
+
 ## 1.5.0
 
 - test: update
