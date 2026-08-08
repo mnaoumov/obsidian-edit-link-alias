@@ -22,7 +22,7 @@
 import type { MenuItem } from 'obsidian';
 
 import { evalInObsidian } from 'obsidian-integration-testing';
-import { getTempVault } from 'obsidian-integration-testing/vitest-global-setup-plugin';
+import { getTemporaryVault } from 'obsidian-integration-testing/vitest-global-setup-plugin';
 import {
   describe,
   expect,
@@ -149,24 +149,7 @@ describe('Edit a link in the frontmatter', () => {
 
 async function runClickScenario(requestedScenario: FrontmatterScenario): Promise<FrontmatterScenarioResult> {
   return await evalInObsidian({
-    // eslint-disable-next-line unicorn/name-replacements -- `args` is an `obsidian-integration-testing` parameter name.
-    args: {
-      firstListUrl: FIRST_LIST_URL,
-      initialSourceContent: INITIAL_SOURCE_CONTENT,
-      newAlias: NEW_ALIAS,
-      newUrl: NEW_URL,
-      pluginId: PLUGIN_ID,
-      popoverFieldCount: POPOVER_FIELD_COUNT,
-      popoverSettleTimeoutInMilliseconds: POPOVER_SETTLE_TIMEOUT_IN_MILLISECONDS,
-      scenario: requestedScenario,
-      secondListUrl: SECOND_LIST_URL,
-      sourcePath: SOURCE_PATH,
-      textPropertyUrl: TEXT_PROPERTY_URL,
-      uppercasePropertyKeyAsRendered: UPPERCASE_PROPERTY_KEY_AS_RENDERED,
-      waitTimeoutInMilliseconds: WAIT_TIMEOUT_IN_MILLISECONDS
-    },
-    // eslint-disable-next-line unicorn/name-replacements -- `fn` is an `obsidian-integration-testing` parameter name.
-    async fn({
+    async callback({
       app,
       initialSourceContent,
       lib: { createNote, waitUntil },
@@ -406,23 +389,28 @@ async function runClickScenario(requestedScenario: FrontmatterScenario): Promise
         wasPopoverShown
       };
     },
-    vaultPath: getTempVault().path
+    input: {
+      firstListUrl: FIRST_LIST_URL,
+      initialSourceContent: INITIAL_SOURCE_CONTENT,
+      newAlias: NEW_ALIAS,
+      newUrl: NEW_URL,
+      pluginId: PLUGIN_ID,
+      popoverFieldCount: POPOVER_FIELD_COUNT,
+      popoverSettleTimeoutInMilliseconds: POPOVER_SETTLE_TIMEOUT_IN_MILLISECONDS,
+      scenario: requestedScenario,
+      secondListUrl: SECOND_LIST_URL,
+      sourcePath: SOURCE_PATH,
+      textPropertyUrl: TEXT_PROPERTY_URL,
+      uppercasePropertyKeyAsRendered: UPPERCASE_PROPERTY_KEY_AS_RENDERED,
+      waitTimeoutInMilliseconds: WAIT_TIMEOUT_IN_MILLISECONDS
+    },
+    vaultPath: getTemporaryVault().path
   });
 }
 
 async function runMenuScenario(): Promise<MenuScenarioResult> {
   return await evalInObsidian({
-    // eslint-disable-next-line unicorn/name-replacements -- `args` is an `obsidian-integration-testing` parameter name.
-    args: {
-      initialSourceContent: INITIAL_SOURCE_CONTENT,
-      menuItemTitle: MENU_ITEM_TITLE,
-      newAlias: NEW_ALIAS,
-      sourcePath: SOURCE_PATH,
-      textPropertyUrl: TEXT_PROPERTY_URL,
-      waitTimeoutInMilliseconds: WAIT_TIMEOUT_IN_MILLISECONDS
-    },
-    // eslint-disable-next-line unicorn/name-replacements -- `fn` is an `obsidian-integration-testing` parameter name.
-    async fn({
+    async callback({
       app,
       initialSourceContent,
       lib: { createNote, waitUntil },
@@ -503,6 +491,14 @@ async function runMenuScenario(): Promise<MenuScenarioResult> {
         wasItemFound: true
       };
     },
-    vaultPath: getTempVault().path
+    input: {
+      initialSourceContent: INITIAL_SOURCE_CONTENT,
+      menuItemTitle: MENU_ITEM_TITLE,
+      newAlias: NEW_ALIAS,
+      sourcePath: SOURCE_PATH,
+      textPropertyUrl: TEXT_PROPERTY_URL,
+      waitTimeoutInMilliseconds: WAIT_TIMEOUT_IN_MILLISECONDS
+    },
+    vaultPath: getTemporaryVault().path
   });
 }

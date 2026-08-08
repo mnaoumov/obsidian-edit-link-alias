@@ -16,7 +16,7 @@
 import type { MenuItem } from 'obsidian';
 
 import { evalInObsidian } from 'obsidian-integration-testing';
-import { getTempVault } from 'obsidian-integration-testing/vitest-global-setup-plugin';
+import { getTemporaryVault } from 'obsidian-integration-testing/vitest-global-setup-plugin';
 import {
   describe,
   expect,
@@ -36,20 +36,7 @@ const WAIT_TIMEOUT_IN_MILLISECONDS = 20_000;
 describe('Edit link alias via link context menu', () => {
   it('adds the menu item on a link long-press and rewrites the alias when invoked', async () => {
     const result = await evalInObsidian({
-      // eslint-disable-next-line unicorn/name-replacements -- `args` is an `obsidian-integration-testing` parameter name.
-      args: {
-        expectedSourceContent: EXPECTED_SOURCE_CONTENT,
-        initialSourceContent: INITIAL_SOURCE_CONTENT,
-        menuItemTitle: MENU_ITEM_TITLE,
-        newAlias: NEW_ALIAS,
-        sourcePath: SOURCE_PATH,
-        targetContent: TARGET_CONTENT,
-        targetLinkText: TARGET_LINK_TEXT,
-        targetPath: TARGET_PATH,
-        waitTimeoutInMilliseconds: WAIT_TIMEOUT_IN_MILLISECONDS
-      },
-      // eslint-disable-next-line unicorn/name-replacements -- `fn` is an `obsidian-integration-testing` parameter name.
-      async fn({
+      async callback({
         app,
         expectedSourceContent,
         initialSourceContent,
@@ -140,7 +127,18 @@ describe('Edit link alias via link context menu', () => {
           sourceContent
         };
       },
-      vaultPath: getTempVault().path
+      input: {
+        expectedSourceContent: EXPECTED_SOURCE_CONTENT,
+        initialSourceContent: INITIAL_SOURCE_CONTENT,
+        menuItemTitle: MENU_ITEM_TITLE,
+        newAlias: NEW_ALIAS,
+        sourcePath: SOURCE_PATH,
+        targetContent: TARGET_CONTENT,
+        targetLinkText: TARGET_LINK_TEXT,
+        targetPath: TARGET_PATH,
+        waitTimeoutInMilliseconds: WAIT_TIMEOUT_IN_MILLISECONDS
+      },
+      vaultPath: getTemporaryVault().path
     });
 
     expect(result.itemFound).toBe(true);
@@ -161,23 +159,7 @@ const POPOVER_FIELD_COUNT = 2;
 describe('Edit link URL and alias via link context menu', () => {
   it('adds the url-and-alias menu item on a link long-press and rewrites both url and alias when invoked', async () => {
     const result = await evalInObsidian({
-      // eslint-disable-next-line unicorn/name-replacements -- `args` is an `obsidian-integration-testing` parameter name.
-      args: {
-        expectedSourceContent: URL_AND_ALIAS_EXPECTED_SOURCE_CONTENT,
-        initialSourceContent: INITIAL_SOURCE_CONTENT,
-        menuItemTitle: URL_AND_ALIAS_MENU_ITEM_TITLE,
-        newAlias: NEW_ALIAS,
-        newUrl: NEW_URL_LINK_TEXT,
-        pluginId: PLUGIN_ID,
-        popoverFieldCount: POPOVER_FIELD_COUNT,
-        sourcePath: SOURCE_PATH,
-        targetContent: TARGET_CONTENT,
-        targetLinkText: TARGET_LINK_TEXT,
-        targetPath: TARGET_PATH,
-        waitTimeoutInMilliseconds: WAIT_TIMEOUT_IN_MILLISECONDS
-      },
-      // eslint-disable-next-line unicorn/name-replacements -- `fn` is an `obsidian-integration-testing` parameter name.
-      async fn({
+      async callback({
         app,
         expectedSourceContent,
         initialSourceContent,
@@ -287,7 +269,21 @@ describe('Edit link URL and alias via link context menu', () => {
           sourceContent
         };
       },
-      vaultPath: getTempVault().path
+      input: {
+        expectedSourceContent: URL_AND_ALIAS_EXPECTED_SOURCE_CONTENT,
+        initialSourceContent: INITIAL_SOURCE_CONTENT,
+        menuItemTitle: URL_AND_ALIAS_MENU_ITEM_TITLE,
+        newAlias: NEW_ALIAS,
+        newUrl: NEW_URL_LINK_TEXT,
+        pluginId: PLUGIN_ID,
+        popoverFieldCount: POPOVER_FIELD_COUNT,
+        sourcePath: SOURCE_PATH,
+        targetContent: TARGET_CONTENT,
+        targetLinkText: TARGET_LINK_TEXT,
+        targetPath: TARGET_PATH,
+        waitTimeoutInMilliseconds: WAIT_TIMEOUT_IN_MILLISECONDS
+      },
+      vaultPath: getTemporaryVault().path
     });
 
     expect(result.itemFound).toBe(true);

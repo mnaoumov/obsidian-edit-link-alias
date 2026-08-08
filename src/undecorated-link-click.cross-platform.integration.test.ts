@@ -20,7 +20,7 @@
  */
 
 import { evalInObsidian } from 'obsidian-integration-testing';
-import { getTempVault } from 'obsidian-integration-testing/vitest-global-setup-plugin';
+import { getTemporaryVault } from 'obsidian-integration-testing/vitest-global-setup-plugin';
 import {
   describe,
   expect,
@@ -89,21 +89,7 @@ function getInitialSourceContent(scenario: UndecoratedScenario): string {
 
 async function runScenario(requestedScenario: UndecoratedScenario): Promise<UndecoratedScenarioResult> {
   return await evalInObsidian({
-    // eslint-disable-next-line unicorn/name-replacements -- `args` is an `obsidian-integration-testing` parameter name.
-    args: {
-      clickedUrl: requestedScenario === 'bare-url' ? BARE_URL : MARKDOWN_LINK_URL,
-      initialSourceContent: getInitialSourceContent(requestedScenario),
-      linkLineIndex: LINK_LINE_INDEX,
-      newAlias: NEW_ALIAS,
-      newUrl: NEW_URL,
-      pluginId: PLUGIN_ID,
-      popoverFieldCount: POPOVER_FIELD_COUNT,
-      popoverSettleTimeoutInMilliseconds: POPOVER_SETTLE_TIMEOUT_IN_MILLISECONDS,
-      sourcePath: SOURCE_PATH,
-      waitTimeoutInMilliseconds: WAIT_TIMEOUT_IN_MILLISECONDS
-    },
-    // eslint-disable-next-line unicorn/name-replacements -- `fn` is an `obsidian-integration-testing` parameter name.
-    async fn({
+    async callback({
       app,
       clickedUrl,
       initialSourceContent,
@@ -294,6 +280,18 @@ async function runScenario(requestedScenario: UndecoratedScenario): Promise<Unde
         wasPopoverShown
       };
     },
-    vaultPath: getTempVault().path
+    input: {
+      clickedUrl: requestedScenario === 'bare-url' ? BARE_URL : MARKDOWN_LINK_URL,
+      initialSourceContent: getInitialSourceContent(requestedScenario),
+      linkLineIndex: LINK_LINE_INDEX,
+      newAlias: NEW_ALIAS,
+      newUrl: NEW_URL,
+      pluginId: PLUGIN_ID,
+      popoverFieldCount: POPOVER_FIELD_COUNT,
+      popoverSettleTimeoutInMilliseconds: POPOVER_SETTLE_TIMEOUT_IN_MILLISECONDS,
+      sourcePath: SOURCE_PATH,
+      waitTimeoutInMilliseconds: WAIT_TIMEOUT_IN_MILLISECONDS
+    },
+    vaultPath: getTemporaryVault().path
   });
 }

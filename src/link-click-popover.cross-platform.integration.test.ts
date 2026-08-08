@@ -28,7 +28,7 @@
 import type { TFile } from 'obsidian';
 
 import { evalInObsidian } from 'obsidian-integration-testing';
-import { getTempVault } from 'obsidian-integration-testing/vitest-global-setup-plugin';
+import { getTemporaryVault } from 'obsidian-integration-testing/vitest-global-setup-plugin';
 import {
   describe,
   expect,
@@ -218,29 +218,7 @@ function getInitialSourceContent(linkText: string): string {
 async function runClickScenario(params: RunClickScenarioParams): Promise<ClickScenarioResult> {
   const isEditingScenario = params.viewMode !== 'reading';
   return await evalInObsidian({
-    // eslint-disable-next-line unicorn/name-replacements -- `args` is an `obsidian-integration-testing` parameter name.
-    args: {
-      initialSourceContent: getInitialSourceContent(params.linkText),
-      isEditing: isEditingScenario,
-      // Live Preview is `mode: 'source'` with `source: false`; raw Source mode is `source: true`.
-      isRawSource: params.viewMode === 'source',
-      linkSelector: isEditingScenario ? EDITING_MODE_LINK_SELECTOR : READING_VIEW_LINK_SELECTOR,
-      linkText: params.linkText,
-      newAlias: NEW_ALIAS,
-      newUrl: NEW_URL_LINK_TEXT,
-      pluginId: PLUGIN_ID,
-      popoverFieldCount: POPOVER_FIELD_COUNT,
-      popoverSettleTimeoutInMilliseconds: POPOVER_SETTLE_TIMEOUT_IN_MILLISECONDS,
-      shouldOpenLinkEditorOnAltClick: params.shouldOpenLinkEditorOnAltClick,
-      shouldTargetExist: params.shouldTargetExist,
-      shouldUseAlt: params.shouldUseAlt,
-      sourcePath: SOURCE_PATH,
-      targetContent: TARGET_CONTENT,
-      targetPath: TARGET_PATH,
-      waitTimeoutInMilliseconds: WAIT_TIMEOUT_IN_MILLISECONDS
-    },
-    // eslint-disable-next-line unicorn/name-replacements -- `fn` is an `obsidian-integration-testing` parameter name.
-    async fn({
+    async callback({
       app,
       initialSourceContent,
       isEditing,
@@ -489,6 +467,26 @@ async function runClickScenario(params: RunClickScenarioParams): Promise<ClickSc
         wasPopoverShown
       };
     },
-    vaultPath: getTempVault().path
+    input: {
+      initialSourceContent: getInitialSourceContent(params.linkText),
+      isEditing: isEditingScenario,
+      // Live Preview is `mode: 'source'` with `source: false`; raw Source mode is `source: true`.
+      isRawSource: params.viewMode === 'source',
+      linkSelector: isEditingScenario ? EDITING_MODE_LINK_SELECTOR : READING_VIEW_LINK_SELECTOR,
+      linkText: params.linkText,
+      newAlias: NEW_ALIAS,
+      newUrl: NEW_URL_LINK_TEXT,
+      pluginId: PLUGIN_ID,
+      popoverFieldCount: POPOVER_FIELD_COUNT,
+      popoverSettleTimeoutInMilliseconds: POPOVER_SETTLE_TIMEOUT_IN_MILLISECONDS,
+      shouldOpenLinkEditorOnAltClick: params.shouldOpenLinkEditorOnAltClick,
+      shouldTargetExist: params.shouldTargetExist,
+      shouldUseAlt: params.shouldUseAlt,
+      sourcePath: SOURCE_PATH,
+      targetContent: TARGET_CONTENT,
+      targetPath: TARGET_PATH,
+      waitTimeoutInMilliseconds: WAIT_TIMEOUT_IN_MILLISECONDS
+    },
+    vaultPath: getTemporaryVault().path
   });
 }
