@@ -1,5 +1,3 @@
-[Docs](https://github.com/mnaoumov/obsidian-edit-link-alias/)
-
 # Edit link URL and alias
 
 The **Edit link (URL and alias)** command opens a small pop-up that lets you edit **both** the link's target (URL) **and** its display text (alias) at the same time, leaving the kind of link untouched. It works on internal `[[wikilinks]]` and on `[markdown](links)` alike, and complements the alias-only **Edit link alias** command.
@@ -13,8 +11,8 @@ The **Edit link (URL and alias)** command opens a small pop-up that lets you edi
 
 ## Internal wikilinks
 
-- Change the target and the alias: [[First target|the opening note]]
-- Give a bare link both a new target and an alias: [[Second target]]
+- Change the target and the alias: [the opening note](<./First target.md>)
+- Give a bare link both a new target and an alias: [Second target](<./Second target.md>)
 
 ## Markdown links
 
@@ -26,4 +24,4 @@ The **Edit link (URL and alias)** command opens a small pop-up that lets you edi
 
 ## Alias only
 
-If you only want to change the display text and never touch the target, use the companion [[01 Edit link alias]] command instead.
+If you only want to change the display text and never touch the target, use the companion [01 Edit link alias](<./01 Edit link alias.md>) command instead.

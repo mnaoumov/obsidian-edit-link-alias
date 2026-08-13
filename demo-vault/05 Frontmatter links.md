@@ -1,4 +1,7 @@
 ---
+obsidian-dev-utils:
+  demo-vault-validation:
+    allow-wikilinks: The wikilink property values are the fixtures this note edits.
 url: https://help.obsidian.md
 Homepage: https://obsidian.md/about
 note: "[[First target]]"
@@ -6,12 +9,9 @@ links:
   - https://obsidian.md
   - "[[Second target]]"
 ---
-
-[Docs](https://github.com/mnaoumov/obsidian-edit-link-alias/)
-
 # Frontmatter links
 
-Links also live in a note's **properties** - this very note has five of them, right above. They are edited by the same two editors, and the plugin writes them back **through the frontmatter** so the YAML stays valid.
+Links also live in a note's **properties** - this very note carries five link properties, right above. They are edited by the same two editors, and the plugin writes them back **through the frontmatter** so the YAML stays valid.
 
 That last part is the whole difficulty. A property value holding a bare URL needs no quotes:
 

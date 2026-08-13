@@ -1,5 +1,3 @@
-[Docs](https://github.com/mnaoumov/obsidian-edit-link-alias/)
-
 # External links
 
 **Edit link alias** also works on external `[label](https://...)` links - handy for giving a bare URL a readable label, or renaming an existing one.
