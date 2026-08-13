@@ -22,6 +22,7 @@ export class Plugin extends PluginBase {
         pluginSettingsClass: PluginSettings
       })
     );
+    this.pluginSettingsComponent = pluginSettingsComponent;
     this.addChild(
       new PluginSettingsTabComponent({
         plugin: this,
