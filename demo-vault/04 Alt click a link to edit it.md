@@ -1,5 +1,3 @@
-[Docs](https://github.com/mnaoumov/obsidian-edit-link-alias/)
-
 # Alt + click a link to edit it
 
 `Alt` + click a link (`Option` + click on macOS) and a small pop-up appears **at the link**, with its **alias** and **URL** ready to edit. No command to run, no cursor to place carefully inside the link syntax.
@@ -24,8 +22,8 @@ Then try a plain click on the same link: it still opens the note, untouched.
 
 ## Internal wikilinks
 
-- Retarget and rename: [[First target|the opening note]]
-- A bare link with no alias yet: [[Second target]]
+- Retarget and rename: [the opening note](<./First target.md>)
+- A bare link with no alias yet: [Second target](<./Second target.md>)
 
 ## Markdown links
 
@@ -48,7 +46,7 @@ That second point is worth trying deliberately: in Live Preview, click into the 
 
 ## The same editor, from the menu
 
-Right-click a link (or long-press it on mobile) and choose **Edit link (URL and alias)** - it opens the very same pop-up, at the link you clicked. See [[03 Edit link URL and alias]].
+Right-click a link (or long-press it on mobile) and choose **Edit link (URL and alias)** - it opens the very same pop-up, at the link you clicked. See [03 Edit link URL and alias](<./03 Edit link URL and alias.md>).
 
 ## Settings
 

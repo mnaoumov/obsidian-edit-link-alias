@@ -1,3 +1,5 @@
+# Edit Link Alias demo vault
+
 This is an [Obsidian](https://obsidian.md/) vault demonstrating features of the [Edit Link Alias](https://github.com/mnaoumov/obsidian-edit-link-alias) plugin.
 
 ## Opening this vault

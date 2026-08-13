@@ -1,5 +1,3 @@
-[Docs](https://github.com/mnaoumov/obsidian-edit-link-alias/)
-
 # Edit link alias
 
 The **Edit link alias** command changes the **display text** (alias) of the link under your cursor, leaving the link target untouched. It works on internal `[[wikilinks]]` and on `[markdown](links)` alike.
@@ -13,9 +11,9 @@ The **Edit link alias** command changes the **display text** (alias) of the link
 
 ## Internal wikilinks
 
-- No alias yet: [[First target]]
-- Already aliased: [[First target|the opening note]]
-- Another target: [[Second target|chapter two]]
+- No alias yet: [First target](<./First target.md>)
+- Already aliased: [the opening note](<./First target.md>)
+- Another target: [chapter two](<./Second target.md>)
 
 ## Markdown links
 
