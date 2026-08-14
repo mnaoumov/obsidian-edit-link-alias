@@ -5,38 +5,45 @@
 [![GitHub downloads](https://img.shields.io/github/downloads/mnaoumov/obsidian-edit-link-alias/total)](https://github.com/mnaoumov/obsidian-edit-link-alias/releases)
 [![Coverage: 100%](https://img.shields.io/badge/coverage-100%25-brightgreen)](https://github.com/mnaoumov/obsidian-edit-link-alias)
 
-This is a plugin for [Obsidian](https://obsidian.md/) that adds an **Edit link alias** command (changes only the display text of the link under your cursor) and an **Edit link (URL and alias)** command (a two-field pop-up that edits the link's target and display text together). Both are available from the Command Palette, the editor right-click menu, and the link long-press / Reading-view context menu, and work on internal wikilinks, markdown links, external links, and links in a note's frontmatter alike. `Alt` + clicking a link opens that editor right at the link, and the same editor is what the context menu opens.
+Changing what a link *says* in [Obsidian](https://obsidian.md/) means editing the raw link text by
+hand — finding the `|` in a wikilink or the right pair of brackets in a markdown link, in the middle of
+a sentence, without breaking either. In Reading view you cannot do it at all without switching modes.
 
-![Prompt](./images/prompt.png)
-
-## Editing a link by Alt + clicking it
-
-**`Alt` + click** a link (`Option` + click on macOS) and the editor opens as a small pop-up right at the link, instead of the link opening. It works in Reading view, Live Preview, and source mode, on desktop and mobile.
-
-The pop-up opens on the **alias** with the text already selected, so the more common edit needs no extra click; `Tab` moves to the URL.
-
-It does not matter which part of the link you click — the display text or the destination — or where the text cursor happens to be, including inside the link itself.
-
-`Alt` + click is used because Obsidian gives it no meaning on a link, so **nothing you already do changes**: a plain click still opens the link, and `Ctrl` + click (`Cmd` + click) still opens it in a new tab.
-
-It is on by default; turn it off with **Should open link editor on Alt + click** in **Settings → Edit Link Alias**.
-
-## Links in the frontmatter
-
-Links living in a note's **properties** are editable the same way: `Alt` + click one in the Properties panel, right-click it, or put the cursor on it in source mode where the frontmatter is plain YAML. Property names are matched regardless of their capitalization, so a `Homepage:` property works exactly like a `homepage:` one.
-
-Such an edit is written back **through the frontmatter**, so the value is quoted whenever it needs to be — `url: https://example.com` becomes `url: "[Example](https://example.com)"` rather than a note that no longer parses. Two consequences worth knowing:
-
-- the frontmatter block is re-serialized, so comments and hand formatting inside it are normalized;
-- the change is written to the file rather than typed into the editor, so it is not part of the editor's undo history.
+This plugin edits the link under your cursor through a small pop-up: **Edit link alias** changes just
+the display text, and **Edit link (URL and alias)** changes the target and the text together. Both work
+on wikilinks, markdown links, external links and links in a note's properties, from the Command
+Palette, the right-click menu, or `Alt` + clicking the link itself.
 
 ## Demo vault
 
-A demo vault with usage examples ships with every release. You can access it via any of the following:
+**The documentation is a demo vault.** Every feature has a note that explains what it does and why you
+would want it, with links of every kind already in place to edit.
+
+**[Start reading here](<./demo-vault/00 Start.md>)** — it is plain markdown, so it works on GitHub with
+nothing installed.
+
+A copy of the vault ships with every release. You can access it via any of the following:
 
 1. Running the **Edit Link Alias: Open demo vault** command.
 2. Downloading `edit-link-alias-demo-vault-<version>.zip` (`<version>` is the release version) from the [Releases](https://github.com/mnaoumov/obsidian-edit-link-alias/releases).
 3. Browsing its source in [`demo-vault/`](./demo-vault/README.md) in this repository.
+
+## What it does
+
+- **Edit a link's display text** without hunting for the `|` or the brackets.
+  [01 Edit link alias](<./demo-vault/01 Edit link alias.md>)
+- **Edit the target and the text together**, in one two-field pop-up.
+  [03 Edit link URL and alias](<./demo-vault/03 Edit link URL and alias.md>)
+- **`Alt` + click a link to edit it** — in Reading view, Live Preview and source mode, on desktop and
+  mobile. It opens on the alias with the text selected, since that is the more common edit, and `Tab`
+  moves to the URL. `Alt` + click is used because Obsidian gives it no meaning on a link, so nothing
+  you already do changes.
+  [04 Alt click a link to edit it](<./demo-vault/04 Alt click a link to edit it.md>)
+- **External links** work the same way.
+  [02 External links](<./demo-vault/02 External links.md>)
+- **Links in properties** are editable too, written back through the frontmatter so the value stays
+  valid YAML — with the two consequences that follow from that.
+  [05 Frontmatter links](<./demo-vault/05 Frontmatter links.md>)
 
 ## Installation
 
@@ -61,6 +68,14 @@ window.DEBUG.enable('edit-link-alias');
 ```
 
 For more details, refer to the [documentation](https://mnaoumov.dev/obsidian-dev-utils/guides/debugging/).
+
+## Changelog
+
+All notable changes to this project will be documented in the [CHANGELOG](./CHANGELOG.md).
+
+## Contributing
+
+Contributions are welcome — see [CONTRIBUTING](./CONTRIBUTING.md) to get set up.
 
 ## Support
 

@@ -50,7 +50,8 @@ Right-click a link (or long-press it on mobile) and choose **Edit link (URL and 
 
 ## Settings
 
-- `shouldOpenLinkEditorOnAltClick` - whether `Alt` + click opens the link editor instead of opening the link. On by default; turn it off to leave `Alt` + click alone.
+- `shouldOpenLinkEditorOnAltClick`
+  - whether `Alt` + click opens the link editor instead of opening the link. On by default; turn it off to leave `Alt` + click alone.
 
 ## Good to know
 

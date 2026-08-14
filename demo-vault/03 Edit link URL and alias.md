@@ -2,6 +2,8 @@
 
 The **Edit link (URL and alias)** command opens a small pop-up that lets you edit **both** the link's target (URL) **and** its display text (alias) at the same time, leaving the kind of link untouched. It works on internal `[[wikilinks]]` and on `[markdown](links)` alike, and complements the alias-only **Edit link alias** command.
 
+![The two-field link editor, open on a link](<./_assets/images/prompt.png>)
+
 ## Try it
 
 1. Put your cursor anywhere inside one of the links below (or, on mobile, long-press a rendered link; in Reading view, right-click it).
