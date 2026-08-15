@@ -11,3 +11,6 @@
 !.obsidian/plugins/edit-link-alias/
 .obsidian/plugins/edit-link-alias/*
 !.obsidian/plugins/edit-link-alias/data.json
+
+# Created by the link-playground button in the walkthroughs.
+Materials/
