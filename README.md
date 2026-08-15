@@ -14,6 +14,27 @@ the display text, and **Edit link (URL and alias)** changes the target and the t
 on wikilinks, markdown links, external links and links in a note's properties, from the Command
 Palette, the right-click menu, or `Alt` + clicking the link itself.
 
+<!-- markdownlint-disable MD033 -->
+
+<a href="images/screenshots/screenshot-desktop-1.png"><img src="images/screenshots/screenshot-desktop-1.png" alt="Links that read like file names and raw URLs" width="600"></a>
+
+<details>
+<summary>More screenshots</summary>
+
+<a href="images/screenshots/screenshot-desktop-2.png"><img src="images/screenshots/screenshot-desktop-2.png" alt="Edit link alias: change what a link SAYS" width="600"></a>
+<a href="images/screenshots/screenshot-desktop-3.png"><img src="images/screenshots/screenshot-desktop-3.png" alt="...and the target never moved: Obsidian Help" width="600"></a>
+<a href="images/screenshots/screenshot-desktop-4.png"><img src="images/screenshots/screenshot-desktop-4.png" alt="Or edit the target and the label together" width="600"></a>
+<a href="images/screenshots/screenshot-desktop-5.png"><img src="images/screenshots/screenshot-desktop-5.png" alt="Alt-click any link to edit it where it sits" width="600"></a>
+<a href="images/screenshots/screenshot-mobile-1.png"><img src="images/screenshots/screenshot-mobile-1.png" alt="Links that read like file names and raw URLs" width="270"></a>
+<a href="images/screenshots/screenshot-mobile-2.png"><img src="images/screenshots/screenshot-mobile-2.png" alt="Edit link alias: change what a link SAYS" width="270"></a>
+<a href="images/screenshots/screenshot-mobile-3.png"><img src="images/screenshots/screenshot-mobile-3.png" alt="...and the target never moved: Obsidian Help" width="270"></a>
+<a href="images/screenshots/screenshot-mobile-4.png"><img src="images/screenshots/screenshot-mobile-4.png" alt="Or edit the target and the label together" width="270"></a>
+<a href="images/screenshots/screenshot-mobile-5.png"><img src="images/screenshots/screenshot-mobile-5.png" alt="Long-press a link to reach it from the menu" width="270"></a>
+
+</details>
+
+<!-- markdownlint-enable MD033 -->
+
 ## Demo vault
 
 **The documentation is a demo vault.** Every feature has a note that explains what it does and why you
