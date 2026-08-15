@@ -29,6 +29,19 @@ Writing that value as raw text - the way a link in the note body is written - wo
 
 ## Try it
 
+The link playground carries a `related` property holding a wikilink, so you can experiment there instead of editing this note's own properties:
+
+```code-button
+---
+caption: Open the link playground (and reset it)
+---
+await require('/demoSetup.ts').resetLinkPlayground(app);
+```
+
+Manual equivalent: open `Materials/01 Edit link alias/Link playground.md` and look at its `related` property.
+
+Or work on this note's five properties directly - it is the richer fixture, and the reset button above will not undo those edits:
+
 1. In **Live Preview** or **Reading view**, `Alt` + click one of the links in the Properties panel at the top of this note.
 2. Edit the URL, the alias, or both, and press **OK**.
 3. Look at the property: it now holds a quoted markdown link, and the Properties panel still parses it.

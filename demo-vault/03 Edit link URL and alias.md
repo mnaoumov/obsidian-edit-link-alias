@@ -6,6 +6,17 @@ The **Edit link (URL and alias)** command opens a small pop-up that lets you edi
 
 ## Try it
 
+```code-button
+---
+caption: Open the two-field editor on a playground link
+---
+await require('/demoSetup.ts').editLinkOnLine(app, 'Already aliased', 'edit-link');
+```
+
+Manual equivalent: open `Materials/01 Edit link alias/Link playground.md`, click inside its `Already aliased` link, and run **Edit link (URL and alias)**.
+
+Or do it by hand on the examples below:
+
 1. Put your cursor anywhere inside one of the links below (or, on mobile, long-press a rendered link; in Reading view, right-click it).
 2. Run **Edit link (URL and alias)** from the Command Palette, or choose it from the link's right-click / long-press menu.
 3. A pop-up appears with two fields, pre-filled with the current **URL** and **alias**. Edit either or both and press **OK**.

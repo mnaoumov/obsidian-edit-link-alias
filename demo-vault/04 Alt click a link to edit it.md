@@ -53,6 +53,35 @@ Right-click a link (or long-press it on mobile) and choose **Edit link (URL and 
 - `shouldOpenLinkEditorOnAltClick`
   - whether `Alt` + click opens the link editor instead of opening the link. On by default; turn it off to leave `Alt` + click alone.
 
+Turn it off, `Alt` + click a link and watch nothing happen, then turn it back on:
+
+```code-button
+---
+caption: Leave Alt + click alone
+---
+await require('/demoSetup.ts').setAltClickEditing(app, false);
+```
+
+```code-button
+---
+caption: Alt + click opens the link editor again (the default)
+---
+await require('/demoSetup.ts').setAltClickEditing(app, true);
+```
+
+Manual equivalent: toggle **Should open link editor on alt click** in **Settings -> Community plugins -> Edit Link Alias**.
+
+Try things on the scratch note rather than on this one:
+
+```code-button
+---
+caption: Open the link playground (and reset it)
+---
+await require('/demoSetup.ts').resetLinkPlayground(app);
+```
+
+Manual equivalent: open `Materials/01 Edit link alias/Link playground.md`.
+
 ## Good to know
 
 - In Reading view a link carries no information about *where* in the note it was written. If the note links to the same destination more than once, you are asked which occurrence to edit.
