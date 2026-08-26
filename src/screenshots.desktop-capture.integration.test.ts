@@ -164,11 +164,10 @@ describe('desktop store screenshots', () => {
  */
 async function altClickRenderedLink(): Promise<void> {
   await evalInObsidian({
-    async callback({ app, lib: { waitUntil }, obsidianModule, pluginId }) {
+    async callback({ app, lib: { clickElement, waitUntil }, obsidianModule, pluginId }) {
       const POPOVER_TIMEOUT_IN_MILLISECONDS = 15_000;
       const SETTLE_DELAY_IN_MILLISECONDS = 900;
       const POPOVER_FIELD_COUNT = 2;
-      const HALF = 2;
 
       const view = app.workspace.getActiveViewOfType(obsidianModule.MarkdownView);
 
@@ -184,20 +183,11 @@ async function altClickRenderedLink(): Promise<void> {
       }
 
       // The coordinates are what identifies the link in an editing view
-      // (`Editor.posAtMouse`), so a click dispatched without them resolves to
-      // The very start of the document. The element's own centre is the point
-      // The user would have hit.
-      const rect = linkEl.getBoundingClientRect();
-      linkEl.dispatchEvent(
-        new MouseEvent('click', {
-          altKey: true,
-          bubbles: true,
-          button: 0,
-          cancelable: true,
-          clientX: rect.left + rect.width / HALF,
-          clientY: rect.top + rect.height / HALF
-        })
-      );
+      // (`Editor.posAtMouse`), so a click without them resolves to the very start
+      // Of the document. `clickElement` aims at the element's own centre, which is
+      // The point the user would have hit — and it is a TRUSTED click, so it also
+      // Gets past the `isTrusted` guards Obsidian puts on editor pointer input.
+      clickElement({ element: linkEl, modifiers: ['Alt'] });
 
       await waitUntil({
         message: 'the link editor popover to open',
@@ -235,22 +225,40 @@ function buildSubjectNote(): string {
  */
 async function dismissPopover(): Promise<void> {
   await evalInObsidian({
-    async callback({ lib: { waitUntil }, pluginId }) {
+    async callback({ lib: { clickElement, waitUntil }, pluginId }) {
       const POPOVER_TIMEOUT_IN_MILLISECONDS = 15_000;
       const SETTLE_DELAY_IN_MILLISECONDS = 600;
 
       // A popover is not a modal: Escape does not close it, and there is no
       // Close button to click. It closes on an interaction OUTSIDE itself, so
-      // That is what this dispatches.
-      document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
-      document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
-      document.body.click();
-
-      await waitUntil({
-        message: 'the link editor popover to close',
-        predicate: () => !document.body.querySelector(`.obsidian-dev-utils.${pluginId}.popover`),
-        timeoutInMilliseconds: POPOVER_TIMEOUT_IN_MILLISECONDS
+      // That is what this performs — as a real trusted gesture, which is the only
+      // Kind the popover's own document-level listener acts on.
+      // The gesture lands on a scratch overlay rather than on whatever piece of the
+      // Note happens to sit there, so dismissing the popover cannot also click a
+      // Link and change what the next shot photographs.
+      const overlayEl = document.body.createDiv();
+      overlayEl.setCssStyles({
+        bottom: '0',
+        height: '30%',
+        position: 'fixed',
+        right: '0',
+        width: '30%',
+        zIndex: '1'
       });
+      // The overlay has to outlive the click: a trusted gesture is delivered on a
+      // Later task, so detaching it straight away would leave the click to land on
+      // Whatever was underneath.
+      try {
+        clickElement({ element: overlayEl });
+
+        await waitUntil({
+          message: 'the link editor popover to close',
+          predicate: () => !document.body.querySelector(`.obsidian-dev-utils.${pluginId}.popover`),
+          timeoutInMilliseconds: POPOVER_TIMEOUT_IN_MILLISECONDS
+        });
+      } finally {
+        overlayEl.detach();
+      }
 
       await sleep(SETTLE_DELAY_IN_MILLISECONDS);
     },

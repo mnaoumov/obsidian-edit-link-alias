@@ -152,7 +152,7 @@ async function runClickScenario(requestedScenario: FrontmatterScenario): Promise
     async callback({
       app,
       initialSourceContent,
-      lib: { createNote, waitUntil },
+      lib: { clickMouse, createNote, waitUntil },
       newAlias,
       newUrl,
       obsidianModule,
@@ -215,9 +215,19 @@ async function runClickScenario(requestedScenario: FrontmatterScenario): Promise
 
       /*
        * A click carries real coordinates because the raw-YAML path resolves the link through
-       * `Editor.posAtMouse` — a click dispatched without them lands at the very start of the document.
+       * `Editor.posAtMouse` — a click without them lands at the very start of the document.
+       *
+       * On desktop it is a TRUSTED click, so it reaches the editor's pointer handling the way a user's
+       * does; a dispatched `MouseEvent` is `isTrusted === false` and can be ignored outright. The trusted
+       * helpers are built on `window.electron`, which Android does not have, so the phone keeps the
+       * dispatch — this file runs on both platforms.
        */
       function clickAt(el: HTMLElement, clientX: number, clientY: number): void {
+        if (obsidianModule.Platform.isDesktopApp) {
+          clickMouse({ modifiers: ['Alt'], x: clientX, y: clientY });
+          return;
+        }
+
         el.dispatchEvent(
           new MouseEvent('click', {
             altKey: true,

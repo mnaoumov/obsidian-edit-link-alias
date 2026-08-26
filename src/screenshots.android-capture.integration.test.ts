@@ -207,6 +207,9 @@ async function dismissPopover(): Promise<void> {
 
       // A popover is not a modal: Escape does not close it, and there is no
       // Close button to click. It closes on an interaction OUTSIDE itself.
+      // Dispatched rather than performed as a trusted gesture, which is a permanent
+      // Exception here: the trusted helpers its desktop twin now uses are built on
+      // `window.electron`, and there is none on the phone.
       document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
       document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
       document.body.click();
@@ -282,6 +285,8 @@ async function openLinkMenu(): Promise<void> {
       // Obsidian raises the link menu from a `contextmenu` event, which is what
       // A long press produces on a touch screen. The coordinates matter for the
       // Same reason they do for a click: they are how the link is located.
+      // Untrusted by necessity: `window.electron` does not exist on the phone, so
+      // The trusted `clickMouse` the desktop twin uses cannot be reached here.
       const rect = linkEl.getBoundingClientRect();
       linkEl.dispatchEvent(
         new MouseEvent('contextmenu', {
