@@ -1,35 +1,29 @@
 # Edit Link Alias
 
-[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?logo=buy-me-a-coffee&logoColor=black)](https://www.buymeacoffee.com/mnaoumov)
-[![GitHub release](https://img.shields.io/github/v/release/mnaoumov/obsidian-edit-link-alias)](https://github.com/mnaoumov/obsidian-edit-link-alias/releases)
-[![GitHub downloads](https://img.shields.io/github/downloads/mnaoumov/obsidian-edit-link-alias/total)](https://github.com/mnaoumov/obsidian-edit-link-alias/releases)
-[![Coverage: 100%](https://img.shields.io/badge/coverage-100%25-brightgreen)](https://github.com/mnaoumov/obsidian-edit-link-alias)
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?logo=buy-me-a-coffee&logoColor=black)](https://www.buymeacoffee.com/mnaoumov) [![GitHub release](https://img.shields.io/github/v/release/mnaoumov/obsidian-edit-link-alias)](https://github.com/mnaoumov/obsidian-edit-link-alias/releases) [![GitHub downloads](https://img.shields.io/github/downloads/mnaoumov/obsidian-edit-link-alias/total)](https://github.com/mnaoumov/obsidian-edit-link-alias/releases) [![Coverage: 100%](https://img.shields.io/badge/coverage-100%25-brightgreen)](https://github.com/mnaoumov/obsidian-edit-link-alias)
 
-Changing what a link *says* in [Obsidian](https://obsidian.md/) means editing the raw link text by
-hand — finding the `|` in a wikilink or the right pair of brackets in a markdown link, in the middle of
-a sentence, without breaking either. In Reading view you cannot do it at all without switching modes.
+Changing what a link *says* in [Obsidian](https://obsidian.md/) means editing the raw link text by hand — finding the `|` in a wikilink or the right pair of brackets in a markdown link, in the middle of a sentence, without breaking either. In Reading view you cannot do it at all without switching modes.
 
-This plugin edits the link under your cursor through a small pop-up: **Edit link alias** changes just
-the display text, and **Edit link (URL and alias)** changes the target and the text together. Both work
-on wikilinks, markdown links, external links and links in a note's properties, from the Command
-Palette, the right-click menu, or `Alt` + clicking the link itself.
+This plugin edits the link under your cursor through a small pop-up: **Edit link alias** changes just the display text, and **Edit link (URL and alias)** changes the target and the text together. Both work on wikilinks, markdown links, external links and links in a note's properties, from the Command Palette, the right-click menu, or `Alt` + clicking the link itself.
 
 <!-- markdownlint-disable MD033 -->
 
-<a href="images/screenshots/screenshot-desktop-1.png"><img src="images/screenshots/screenshot-desktop-1.png" alt="Links that read like file names and raw URLs" width="600"></a>
+<a href="https://github.com/mnaoumov/obsidian-edit-link-alias/blob/HEAD/images/screenshots/screenshot-desktop-1.png"><img src="images/screenshots/screenshot-desktop-1.png" alt="Links that read like file names and raw URLs" width="600"></a>
 
 <details>
 <summary>More screenshots</summary>
 
-<a href="images/screenshots/screenshot-desktop-2.png"><img src="images/screenshots/screenshot-desktop-2.png" alt="Edit link alias: change what a link SAYS" width="600"></a>
-<a href="images/screenshots/screenshot-desktop-3.png"><img src="images/screenshots/screenshot-desktop-3.png" alt="...and the target never moved: Obsidian Help" width="600"></a>
-<a href="images/screenshots/screenshot-desktop-4.png"><img src="images/screenshots/screenshot-desktop-4.png" alt="Or edit the target and the label together" width="600"></a>
-<a href="images/screenshots/screenshot-desktop-5.png"><img src="images/screenshots/screenshot-desktop-5.png" alt="Alt-click any link to edit it where it sits" width="600"></a>
-<a href="images/screenshots/screenshot-mobile-1.png"><img src="images/screenshots/screenshot-mobile-1.png" alt="Links that read like file names and raw URLs" width="270"></a>
-<a href="images/screenshots/screenshot-mobile-2.png"><img src="images/screenshots/screenshot-mobile-2.png" alt="Edit link alias: change what a link SAYS" width="270"></a>
-<a href="images/screenshots/screenshot-mobile-3.png"><img src="images/screenshots/screenshot-mobile-3.png" alt="...and the target never moved: Obsidian Help" width="270"></a>
-<a href="images/screenshots/screenshot-mobile-4.png"><img src="images/screenshots/screenshot-mobile-4.png" alt="Or edit the target and the label together" width="270"></a>
-<a href="images/screenshots/screenshot-mobile-5.png"><img src="images/screenshots/screenshot-mobile-5.png" alt="Long-press a link to reach it from the menu" width="270"></a>
+<div>
+<a href="https://github.com/mnaoumov/obsidian-edit-link-alias/blob/HEAD/images/screenshots/screenshot-desktop-2.png"><img src="images/screenshots/screenshot-desktop-2.png" alt="Edit link alias: change what a link SAYS" width="600"></a>
+<a href="https://github.com/mnaoumov/obsidian-edit-link-alias/blob/HEAD/images/screenshots/screenshot-desktop-3.png"><img src="images/screenshots/screenshot-desktop-3.png" alt="...and the target never moved: Obsidian Help" width="600"></a>
+<a href="https://github.com/mnaoumov/obsidian-edit-link-alias/blob/HEAD/images/screenshots/screenshot-desktop-4.png"><img src="images/screenshots/screenshot-desktop-4.png" alt="Or edit the target and the label together" width="600"></a>
+<a href="https://github.com/mnaoumov/obsidian-edit-link-alias/blob/HEAD/images/screenshots/screenshot-desktop-5.png"><img src="images/screenshots/screenshot-desktop-5.png" alt="Alt-click any link to edit it where it sits" width="600"></a>
+<a href="https://github.com/mnaoumov/obsidian-edit-link-alias/blob/HEAD/images/screenshots/screenshot-mobile-1.png"><img src="images/screenshots/screenshot-mobile-1.png" alt="Links that read like file names and raw URLs" width="270"></a>
+<a href="https://github.com/mnaoumov/obsidian-edit-link-alias/blob/HEAD/images/screenshots/screenshot-mobile-2.png"><img src="images/screenshots/screenshot-mobile-2.png" alt="Edit link alias: change what a link SAYS" width="270"></a>
+<a href="https://github.com/mnaoumov/obsidian-edit-link-alias/blob/HEAD/images/screenshots/screenshot-mobile-3.png"><img src="images/screenshots/screenshot-mobile-3.png" alt="...and the target never moved: Obsidian Help" width="270"></a>
+<a href="https://github.com/mnaoumov/obsidian-edit-link-alias/blob/HEAD/images/screenshots/screenshot-mobile-4.png"><img src="images/screenshots/screenshot-mobile-4.png" alt="Or edit the target and the label together" width="270"></a>
+<a href="https://github.com/mnaoumov/obsidian-edit-link-alias/blob/HEAD/images/screenshots/screenshot-mobile-5.png"><img src="images/screenshots/screenshot-mobile-5.png" alt="Long-press a link to reach it from the menu" width="270"></a>
+</div>
 
 </details>
 
@@ -37,11 +31,9 @@ Palette, the right-click menu, or `Alt` + clicking the link itself.
 
 ## Demo vault
 
-**The documentation is a demo vault.** Every feature has a note that explains what it does and why you
-would want it, with links of every kind already in place to edit.
+**The documentation is a demo vault.** Every feature has a note that explains what it does and why you would want it, with links of every kind already in place to edit.
 
-**[Start reading here](<./demo-vault/00 Start.md>)** — it is plain markdown, so it works on GitHub with
-nothing installed.
+**[Start reading here](<./demo-vault/00 Start.md>)** — it is plain markdown, so it works on GitHub with nothing installed.
 
 A copy of the vault ships with every release. You can access it via any of the following:
 
@@ -51,20 +43,11 @@ A copy of the vault ships with every release. You can access it via any of the f
 
 ## What it does
 
-- **Edit a link's display text** without hunting for the `|` or the brackets.
-  [01 Edit link alias](<./demo-vault/01 Edit link alias.md>)
-- **Edit the target and the text together**, in one two-field pop-up.
-  [03 Edit link URL and alias](<./demo-vault/03 Edit link URL and alias.md>)
-- **`Alt` + click a link to edit it** — in Reading view, Live Preview and source mode, on desktop and
-  mobile. It opens on the alias with the text selected, since that is the more common edit, and `Tab`
-  moves to the URL. `Alt` + click is used because Obsidian gives it no meaning on a link, so nothing
-  you already do changes.
-  [04 Alt click a link to edit it](<./demo-vault/04 Alt click a link to edit it.md>)
-- **External links** work the same way.
-  [02 External links](<./demo-vault/02 External links.md>)
-- **Links in properties** are editable too, written back through the frontmatter so the value stays
-  valid YAML — with the two consequences that follow from that.
-  [05 Frontmatter links](<./demo-vault/05 Frontmatter links.md>)
+- **Edit a link's display text** without hunting for the `|` or the brackets. [01 Edit link alias](<./demo-vault/01 Edit link alias.md>)
+- **Edit the target and the text together**, in one two-field pop-up. [03 Edit link URL and alias](<./demo-vault/03 Edit link URL and alias.md>)
+- **`Alt` + click a link to edit it** — in Reading view, Live Preview and source mode, on desktop and mobile. It opens on the alias with the text selected, since that is the more common edit, and `Tab` moves to the URL. `Alt` + click is used because Obsidian gives it no meaning on a link, so nothing you already do changes. [04 Alt click a link to edit it](<./demo-vault/04 Alt click a link to edit it.md>)
+- **External links** work the same way. [02 External links](<./demo-vault/02 External links.md>)
+- **Links in properties** are editable too, written back through the frontmatter so the value stays valid YAML — with the two consequences that follow from that. [05 Frontmatter links](<./demo-vault/05 Frontmatter links.md>)
 
 ## Installation
 
