@@ -228,6 +228,7 @@ async function runClickScenario(requestedScenario: FrontmatterScenario): Promise
           return;
         }
 
+        // eslint-disable-next-line obsidian-dev-utils/no-untrusted-input-events -- The mobile arm of a Platform.isDesktopApp branch: the trusted helpers need window.electron, which Android does not have, and this file runs on both platforms.
         el.dispatchEvent(
           new MouseEvent('click', {
             altKey: true,

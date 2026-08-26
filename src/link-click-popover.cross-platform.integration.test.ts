@@ -297,6 +297,7 @@ async function runClickScenario(params: RunClickScenarioParams): Promise<ClickSc
         }
 
         const rect = linkEl.getBoundingClientRect();
+        // eslint-disable-next-line obsidian-dev-utils/no-untrusted-input-events -- The mobile arm of a Platform.isDesktopApp branch: the trusted helpers need window.electron, which Android does not have, and this file runs on both platforms.
         linkEl.dispatchEvent(
           new MouseEvent('click', {
             altKey: shouldUseAlt,
