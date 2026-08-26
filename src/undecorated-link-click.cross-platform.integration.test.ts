@@ -93,7 +93,7 @@ async function runScenario(requestedScenario: UndecoratedScenario): Promise<Unde
       app,
       clickedUrl,
       initialSourceContent,
-      lib: { createNote, waitUntil },
+      lib: { clickMouse, createNote, waitUntil },
       linkLineIndex,
       newAlias,
       newUrl,
@@ -227,17 +227,29 @@ async function runScenario(requestedScenario: UndecoratedScenario): Promise<Unde
         timeoutInMilliseconds: waitTimeoutInMilliseconds
       });
 
+      /*
+       * On desktop this is a TRUSTED click, so it reaches the editor's pointer handling the way a user's
+       * does; a dispatched `MouseEvent` is `isTrusted === false` and can be ignored outright. The trusted
+       * helpers are built on `window.electron`, which Android does not have, so the phone keeps the
+       * dispatch — this file runs on both platforms.
+       */
       const rect = findTextRect(view.containerEl, clickedUrl);
-      view.containerEl.dispatchEvent(
-        new MouseEvent('click', {
-          altKey: true,
-          bubbles: true,
-          button: 0,
-          cancelable: true,
-          clientX: rect.left + rect.width / 2,
-          clientY: rect.top + rect.height / 2
-        })
-      );
+      const clickX = rect.left + rect.width / 2;
+      const clickY = rect.top + rect.height / 2;
+      if (obsidianModule.Platform.isDesktopApp) {
+        clickMouse({ modifiers: ['Alt'], x: clickX, y: clickY });
+      } else {
+        view.containerEl.dispatchEvent(
+          new MouseEvent('click', {
+            altKey: true,
+            bubbles: true,
+            button: 0,
+            cancelable: true,
+            clientX: clickX,
+            clientY: clickY
+          })
+        );
+      }
 
       let wasPopoverShown: boolean;
       try {

@@ -223,7 +223,7 @@ async function runClickScenario(params: RunClickScenarioParams): Promise<ClickSc
       initialSourceContent,
       isEditing,
       isRawSource,
-      lib: { createNote, waitUntil },
+      lib: { clickElement, createNote, waitUntil },
       linkSelector,
       linkText,
       newAlias,
@@ -282,10 +282,20 @@ async function runClickScenario(params: RunClickScenarioParams): Promise<ClickSc
 
       /*
        * The coordinates are what identifies the link in an editing view (`Editor.posAtMouse`), so a click
-       * dispatched without them would resolve to the very start of the document. The element's own centre
-       * is the point the user would have hit.
+       * without them would resolve to the very start of the document. The element's own centre is the
+       * point the user would have hit.
+       *
+       * On desktop it is a TRUSTED click, so it reaches the editor's pointer handling the way a user's
+       * does; a dispatched `MouseEvent` is `isTrusted === false` and can be ignored outright. The trusted
+       * helpers are built on `window.electron`, which Android does not have, so the phone keeps the
+       * dispatch — this file runs on both platforms.
        */
       function clickLink(linkEl: HTMLElement): void {
+        if (obsidianModule.Platform.isDesktopApp) {
+          clickElement({ element: linkEl, modifiers: shouldUseAlt ? ['Alt'] : [] });
+          return;
+        }
+
         const rect = linkEl.getBoundingClientRect();
         linkEl.dispatchEvent(
           new MouseEvent('click', {
