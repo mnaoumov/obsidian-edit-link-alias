@@ -6,10 +6,7 @@ Links in a note's **properties** are covered too, written back through the front
 
 **How to try it:** `Alt` + click a link (`Option` + click on macOS) to edit it right where it is - see [04 Alt click a link to edit it](<./04 Alt click a link to edit it.md>). The same editors are also on the Command Palette, the editor right-click menu, and the link long-press / Reading-view context menu: **Edit link alias** for an alias-only prompt, **Edit link (URL and alias)** for the two-field pop-up.
 
-Every walkthrough has a button that opens a scratch **link playground** in `Materials/` and resets it,
-so you can edit links freely without dismantling the documentation, and try each variation from a clean
-start. Others place the cursor inside the right link and open the editor for you - the fiddly part,
-since both commands act on the link under the cursor.
+Every walkthrough has a button that opens a scratch **link playground** in `Materials/` and resets it, so you can edit links freely without dismantling the documentation, and try each variation from a clean start. Others place the cursor inside the right link and open the editor for you - the fiddly part, since both commands act on the link under the cursor.
 
 ## Features
 
