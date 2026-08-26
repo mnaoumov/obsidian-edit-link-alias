@@ -239,6 +239,7 @@ async function runScenario(requestedScenario: UndecoratedScenario): Promise<Unde
       if (obsidianModule.Platform.isDesktopApp) {
         clickMouse({ modifiers: ['Alt'], x: clickX, y: clickY });
       } else {
+        // eslint-disable-next-line obsidian-dev-utils/no-untrusted-input-events -- The mobile arm of a Platform.isDesktopApp branch: the trusted helpers need window.electron, which Android does not have, and this file runs on both platforms.
         view.containerEl.dispatchEvent(
           new MouseEvent('click', {
             altKey: true,
