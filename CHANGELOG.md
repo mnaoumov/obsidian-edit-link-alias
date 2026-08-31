@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 1.5.5
+
+- chore(deps): sweep caret-ranged dependencies to latest
+- fix(deps): move to obsidian-integration-testing 11 and obsidian-dev-utils 96.5.2
+- fix(deps): drop the brace-expansion file: override that breaks a clean install
+- test(edit-link-alias): record the deliberate untrusted-input exceptions
+- test(edit-link-alias): click links with trusted input where the platform allows it
+
 ## 1.5.4
 
 - docs(demo-vault): unwrap the notes so Obsidian stops rendering a break per line
