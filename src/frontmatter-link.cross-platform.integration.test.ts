@@ -222,9 +222,9 @@ async function runClickScenario(requestedScenario: FrontmatterScenario): Promise
        * helpers are built on `window.electron`, which Android does not have, so the phone keeps the
        * dispatch — this file runs on both platforms.
        */
-      function clickAt(el: HTMLElement, clientX: number, clientY: number): void {
+      async function clickAt(el: HTMLElement, clientX: number, clientY: number): Promise<void> {
         if (obsidianModule.Platform.isDesktopApp) {
-          clickMouse({ modifiers: ['Alt'], x: clientX, y: clientY });
+          await clickMouse({ modifiers: ['Alt'], x: clientX, y: clientY });
           return;
         }
 
@@ -241,9 +241,9 @@ async function runClickScenario(requestedScenario: FrontmatterScenario): Promise
         );
       }
 
-      function clickElementCentre(el: HTMLElement): void {
+      async function clickElementCentre(el: HTMLElement): Promise<void> {
         const rect = el.getBoundingClientRect();
-        clickAt(el, rect.left + rect.width / 2, rect.top + rect.height / 2);
+        await clickAt(el, rect.left + rect.width / 2, rect.top + rect.height / 2);
       }
 
       /**
@@ -326,7 +326,7 @@ async function runClickScenario(requestedScenario: FrontmatterScenario): Promise
         });
 
         const rect = findTextPoint(view.containerEl, textPropertyUrl);
-        clickAt(view.containerEl, rect.left + rect.width / 2, rect.top + rect.height / 2);
+        await clickAt(view.containerEl, rect.left + rect.width / 2, rect.top + rect.height / 2);
       } else {
         /*
          * The uppercase scenario queries the LOWERCASE key on purpose: that is what the panel puts in the
@@ -351,7 +351,7 @@ async function runClickScenario(requestedScenario: FrontmatterScenario): Promise
           throw new Error('The rendered property link disappeared');
         }
 
-        clickElementCentre(linkEl);
+        await clickElementCentre(linkEl);
       }
 
       let wasPopoverShown: boolean;

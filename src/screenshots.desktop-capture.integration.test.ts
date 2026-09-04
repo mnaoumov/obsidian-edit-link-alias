@@ -187,7 +187,7 @@ async function altClickRenderedLink(): Promise<void> {
       // Of the document. `clickElement` aims at the element's own centre, which is
       // The point the user would have hit — and it is a TRUSTED click, so it also
       // Gets past the `isTrusted` guards Obsidian puts on editor pointer input.
-      clickElement({ element: linkEl, modifiers: ['Alt'] });
+      await clickElement({ element: linkEl, modifiers: ['Alt'] });
 
       await waitUntil({
         message: 'the link editor popover to open',
@@ -249,7 +249,7 @@ async function dismissPopover(): Promise<void> {
       // Later task, so detaching it straight away would leave the click to land on
       // Whatever was underneath.
       try {
-        clickElement({ element: overlayEl });
+        await clickElement({ element: overlayEl });
 
         await waitUntil({
           message: 'the link editor popover to close',
