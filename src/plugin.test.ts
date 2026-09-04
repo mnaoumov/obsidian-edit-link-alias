@@ -103,15 +103,6 @@ interface ComponentChildrenHolder {
 
 let app: AppOriginal;
 
-// The subset of `App` the dev-utils Notebook Navigator bridge reads on layout-ready.
-interface AppWithPlugins {
-  plugins: PluginRegistryLike;
-}
-
-interface PluginRegistryLike {
-  getPlugin(this: void, id: string): unknown;
-}
-
 // `registerCommandHandlers` takes a factory since obsidian-dev-utils 89.0.0, and the base registers its
 // Own handlers through the same spy — so pick the plugin's own factory by what it builds.
 function buildPluginCommandHandlers(): unknown[] {
@@ -144,9 +135,6 @@ beforeEach(() => {
   appMock.workspace.onLayoutReady = vi.fn((callback: () => void) => {
     callback();
   });
-  // Since obsidian-dev-utils 89.0.0 the base bridges its command handlers into Notebook Navigator's
-  // Menus, which looks the plugin up on layout-ready - so `plugins` has to answer on the strict mock.
-  castTo<AppWithPlugins>(appMock).plugins = { getPlugin: vi.fn().mockReturnValue(null) };
   app = appMock.asOriginalType__();
 
   // Seed the obsidianDevUtilsState holder on the raw target behind the strict-proxy App so the real dev-utils universal components can read/write shared state during load.

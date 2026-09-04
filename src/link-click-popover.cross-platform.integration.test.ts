@@ -290,9 +290,9 @@ async function runClickScenario(params: RunClickScenarioParams): Promise<ClickSc
        * helpers are built on `window.electron`, which Android does not have, so the phone keeps the
        * dispatch — this file runs on both platforms.
        */
-      function clickLink(linkEl: HTMLElement): void {
+      async function clickLink(linkEl: HTMLElement): Promise<void> {
         if (obsidianModule.Platform.isDesktopApp) {
-          clickElement({ element: linkEl, modifiers: shouldUseAlt ? ['Alt'] : [] });
+          await clickElement({ element: linkEl, modifiers: shouldUseAlt ? ['Alt'] : [] });
           return;
         }
 
@@ -437,7 +437,7 @@ async function runClickScenario(params: RunClickScenarioParams): Promise<ClickSc
         throw new Error('The rendered link disappeared');
       }
 
-      clickLink(linkEl);
+      await clickLink(linkEl);
 
       /*
        * The popover is expected NOT to open in the control cases, so a timeout here is a legitimate
