@@ -38,7 +38,7 @@ This plugin edits the link under your cursor through a small pop-up: **Edit link
 A copy of the vault ships with every release. You can access it via any of the following:
 
 1. Running the **Edit Link Alias: Open demo vault** command.
-2. Downloading `edit-link-alias-demo-vault-<version>.zip` (`<version>` is the release version) from the [Releases](https://github.com/mnaoumov/obsidian-edit-link-alias/releases).
+2. Downloading `edit-link-alias-demo-vault.zip` from the [Releases](https://github.com/mnaoumov/obsidian-edit-link-alias/releases). It unzips into a single `edit-link-alias-demo-vault-<version>` folder.
 3. Browsing its source in [`demo-vault/`](./demo-vault/README.md) in this repository.
 
 ## What it does
