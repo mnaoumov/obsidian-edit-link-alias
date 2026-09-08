@@ -212,6 +212,16 @@ async function dismissPopover(): Promise<void> {
       // The gesture lands on a scratch overlay rather than on whatever piece of the
       // Note happens to sit there, so dismissing the popover cannot also tap a
       // Link and change what the next shot photographs.
+      // The overlay sits ABOVE the popover rather than beside it, which is where this
+      // Differs from the desktop twin. Measured on the 450dp screenshot AVD: the overlay's
+      // Bottom-right corner is at 315,560 135x240 and the popover at 41,628 405x172, so the
+      // Overlay's centre falls INSIDE the popover. At `zIndex: 1` the popover wins the hit
+      // Test and the tap lands on the popover's own text box, dismissing nothing. A
+      // Synthetic click never noticed, because it is delivered to the element it names
+      // Rather than to whatever occupies the point.
+      //
+      // Above it, the tap's target is the overlay, which is still OUTSIDE the popover — so
+      // The popover's document-level listener closes it exactly as an outside tap should.
       const overlayEl = document.body.createDiv();
       overlayEl.setCssStyles({
         bottom: '0',
@@ -219,7 +229,7 @@ async function dismissPopover(): Promise<void> {
         position: 'fixed',
         right: '0',
         width: '30%',
-        zIndex: '1'
+        zIndex: '9999'
       });
       // The overlay has to outlive the tap: a trusted gesture is delivered on a
       // Later task, so detaching it straight away would leave the tap to land on
