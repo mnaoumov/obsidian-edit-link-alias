@@ -201,24 +201,50 @@ function buildSubjectNote(): string {
  */
 async function dismissPopover(): Promise<void> {
   await evalInObsidian({
-    async callback({ lib: { waitUntil }, pluginId }) {
+    async callback({ lib: { clickElement, waitUntil }, pluginId }) {
       const POPOVER_TIMEOUT_IN_MILLISECONDS = 15_000;
       const SETTLE_DELAY_IN_MILLISECONDS = 600;
 
       // A popover is not a modal: Escape does not close it, and there is no
-      // Close button to click. It closes on an interaction OUTSIDE itself.
-      // Dispatched rather than performed as a trusted gesture, which is a permanent
-      // Exception here: the trusted helpers its desktop twin now uses are built on
-      // `window.electron`, and there is none on the phone.
-      document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
-      document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
-      document.body.click();
-
-      await waitUntil({
-        message: 'the link editor popover to close',
-        predicate: () => !document.body.querySelector(`.obsidian-dev-utils.${pluginId}.popover`),
-        timeoutInMilliseconds: POPOVER_TIMEOUT_IN_MILLISECONDS
+      // Close button to click. It closes on an interaction OUTSIDE itself, so
+      // That is what this performs — as a real trusted gesture, which is the only
+      // Kind the popover's own document-level listener acts on.
+      // The gesture lands on a scratch overlay rather than on whatever piece of the
+      // Note happens to sit there, so dismissing the popover cannot also tap a
+      // Link and change what the next shot photographs.
+      // The overlay sits ABOVE the popover rather than beside it, which is where this
+      // Differs from the desktop twin. Measured on the 450dp screenshot AVD: the overlay's
+      // Bottom-right corner is at 315,560 135x240 and the popover at 41,628 405x172, so the
+      // Overlay's centre falls INSIDE the popover. At `zIndex: 1` the popover wins the hit
+      // Test and the tap lands on the popover's own text box, dismissing nothing. A
+      // Synthetic click never noticed, because it is delivered to the element it names
+      // Rather than to whatever occupies the point.
+      //
+      // Above it, the tap's target is the overlay, which is still OUTSIDE the popover — so
+      // The popover's document-level listener closes it exactly as an outside tap should.
+      const overlayEl = document.body.createDiv();
+      overlayEl.setCssStyles({
+        bottom: '0',
+        height: '30%',
+        position: 'fixed',
+        right: '0',
+        width: '30%',
+        zIndex: '9999'
       });
+      // The overlay has to outlive the tap: a trusted gesture is delivered on a
+      // Later task, so detaching it straight away would leave the tap to land on
+      // Whatever was underneath.
+      try {
+        await clickElement({ element: overlayEl });
+
+        await waitUntil({
+          message: 'the link editor popover to close',
+          predicate: () => !document.body.querySelector(`.obsidian-dev-utils.${pluginId}.popover`),
+          timeoutInMilliseconds: POPOVER_TIMEOUT_IN_MILLISECONDS
+        });
+      } finally {
+        overlayEl.detach();
+      }
 
       await sleep(SETTLE_DELAY_IN_MILLISECONDS);
     },
@@ -264,10 +290,9 @@ async function openAliasPrompt(position: LinkPosition): Promise<void> {
  */
 async function openLinkMenu(): Promise<void> {
   await evalInObsidian({
-    async callback({ app, lib: { waitUntil }, obsidianModule }) {
+    async callback({ app, lib: { clickElement, waitUntil }, obsidianModule }) {
       const MENU_TIMEOUT_IN_MILLISECONDS = 15_000;
       const SETTLE_DELAY_IN_MILLISECONDS = 900;
-      const HALF = 2;
 
       const view = app.workspace.getActiveViewOfType(obsidianModule.MarkdownView);
 
@@ -283,19 +308,10 @@ async function openLinkMenu(): Promise<void> {
       }
 
       // Obsidian raises the link menu from a `contextmenu` event, which is what
-      // A long press produces on a touch screen. The coordinates matter for the
-      // Same reason they do for a click: they are how the link is located.
-      // Untrusted by necessity: `window.electron` does not exist on the phone, so
-      // The trusted `clickMouse` the desktop twin uses cannot be reached here.
-      const rect = linkEl.getBoundingClientRect();
-      linkEl.dispatchEvent(
-        new MouseEvent('contextmenu', {
-          bubbles: true,
-          cancelable: true,
-          clientX: rect.left + rect.width / HALF,
-          clientY: rect.top + rect.height / HALF
-        })
-      );
+      // A long press produces on a touch screen — and `button: 'right'` is exactly
+      // That long press. So this is now the real gesture rather than an imitation
+      // Of its event, and Obsidian's isTrusted-gated handling sees it.
+      await clickElement({ button: 'right', element: linkEl });
 
       await waitUntil({
         message: 'the link menu to open',
@@ -405,7 +421,7 @@ async function shoot(index: number, caption: string): Promise<void> {
  */
 async function submitAliasPrompt(newAlias: string): Promise<void> {
   await evalInObsidian({
-    async callback({ app, lib: { waitUntil }, newAlias: alias, subjectNotePath }) {
+    async callback({ app, lib: { clickElement, waitUntil }, newAlias: alias, subjectNotePath }) {
       const REWRITE_TIMEOUT_IN_MILLISECONDS = 20_000;
       const SETTLE_DELAY_IN_MILLISECONDS = 1200;
 
@@ -424,7 +440,7 @@ async function submitAliasPrompt(newAlias: string): Promise<void> {
         throw new TypeError('The alias prompt has no confirm button.');
       }
 
-      confirmButton.click();
+      await clickElement({ element: confirmButton });
 
       await waitUntil({
         message: 'the note to be rewritten with the new alias',
