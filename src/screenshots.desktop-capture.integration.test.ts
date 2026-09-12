@@ -171,7 +171,14 @@ describe('desktop store screenshots', () => {
 async function altClickRenderedLink(): Promise<void> {
   await evalInObsidian({
     async callback({ app, lib: { clickElement, waitUntil }, obsidianModule, pluginId }) {
-      const POPOVER_TIMEOUT_IN_MILLISECONDS = 15_000;
+      /*
+       * Under the transport's ~30s per-closure cap, not at it.
+       * Two waits and a settle share this one budget, so at 15_000 apiece the closure declared 30.9s.
+       * The eval is killed at the cap first and reported as a bare transport timeout.
+       * That names the harness rather than the wait that overran.
+       * A popover opening lands in well under a second, so the smaller ceiling costs nothing.
+       */
+      const POPOVER_TIMEOUT_IN_MILLISECONDS = 12_000;
       const SETTLE_DELAY_IN_MILLISECONDS = 900;
       const POPOVER_FIELD_COUNT = 2;
 
