@@ -35,7 +35,7 @@
 
 - chore: update libs
 - test: adopt the createNote helper in the cross-platform suites
-- refactor(test): collapse the shared integration suites per G47
+- refactor(test): collapse the shared integration suites into one cross-platform file each
 - chore: update libs
 - chore(vitest): adopt the shared Obsidian plugin vitest configuration
 
@@ -76,7 +76,7 @@
 
 - refactor: narrow the link menu handlers to private, per find-overexposed
 - refactor: narrow handleClick to private, per find-overexposed
-- test: use strictProxy for the collaborator doubles, per G43
+- test: use strictProxy for the collaborator doubles
 - feat: edit a link by Alt + clicking it, and drop the modal
 - chore: renumber the TODO task references after an id collision
 - test: add the demo-vault coverage suite, now that the plugin has settings
