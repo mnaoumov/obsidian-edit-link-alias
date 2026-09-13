@@ -20,10 +20,10 @@
   which suits an editor that must appear *at* the link.
   - **It lives in `obsidian-dev-utils`, not here** — `editFieldsInPopover`
     (`obsidian/popovers/field-popover`) over the `showPopover` shell (`obsidian/popovers/popover`). It
-    started as a plugin-local `src/link-editor-popover.ts`, was extracted under `T204-P1` because it is
-    entirely plugin-agnostic (G61), and the local copy was deleted under `T214-P27`. `src/edit-link.ts`
+    started as a plugin-local `src/link-editor-popover.ts`, was extracted because it is
+    entirely plugin-agnostic (G61), and the local copy was deleted. `src/edit-link.ts`
     is the single call site: two fields, `alias` then `url`, whose keys type the resolved record.
-  - **The field ORDER is load-bearing, not cosmetic (`T296-P27` / GH #7).** `showPopover` focuses **and
+  - **The field ORDER is load-bearing, not cosmetic (GH #7).** `showPopover` focuses **and
     selects the FIRST input**, so whichever field is declared first is the one ready to be typed over.
     The alias leads because changing an alias is the more frequent edit. Do NOT reorder these — the
     request was for a *setting* choosing the focused field, and the answer taken was to change the
@@ -53,7 +53,7 @@
   and the menu handler anchors there. It registers per window via `registerAllWindowsHandler` (not
   `registerAllDocumentsDomEvent`) so the document comes from the listener's own window; deriving it from
   the event target would add a branch a document-level listener can never take. Like the popover it is
-  plugin-agnostic, so it too was extracted (`T204-P1`) and is now consumed from
+  plugin-agnostic, so it too was extracted and is now consumed from
   `obsidian-dev-utils/obsidian/components/pointer-position-component`.
 - **Occurrence resolution is shared, not duplicated (`src/resolve-link-occurrence.ts`).** A context menu
   tells you only what the link points at, never *where* in the note it was written. A click tells you more:
@@ -104,7 +104,7 @@
   - **The accepted trade-off is that the whole frontmatter block is re-serialized**, so YAML comments and
     hand formatting inside it are normalized, and the edit goes through `vault.process` rather than the
     editor, so it does not join the undo history. Both are stated in the demo note and were the user's
-    explicit call (`T258-P27`) over hand-rolling YAML quoting for a surgical splice.
+    explicit call over hand-rolling YAML quoting for a surgical splice.
   - **Occurrence resolution is by key and link identity, never by offset into the block.** The panel knows
     the `data-property-key` it rendered, the raw YAML knows the link text under the pointer, and the context
     menu knows only the url — so the resolver takes an optional `propertyKey` and an optional `rawLink`, and
@@ -114,7 +114,7 @@
       every one of the three places it sets the attribute). `doesKeyMatch` therefore compares
       case-INSENSITIVELY; comparing as written is what made `Alt` + clicking a link under a `Homepage:`
       property report "could not locate the link" while the context menu — which carries no property key,
-      so it never reaches the filter — edited the very same link (GH #8 / `T297-P27`). Do not "simplify"
+      so it never reaches the filter — edited the very same link (GH #8). Do not "simplify"
       the lowercasing away.
   - **`applyFileChanges` validates before writing, and what it compares against differs by reference**: one
     carrying offsets is matched against that slice of the property value, one without against the WHOLE
@@ -160,7 +160,7 @@
     click's position: `posAtMouse` → is a parsed link under it → intercept with an *unknown* `LinkTarget`
     and that position. It covers the three places a link is shown as plain text: the raw YAML of the
     frontmatter (GH #6), a bare url with the caret inside/beside it, and the `(url)` half of a markdown
-    link (both GH #9 / `T298-P27`). The popover is anchored with `createAnchorFromPoint`, there being no
+    link (both GH #9). The popover is anchored with `createAnchorFromPoint`, there being no
     element to anchor to.
     - **It is deliberately NOT scoped to the frontmatter, and the `isOffsetInFrontmatter` gate it used to
       carry must NOT come back.** That gate was what made GH #9 possible — everything downstream is
@@ -209,8 +209,8 @@
   the public floor; the other end is `OBSIDIAN_VERSION=catalyst-latest npx vitest run
   --project=integration-tests:desktop` — spawn `vitest` directly, because dev-utils' `test()` helper does
   not propagate the variable to its child and the run silently falls back to the public build.
-- **The Android suite has a KNOWN intermittent failure that is not ours — do not re-investigate it
-  (`T304-P2`).** `vault.create` on the Android emulator loses ~0.9% of its writes: the file lands on disk
+- **The Android suite has a KNOWN intermittent failure that is not ours — do not re-investigate it: it is
+  a defect in the Android emulator transport, not in this plugin.** `vault.create` on the Android emulator loses ~0.9% of its writes: the file lands on disk
   as **0 bytes** while Obsidian's `TFile.stat.size` reports the full content (verified — `adapter.stat`,
   `adapter.read`, `vault.read` and `cachedRead` all say 0 at the same moment `file.stat.size` says 38, and
   it never heals; a `vault.modify` with the same content repairs it). The test then opens a genuinely empty
@@ -220,7 +220,7 @@
   ships, a lone `waitUntil` timeout of the form "the rendered … did not appear" on Android is presumed to be
   this. Confirm it by dumping the view's `editor.getValue()` — an EMPTY document is the signature.
 - **The plugin ships NO stylesheet of its own.** There was a `src/styles/main.scss` holding the popover's
-  layout; it was deleted with the popover (`T214-P27`) because `obsidian-dev-utils` now ships the identical
+  layout; it was deleted with the popover because `obsidian-dev-utils` now ships the identical
   block under `.obsidian-dev-utils.popover` in its own styles, injected by `initPluginContext`. If a
   plugin-specific rule is ever needed again, re-create `src/styles/main.scss` **and** import it from
   `src/main.ts` — that import is the only thing that makes it reach `dist/build/styles.css`; a
