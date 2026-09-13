@@ -21,14 +21,14 @@
   - **It lives in `obsidian-dev-utils`, not here** — `editFieldsInPopover`
     (`obsidian/popovers/field-popover`) over the `showPopover` shell (`obsidian/popovers/popover`). It
     started as a plugin-local `src/link-editor-popover.ts`, was extracted because it is
-    entirely plugin-agnostic (G61), and the local copy was deleted. `src/edit-link.ts`
+    entirely plugin-agnostic, and the local copy was deleted. `src/edit-link.ts`
     is the single call site: two fields, `alias` then `url`, whose keys type the resolved record.
   - **The field ORDER is load-bearing, not cosmetic (GH #7).** `showPopover` focuses **and
     selects the FIRST input**, so whichever field is declared first is the one ready to be typed over.
     The alias leads because changing an alias is the more frequent edit. Do NOT reorder these — the
     request was for a *setting* choosing the focused field, and the answer taken was to change the
     default outright, so the order IS the feature. The rejected alternative was a `shouldFocus` knob on
-    dev-utils' `PopoverField` — correct per G61, but a cross-repo change plus a release for a one-line
+    dev-utils' `PopoverField` — correct in principle, but a cross-repo change plus a release for a one-line
     outcome.
   - It takes a resolved `PopoverAnchor` (`{ bottom, doc, left }`) rather than an element, because the
     three entry points know the position in three different ways: `createAnchorFromElement` (the clicked
@@ -127,7 +127,7 @@
     unofficial cache internals (`metadataCache.fileCache` / `computeFileMetadataAsync`) that the test mocks
     do not implement, so the public `getFileCache` is used and the union is done here, de-duplicated by
     key + start offset.
-- **Click interception (`src/link-click-component.ts`) — a second deliberate G51 deviation.** Obsidian
+- **Click interception (`src/link-click-component.ts`) — a second deliberate deviation from the shared plugin architecture.** Obsidian
   raises no event for "a link was clicked", and `openLinkText` is shared with the backlinks pane, search
   and the graph, so patching it would intercept far more than a click in a note. The component therefore
   registers a raw **capture-phase** `click` listener (via the dev-utils `AllWindowsEventComponent`, so
@@ -192,7 +192,7 @@
   `true` (see the `Alt`-vs-`Mod` note above for why on-by-default is safe here). The plugin uses the
   dev-utils `PluginSettingsComponentBase` directly rather than subclassing it — there is nothing to
   validate, and an empty subclass would be untested code against the 100% coverage gate.
-- **`patches/brace-expansion-callable/` — a G51 deviation in the toolchain, not the plugin.** Every
+- **`patches/brace-expansion-callable/` — a deviation in the toolchain, not the plugin.** Every
   `minimatch` in the dependency tree (via `eslint-plugin-import` / `-react` / `-n` /
   `-json-schema-validator`, `glob` and `readdir-glob`) pulls a `brace-expansion` that is vulnerable to
   GHSA-mh99-v99m-4gvg; the fix ships only on the 5.x line, and `npm audit fix --force` "solves" it by
@@ -202,7 +202,7 @@
   `minimatch@3` requires. Same shape as the one `obsidian-dev-utils` uses. **Drop the override, the
   patch directory and the alias devDependency** once the transitive `minimatch`es resolve a patched
   `brace-expansion` on their own — `npm audit` staying at 0 after removal is the check.
-- **The desktop integration project pins the Obsidian version, and it is a knob (G99).** Support is the
+- **The desktop integration project pins the Obsidian version, and it is a knob.** Support is the
   range `[latest public, latest catalyst]` and both ends must work, so
   `scripts/vitest-config.ts` sets `environmentOptions.obsidianTransport.obsidianVersion` to
   `process.env['OBSIDIAN_VERSION'] ?? 'public-latest'`. `npm run test:integration:desktop` therefore covers
@@ -226,7 +226,7 @@
   `src/main.ts` — that import is the only thing that makes it reach `dist/build/styles.css`; a
   `styles.css` at the repo root is silently ignored by the build. Popover-only overrides should instead go
   through `editFieldsInPopover`'s `cssClasses` parameter.
-- **Link/url context menu integration (`src/link-menu-handler.ts`) — deliberate G51 deviation.** The
+- **Link/url context menu integration (`src/link-menu-handler.ts`) — deliberate deviation from the shared plugin architecture.** The
   editors are normal `EditorCommandHandler`s (command palette + `editor-menu`). But on mobile,
   long-pressing a link (and right-clicking a rendered link in Reading view) does **not** fire
   `editor-menu` — Obsidian routes it through `Workspace.handleLinkContextMenu` /

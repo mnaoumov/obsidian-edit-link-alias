@@ -7,7 +7,7 @@
  * of several different surfaces, and patching it would also intercept navigation coming from the
  * backlinks pane, search, the graph, and every other place a link can be followed. So this listens for
  * the DOM `click` in the capture phase, which is the only point where the navigation can still be
- * stopped, and only for clicks that actually land on a link. This is a deliberate G51 deviation,
+ * stopped, and only for clicks that actually land on a link. This is a deliberate deviation from the shared plugin architecture,
  * documented in `AGENTS.md`.
  *
  * "On a link" is decided two ways, because a link is not always a rendered element. A click is first

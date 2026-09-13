@@ -15,7 +15,7 @@
  * Properties panel by the `data-property-key` it rendered, the raw YAML by the pointer position, and the
  * context menu by the url alone (the `url-menu` event carries nothing else).
  *
- * Named `*.cross-platform.integration.test.ts` (per G47), so the desktop AND android projects both
+ * Named `*.cross-platform.integration.test.ts`, so the desktop AND android projects both
  * collect it and the same flow is verified on each.
  */
 

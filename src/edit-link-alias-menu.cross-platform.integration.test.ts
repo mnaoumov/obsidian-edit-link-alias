@@ -9,7 +9,7 @@
  * context menu, invokes the added item, fills the prompt with a new alias, submits, and asserts the
  * source note was rewritten to `[[target|new alias]]`.
  *
- * Named `*.cross-platform.integration.test.ts` (per G47), so the desktop AND android projects both
+ * Named `*.cross-platform.integration.test.ts`, so the desktop AND android projects both
  * collect it and the exact same flow is verified on each.
  */
 

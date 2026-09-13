@@ -21,7 +21,7 @@
  * Note that `defaultPrevented` is NOT usable as evidence here — Obsidian calls `preventDefault()` on
  * link clicks itself — so the assertions are on which note ends up active.
  *
- * Named `*.cross-platform.integration.test.ts` (per G47), so the desktop AND android projects both
+ * Named `*.cross-platform.integration.test.ts`, so the desktop AND android projects both
  * collect it and the same flow is verified on each.
  */
 

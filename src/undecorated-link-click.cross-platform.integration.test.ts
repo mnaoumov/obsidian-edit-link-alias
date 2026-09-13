@@ -15,7 +15,7 @@
  * would pass or fail for the wrong reason. And unlike the decorated suite, the caret is deliberately parked
  * **on** the link's line: that is what makes Live Preview show the raw markdown these cases need.
  *
- * Named `*.cross-platform.integration.test.ts` (per G47), so the desktop AND android projects both
+ * Named `*.cross-platform.integration.test.ts`, so the desktop AND android projects both
  * collect it and the same flow is verified on each.
  */
 
