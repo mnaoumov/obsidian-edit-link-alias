@@ -102,7 +102,7 @@
 ## 1.0.11
 
 - docs: standardize demo-vault README
-- docs: drop per-plugin demo-vault setup notes (bootstrap covered by ODU harness)
+- docs: drop per-plugin demo-vault setup notes (bootstrap covered by the obsidian-dev-utils harness)
 - docs: unnumber demo-vault setup notes
 - docs(demo-vault): number Edit Link Alias demo vault example notes
 - docs(demo-vault): create the Edit Link Alias demo vault
