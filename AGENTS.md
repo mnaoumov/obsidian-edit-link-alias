@@ -245,3 +245,31 @@
   - Desktop de-duplication: on desktop a link right-click in the editor fires **both** `editor-menu` and
     `file-menu`(`link-context-menu`), so `isHandledByEditorMenu()` suppresses both menu items when the
     editor menu already shows them (desktop + `source` mode + cursor on a link). Mobile never suppresses.
+
+## Testing notes
+
+### Why the mobile frames do NOT raise the soft keyboard
+
+Two of the five mobile frames end on a focused field — the alias prompt and the two-field editor — so
+they look like candidates for the device-capture-with-a-keyboard treatment the command-palette frames in
+sibling plugins now use. **Both were implemented, run on a real device, and reverted.** Recording why,
+because the frames alone do not show it and the next reader would reasonably try again:
+
+- **The prompt frame gains nothing.** Its field never moves: measured at `top` 352.4453125 before and
+  after real `adb` taps on it. So either the keyboard does not come up for this modal, or it comes up
+  without Obsidian lifting the modal — and in that second case it would cover the OK and Cancel buttons,
+  which the current frame shows in full. Either way the switch trades a complete picture of the prompt for
+  a status-bar clock.
+- **The editor frame loses its subject entirely.** The editor is a popover, not a modal, and a tap aimed
+  at its field can land outside it — the captured frame came back showing the note and a keyboard with **no
+  editor at all**. The suite's own `dismissPopover` already records that a popover is dismissed differently
+  from a modal; this is the same fact from the other side.
+- **The harness's own check cannot catch the first case**, which is worth knowing before trusting it here.
+  `raiseSoftKeyboard` decides the keyboard is up when the field sits more than a keyboard's height clear
+  of the viewport bottom. That is true of a CENTRED modal with no keyboard at all, so it breaks out of its
+  tap loop before touching anything and reports success. A frame that comes back identical apart from the
+  status bar is what that looks like. The test that does work for this shape is a delta — the field must
+  MOVE — and that is what measured the 352.4453125 above.
+
+So both frames keep `captureObsidianScreenshot`, which photographs the page: no status bar, no clock, and
+byte-reproducible, so a re-capture of an unchanged frame leaves no diff.
