@@ -42,7 +42,7 @@ interface LinkMenuItemDescriptor {
    * @param anchor - Where to place an anchored editor.
    * @returns The editor to run.
    */
-  createEditParsedLink(this: void, anchor: PopoverAnchor): EditParsedLink;
+  createEditParsedLink: (this: void, anchor: PopoverAnchor) => EditParsedLink;
 
   /**
    * The icon of the menu item.

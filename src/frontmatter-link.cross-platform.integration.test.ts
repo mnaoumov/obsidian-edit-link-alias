@@ -162,8 +162,8 @@ interface ParsedFrontmatter {
  * The plugin's settings component, as the tree walk below recognizes it.
  */
 interface SettingsHolder {
-  saveToFile(context: unknown): Promise<void>;
-  setProperty(propertyName: string, value: unknown): Promise<string>;
+  saveToFile: (context: unknown) => Promise<void>;
+  setProperty: (propertyName: string, value: unknown) => Promise<string>;
   settings: Record<string, unknown>;
 }
 describe('Edit a link in the frontmatter', () => {

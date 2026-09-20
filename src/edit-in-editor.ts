@@ -44,7 +44,7 @@ export interface EditLinkAtEditorCursorParams {
   /**
    * Reports that the link could not be located in the source note.
    */
-  showCouldNotLocateNotice(this: void): void;
+  readonly showCouldNotLocateNotice: (this: void) => void;
 
   /**
    * The note being edited, or `null` when the editor is not backed by a file. A cursor in the frontmatter

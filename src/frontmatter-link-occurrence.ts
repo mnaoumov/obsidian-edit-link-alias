@@ -82,7 +82,7 @@ export interface DidResolveAndEditFrontmatterLinkParams {
   /**
    * Reports that the link could not be located in the source note.
    */
-  showCouldNotLocateNotice(this: void): void;
+  readonly showCouldNotLocateNotice: (this: void) => void;
 
   /**
    * The note whose frontmatter holds the link.
