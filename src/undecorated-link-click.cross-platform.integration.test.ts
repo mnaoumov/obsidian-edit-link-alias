@@ -17,9 +17,28 @@
  *
  * Named `*.cross-platform.integration.test.ts`, so the desktop AND android projects both
  * collect it and the same flow is verified on each.
+ *
+ * **The waiting happens in NODE.** One `evalInObsidian` closure is one transport call, capped at ~30s, and
+ * this flow used to declare five waits inside a single one — 85s that the cap could only ever kill as a bare
+ * `script timeout` naming the harness rather than the wait that overran. Each wait is now a
+ * `pollInObsidian`: a short DOM-reading `poll` per transport call, the acceptance decided in Node, and the
+ * budget in `timeoutInMilliseconds`, so `WAIT_TIMEOUT_IN_MILLISECONDS` is a real ceiling for every wait
+ * rather than a share of one it never had. The `it`s carry their own `TEST_TIMEOUT_IN_MILLISECONDS` for the
+ * same reason: the shared config gives this project 30s (desktop) and 60s (android), which is a second
+ * ceiling underneath the waits.
+ *
+ * State that cannot be re-derived rides a {@link ContextId} — the settings component a tree walk finds, and
+ * the note this run created. The active view is re-looked-up in each closure instead, because it is one call
+ * and a carried reference could go stale.
  */
 
-import { evalInObsidian } from 'obsidian-integration-testing';
+import type { TFile } from 'obsidian';
+
+import {
+  ContextId,
+  evalInObsidian,
+  pollInObsidian
+} from 'obsidian-integration-testing';
 import { getTemporaryVault } from 'obsidian-integration-testing/vitest-global-setup-plugin';
 import {
   describe,
@@ -46,8 +65,24 @@ const EXPECTED_EDITED_LINK = `[${NEW_ALIAS}](${NEW_URL})`;
 const INTRO_LINE = 'intro';
 const LINK_LINE_INDEX = 1;
 
+const ALT_CLICK_SETTING_NAME = 'shouldOpenLinkEditorOnAltClick';
+
+/**
+ * The popover `obsidian-dev-utils` builds for this plugin. Every field carries the same `text-box` class, so
+ * the fields are told apart by their order — the order they were handed to `editFieldsInPopover`: alias
+ * first, URL second (the alias leads so the popover focuses it — GH #7).
+ */
+const POPOVER_SELECTOR = `.obsidian-dev-utils.${PLUGIN_ID}.popover`;
+
 const WAIT_TIMEOUT_IN_MILLISECONDS = 20_000;
 const POPOVER_SETTLE_TIMEOUT_IN_MILLISECONDS = 5000;
+
+/**
+ * Node-side budget for one whole scenario. Without it the shared config's 30s desktop / 60s android
+ * `testTimeout` would expire long before the waits below do, which is the ceiling that made moving the
+ * waiting out of the closure only half a fix.
+ */
+const TEST_TIMEOUT_IN_MILLISECONDS = 300_000;
 
 /**
  * The popover's alias and URL fields — the count is what tells "the popover is fully built" apart from "it is
@@ -55,11 +90,33 @@ const POPOVER_SETTLE_TIMEOUT_IN_MILLISECONDS = 5000;
  */
 const POPOVER_FIELD_COUNT = 2;
 
+interface ChildrenHolder {
+  _children?: unknown[];
+}
+
+/**
+ * The plugin's settings component, as the tree walk below recognizes it.
+ */
+interface SettingsHolder {
+  saveToFile(context: unknown): Promise<void>;
+  setProperty(propertyName: string, value: unknown): Promise<string>;
+  settings: Record<string, unknown>;
+}
+
 type UndecoratedScenario = 'bare-url' | 'markdown-link-url-half';
 
 interface UndecoratedScenarioResult {
   readonly sourceContent: string;
   readonly wasPopoverShown: boolean;
+}
+
+/**
+ * What one scenario keeps alive between closures: neither value survives serialization, and neither is worth
+ * re-deriving in every call that needs it.
+ */
+interface UndecoratedSuiteContext {
+  settingsComponent?: SettingsHolder;
+  sourceFile?: TFile;
 }
 describe('Edit an undecorated link by Alt + clicking it', () => {
   it('opens the popover on a bare url the caret is sitting in, and rewrites it', async () => {
@@ -71,7 +128,7 @@ describe('Edit an undecorated link by Alt + clicking it', () => {
 
     expect(result.wasPopoverShown).toBe(true);
     expect(result.sourceContent).toBe(`${INTRO_LINE}\n${EXPECTED_EDITED_LINK}`);
-  });
+  }, TEST_TIMEOUT_IN_MILLISECONDS);
 
   it('opens the popover when the click lands on the url half of a markdown link', async () => {
     // The other half of GH #9: only the alias was clickable, because only the alias is decorated.
@@ -79,8 +136,84 @@ describe('Edit an undecorated link by Alt + clicking it', () => {
 
     expect(result.wasPopoverShown).toBe(true);
     expect(result.sourceContent).toBe(`${INTRO_LINE}\n${EXPECTED_EDITED_LINK}`);
-  });
+  }, TEST_TIMEOUT_IN_MILLISECONDS);
 });
+
+/**
+ * Fills the popover and confirms, then waits — from Node — for the note to change.
+ *
+ * The fill and the OK click stay in ONE closure deliberately: the popover is rebuilt on re-render, so a
+ * split would set values on inputs the confirm no longer belongs to.
+ *
+ * @param contextId - The context carrying the note this run created.
+ * @param initialSourceContent - What the note held before the edit, which is what "changed" is measured
+ * against.
+ */
+async function applyPopoverEdit(contextId: ContextId<UndecoratedSuiteContext>, initialSourceContent: string): Promise<void> {
+  await evalInObsidian({
+    callback({ newAlias, newUrl, popoverSelector }): void {
+      const popoverEl = document.body.querySelector<HTMLElement>(popoverSelector);
+      const [aliasInputEl, urlInputEl] = [...popoverEl?.querySelectorAll('input') ?? []];
+      const okButtonEl = popoverEl?.querySelector<HTMLElement>('.ok-button');
+      if (!urlInputEl || !aliasInputEl || !okButtonEl) {
+        throw new Error('The link editor popover is missing its fields');
+      }
+
+      urlInputEl.value = newUrl;
+      urlInputEl.dispatchEvent(new Event('input', { bubbles: true }));
+      aliasInputEl.value = newAlias;
+      aliasInputEl.dispatchEvent(new Event('input', { bubbles: true }));
+      okButtonEl.click();
+    },
+    input: {
+      newAlias: NEW_ALIAS,
+      newUrl: NEW_URL,
+      popoverSelector: POPOVER_SELECTOR
+    },
+    vaultPath: getTemporaryVault().path
+  });
+
+  await pollInObsidian({
+    contextId,
+    input: { initialSourceContent },
+    async poll({ app, context, initialSourceContent: content }): Promise<boolean> {
+      if (!context.sourceFile) {
+        throw new Error('The source note was never created');
+      }
+      return (await app.vault.read(context.sourceFile)) !== content;
+    },
+    timeoutInMilliseconds: WAIT_TIMEOUT_IN_MILLISECONDS,
+    timeoutMessage: 'the source note was not rewritten',
+    until: (wasRewritten: boolean): boolean => wasRewritten,
+    vaultPath: getTemporaryVault().path
+  });
+}
+
+/**
+ * Waits — from Node — for the link editor popover to be fully built.
+ *
+ * Polling for the popover's PRESENCE is what makes a timeout a legitimate answer rather than a lost race: the
+ * budget is spent in full before `false` is returned, exactly as the in-closure settle it replaces did.
+ *
+ * @returns Whether the popover opened within the settle budget.
+ */
+async function checkPopoverShown(): Promise<boolean> {
+  try {
+    await pollInObsidian({
+      input: { popoverSelector: POPOVER_SELECTOR },
+      poll({ popoverSelector }): number {
+        return document.body.querySelector<HTMLElement>(popoverSelector)?.querySelectorAll('input').length ?? 0;
+      },
+      timeoutInMilliseconds: POPOVER_SETTLE_TIMEOUT_IN_MILLISECONDS,
+      timeoutMessage: 'the link editor popover did not open',
+      until: (fieldCount: number): boolean => fieldCount === POPOVER_FIELD_COUNT,
+      vaultPath: getTemporaryVault().path
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 function getInitialSourceContent(scenario: UndecoratedScenario): string {
   const link = scenario === 'bare-url' ? BARE_URL : `[${MARKDOWN_LINK_ALIAS}](${MARKDOWN_LINK_URL})`;
@@ -88,127 +221,86 @@ function getInitialSourceContent(scenario: UndecoratedScenario): string {
 }
 
 async function runScenario(requestedScenario: UndecoratedScenario): Promise<UndecoratedScenarioResult> {
-  return await evalInObsidian({
-    async callback({
-      app,
-      clickedUrl,
-      initialSourceContent,
-      lib: { clickMouse, createNote, waitUntil },
-      linkLineIndex,
-      newAlias,
-      newUrl,
-      obsidianModule,
-      pluginId,
-      popoverFieldCount,
-      popoverSettleTimeoutInMilliseconds,
-      sourcePath,
-      waitTimeoutInMilliseconds
-    }) {
-      interface ChildrenHolder {
-        _children?: unknown[];
-      }
+  const clickedUrl = requestedScenario === 'bare-url' ? BARE_URL : MARKDOWN_LINK_URL;
+  const initialSourceContent = getInitialSourceContent(requestedScenario);
+  const contextId = new ContextId<UndecoratedSuiteContext>();
 
-      interface SettingsHolder {
-        saveToFile(context: unknown): Promise<void>;
-        setProperty(propertyName: string, value: unknown): Promise<string>;
-        settings: Record<string, unknown>;
-      }
+  try {
+    /*
+     * The Alt-click setting is set explicitly rather than relied on: it defaults to on, but a suite that ran
+     * earlier in the same Obsidian instance turns it off for its own control case and does not restore it.
+     */
+    await pollInObsidian({
+      contextId,
+      input: {
+        altClickSettingName: ALT_CLICK_SETTING_NAME,
+        initialSourceContent,
+        pluginId: PLUGIN_ID,
+        sourcePath: SOURCE_PATH
+      },
+      poll({ altClickSettingName, context }): boolean {
+        return context.settingsComponent?.settings[altClickSettingName] === true;
+      },
+      async start({ altClickSettingName, app, context, initialSourceContent: content, lib: { createNote }, pluginId, sourcePath }): Promise<void> {
+        const existing = app.vault.getAbstractFileByPath(sourcePath);
+        if (existing) {
+          await app.fileManager.trashFile(existing);
+        }
+        context.sourceFile = await createNote({ content, path: sourcePath });
 
-      /*
-       * The Alt-click setting is set explicitly rather than relied on: it defaults to on, but a suite that ran
-       * earlier in the same Obsidian instance turns it off for its own control case and does not restore it.
-       */
-      function findSettingsComponent(root: unknown): null | SettingsHolder {
-        const queue: unknown[] = [root];
+        const queue: unknown[] = [app.plugins.getPlugin(pluginId)];
         while (queue.length > 0) {
           const candidate = queue.shift();
           if (typeof candidate !== 'object' || candidate === null) {
             continue;
           }
           const settings = (candidate as Partial<SettingsHolder>).settings;
-          if (settings && typeof settings === 'object' && 'shouldOpenLinkEditorOnAltClick' in settings) {
-            return candidate as SettingsHolder;
+          if (settings && typeof settings === 'object' && typeof settings[altClickSettingName] === 'boolean') {
+            context.settingsComponent = candidate as SettingsHolder;
+            break;
           }
           queue.push(...((candidate as ChildrenHolder)._children ?? []));
         }
-        return null;
-      }
 
-      function getPopoverEl(): HTMLElement | null {
-        return document.body.querySelector<HTMLElement>(`.obsidian-dev-utils.${pluginId}.popover`);
-      }
-
-      /*
-       * Every popover field carries the same `text-box` class, so the fields are told apart by their order —
-       * the order they were handed to `editFieldsInPopover`: alias first, URL second (the alias leads so the
-       * popover focuses it — GH #7).
-       *
-       * @returns The popover's input elements, in declaration order.
-       */
-      function getPopoverInputEls(): HTMLInputElement[] {
-        return [...getPopoverEl()?.querySelectorAll('input') ?? []];
-      }
-
-      /**
-       * Finds where the given text is rendered, so the click lands on the url itself rather than merely
-       * somewhere on its line. The url half of a markdown link is its own span, which is precisely why the
-       * link selector never matched it.
-       *
-       * @param containerEl - The view container to search.
-       * @param text - The text to locate.
-       * @returns The rectangle of the innermost element rendering the text.
-       */
-      function findTextRect(containerEl: HTMLElement, text: string): DOMRect {
-        const candidateEls = [...containerEl.querySelectorAll<HTMLElement>(':scope .cm-line span, :scope .cm-line')];
-        // The innermost match: an outer `.cm-line` also contains the text, but its centre may miss the url.
-        const matchingEls = candidateEls.filter((candidate) => candidate.textContent.includes(text));
-        const el = matchingEls.at(-1);
-        if (!el) {
-          throw new Error(`The editor does not render the text ${text}`);
+        const settingsComponent = context.settingsComponent;
+        if (!settingsComponent) {
+          throw new Error('Could not find the plugin settings component');
         }
-        return el.getBoundingClientRect();
-      }
+        await settingsComponent.setProperty(altClickSettingName, true);
+        await settingsComponent.saveToFile(null);
+      },
+      timeoutInMilliseconds: WAIT_TIMEOUT_IN_MILLISECONDS,
+      timeoutMessage: 'the Alt-click setting did not take effect',
+      until: (isEnabled: boolean): boolean => isEnabled,
+      vaultPath: getTemporaryVault().path
+    });
 
-      async function trashSourceNote(): Promise<void> {
-        const existing = app.vault.getAbstractFileByPath(sourcePath);
-        if (existing) {
-          await app.fileManager.trashFile(existing);
+    await pollInObsidian({
+      contextId,
+      input: { sourcePath: SOURCE_PATH },
+      poll({ app, obsidianModule, sourcePath }): boolean {
+        const candidate = app.workspace.getActiveViewOfType(obsidianModule.MarkdownView);
+        return candidate?.file?.path === sourcePath && candidate.getMode() === 'source';
+      },
+      async start({ app, context }): Promise<void> {
+        if (!context.sourceFile) {
+          throw new Error('The source note was never created');
         }
-      }
+        const leaf = app.workspace.getLeaf(true);
+        await leaf.openFile(context.sourceFile, { state: { mode: 'source', source: false } });
+        await app.workspace.revealLeaf(leaf);
+      },
+      timeoutInMilliseconds: WAIT_TIMEOUT_IN_MILLISECONDS,
+      timeoutMessage: 'the source note did not become the active Live Preview view',
+      until: (isActive: boolean): boolean => isActive,
+      vaultPath: getTemporaryVault().path
+    });
 
-      await trashSourceNote();
-      const sourceFile = await createNote({ content: initialSourceContent, path: sourcePath });
-
-      const settingsComponent = findSettingsComponent(app.plugins.getPlugin(pluginId));
-      if (!settingsComponent) {
-        throw new Error('Could not find the plugin settings component');
-      }
-      await settingsComponent.setProperty('shouldOpenLinkEditorOnAltClick', true);
-      await settingsComponent.saveToFile(null);
-      await waitUntil({
-        message: 'the Alt-click setting did not take effect',
-        predicate: () => settingsComponent.settings['shouldOpenLinkEditorOnAltClick'] === true,
-        timeoutInMilliseconds: waitTimeoutInMilliseconds
-      });
-
-      const leaf = app.workspace.getLeaf(true);
-      await leaf.openFile(sourceFile, { state: { mode: 'source', source: false } });
-      await app.workspace.revealLeaf(leaf);
-
-      await waitUntil({
-        message: 'the source note did not become the active Live Preview view',
-        predicate: () => {
-          const candidate = app.workspace.getActiveViewOfType(obsidianModule.MarkdownView);
-          return candidate?.file?.path === sourcePath && candidate.getMode() === 'source';
-        },
-        timeoutInMilliseconds: waitTimeoutInMilliseconds
-      });
-
-      const view = app.workspace.getActiveViewOfType(obsidianModule.MarkdownView);
-      if (!view) {
-        throw new Error('The source note view disappeared');
-      }
-
+    await pollInObsidian({
+      input: { clickedUrl, linkLineIndex: LINK_LINE_INDEX },
+      poll({ app, clickedUrl: url, obsidianModule }): boolean {
+        return app.workspace.getActiveViewOfType(obsidianModule.MarkdownView)?.containerEl.textContent.includes(url) ?? false;
+      },
       /*
        * ON the link's line, not off it. Live Preview renders the caret's own line as raw markdown, which is
        * what strips the decoration and produces the very situation GH #9 reported.
@@ -218,77 +310,81 @@ async function runScenario(requestedScenario: UndecoratedScenario): Promise<Unde
        * gives it any — the active element stays the `body`, so the line keeps rendering as `old alias` and
        * the url never appears at all.
        */
-      view.editor.focus();
-      view.editor.setCursor({ ch: 0, line: linkLineIndex });
+      start({ app, linkLineIndex, obsidianModule }): void {
+        const view = app.workspace.getActiveViewOfType(obsidianModule.MarkdownView);
+        if (!view) {
+          throw new Error('The source note view disappeared');
+        }
+        view.editor.focus();
+        view.editor.setCursor({ ch: 0, line: linkLineIndex });
+      },
+      timeoutInMilliseconds: WAIT_TIMEOUT_IN_MILLISECONDS,
+      timeoutMessage: 'the raw link text did not render',
+      until: (isRendered: boolean): boolean => isRendered,
+      vaultPath: getTemporaryVault().path
+    });
 
-      await waitUntil({
-        message: 'the raw link text did not render',
-        predicate: () => view.containerEl.textContent.includes(clickedUrl),
-        timeoutInMilliseconds: waitTimeoutInMilliseconds
-      });
-
-      /*
-       * A TRUSTED click on BOTH platforms, so it reaches the editor's pointer handling the way a user's
-       * does; a dispatched `MouseEvent` is `isTrusted === false` and can be ignored outright. `clickMouse`
-       * is an Electron `sendInputEvent` on desktop and a CDP touch injection on Android, and the `Alt`
-       * modifier rides along on either — so this file needs no platform branch.
-       */
-      const rect = findTextRect(view.containerEl, clickedUrl);
-      await clickMouse({ modifiers: ['Alt'], x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
-
-      let wasPopoverShown: boolean;
-      try {
-        await waitUntil({
-          message: 'the link editor popover did not open',
-          predicate: () => getPopoverInputEls().length === popoverFieldCount,
-          timeoutInMilliseconds: popoverSettleTimeoutInMilliseconds
-        });
-        wasPopoverShown = true;
-      } catch {
-        wasPopoverShown = false;
-      }
-
-      if (wasPopoverShown) {
-        const [aliasInputEl, urlInputEl] = getPopoverInputEls();
-        const okButtonEl = getPopoverEl()?.querySelector<HTMLElement>('.ok-button');
-        if (!urlInputEl || !aliasInputEl || !okButtonEl) {
-          throw new Error('The link editor popover is missing its fields');
+    /*
+     * Measuring the rect and clicking its centre stay in ONE closure: a rect handed back to Node is a
+     * snapshot, and the editor may have scrolled or re-laid-out by the time the click returns.
+     *
+     * A TRUSTED click on BOTH platforms, so it reaches the editor's pointer handling the way a user's
+     * does; a dispatched `MouseEvent` is `isTrusted === false` and can be ignored outright. `clickMouse`
+     * is an Electron `sendInputEvent` on desktop and a CDP touch injection on Android, and the `Alt`
+     * modifier rides along on either — so this file needs no platform branch.
+     */
+    await evalInObsidian({
+      async callback({ app, clickedUrl: url, lib: { clickMouse }, obsidianModule }): Promise<void> {
+        const view = app.workspace.getActiveViewOfType(obsidianModule.MarkdownView);
+        if (!view) {
+          throw new Error('The source note view disappeared');
         }
 
-        urlInputEl.value = newUrl;
-        urlInputEl.dispatchEvent(new Event('input', { bubbles: true }));
-        aliasInputEl.value = newAlias;
-        aliasInputEl.dispatchEvent(new Event('input', { bubbles: true }));
-        okButtonEl.click();
+        /*
+         * The innermost element rendering the url, so the click lands on the url itself rather than merely
+         * somewhere on its line: an outer `.cm-line` also contains the text, but its centre may miss the
+         * url. The url half of a markdown link is its own span, which is precisely why the link selector
+         * never matched it.
+         */
+        const candidateEls = [...view.containerEl.querySelectorAll<HTMLElement>(':scope .cm-line span, :scope .cm-line')];
+        // eslint-disable-next-line unicorn/prefer-array-find -- `findLast` is ES2023 and this project's `lib` is ES2022, so it resolves to no type at all.
+        const el = candidateEls.filter((candidate) => candidate.textContent.includes(url)).at(-1);
+        if (!el) {
+          throw new Error(`The editor does not render the text ${url}`);
+        }
 
-        await waitUntil({
-          message: 'the source note was not rewritten',
-          predicate: async () => (await app.vault.read(sourceFile)) !== initialSourceContent,
-          timeoutInMilliseconds: waitTimeoutInMilliseconds
-        });
-      }
+        const rect = el.getBoundingClientRect();
+        await clickMouse({ modifiers: ['Alt'], x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+      },
+      input: { clickedUrl },
+      vaultPath: getTemporaryVault().path
+    });
 
-      const sourceContent = await app.vault.read(sourceFile);
+    const wasPopoverShown = await checkPopoverShown();
 
-      await trashSourceNote();
+    if (wasPopoverShown) {
+      await applyPopoverEdit(contextId, initialSourceContent);
+    }
 
-      return {
-        sourceContent,
-        wasPopoverShown
-      };
-    },
-    input: {
-      clickedUrl: requestedScenario === 'bare-url' ? BARE_URL : MARKDOWN_LINK_URL,
-      initialSourceContent: getInitialSourceContent(requestedScenario),
-      linkLineIndex: LINK_LINE_INDEX,
-      newAlias: NEW_ALIAS,
-      newUrl: NEW_URL,
-      pluginId: PLUGIN_ID,
-      popoverFieldCount: POPOVER_FIELD_COUNT,
-      popoverSettleTimeoutInMilliseconds: POPOVER_SETTLE_TIMEOUT_IN_MILLISECONDS,
-      sourcePath: SOURCE_PATH,
-      waitTimeoutInMilliseconds: WAIT_TIMEOUT_IN_MILLISECONDS
-    },
-    vaultPath: getTemporaryVault().path
-  });
+    const sourceContent = await evalInObsidian({
+      async callback({ app, context }): Promise<string> {
+        if (!context.sourceFile) {
+          throw new Error('The source note was never created');
+        }
+
+        const content = await app.vault.read(context.sourceFile);
+        await app.fileManager.trashFile(context.sourceFile);
+        return content;
+      },
+      contextId,
+      vaultPath: getTemporaryVault().path
+    });
+
+    return {
+      sourceContent,
+      wasPopoverShown
+    };
+  } finally {
+    await contextId.dispose(getTemporaryVault().path);
+  }
 }

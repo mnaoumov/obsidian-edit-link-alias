@@ -42,11 +42,12 @@
     `menu obsidian-dev-utils edit-link-alias popover`, the OK/Cancel buttons `ok-button` / `cancel-button`,
     and EVERY field the same `text-box` class — there is no per-field class, so a test tells the alias
     field from the URL field by their order, not by a selector. **Four suites destructure that order**
-    (`const [aliasInputEl, urlInputEl] = getPopoverInputEls()` in the `edit-link-alias-menu`,
-    `frontmatter-link`, `link-click-popover` and `undecorated-link-click`
-    `*.cross-platform.integration.test.ts` suites), and `src/edit-link.test.ts` asserts it — so a
-    reorder is a five-file change, and getting it half-right silently swaps the url and the alias in every
-    assertion.
+    (`const [aliasInputEl, urlInputEl] = …` in the `edit-link-alias-menu`, `frontmatter-link`,
+    `link-click-popover` and `undecorated-link-click` `*.cross-platform.integration.test.ts` suites —
+    through a local `getPopoverInputEls()` in the menu suite, and straight off the popover element in the
+    other three, whose closures were split to move their waiting into Node), and `src/edit-link.test.ts`
+    asserts it — so a reorder is a five-file change, and getting it half-right silently swaps the url and
+    the alias in every assertion.
 - **`PointerPositionComponent` exists only because the context menu has no anchor.** The `file-menu` /
   `url-menu` events carry the target file or url but no event and no element, and by the time a menu
   item's callback runs the menu is closing — so nothing is left to measure. The right-click / long-press
@@ -249,6 +250,37 @@
     editor menu already shows them (desktop + `source` mode + cursor on a link). Mobile never suppresses.
 
 ## Testing notes
+
+### Three cross-platform suites wait in NODE, and there are TWO ceilings, not one
+
+`frontmatter-link`, `link-click-popover` and `undecorated-link-click` drive their flows as a sequence of
+short `evalInObsidian` / `pollInObsidian` calls rather than one long closure, and the other two
+cross-platform suites (`edit-link-alias-menu`, `plugin`) deliberately do not. The difference is how much
+each closure declares:
+
+- **A closure is one transport call, capped at ~30s.** These three declared 125s, 104s and 85s inside a
+  single closure, which the cap can only ever kill as a bare `script timeout` naming
+  `AppiumTransport.evaluate` — the harness, never the wait that overran. `edit-link-alias-menu` instead
+  sized its file-level ceiling to 6000 and says so in a comment opening
+  `Under the transport's ~30s per-closure cap, not at it.`, which is the convention for a budget somebody
+  read and kept. **Sizing was not available to these three**: seven waits sharing one 30s budget leaves
+  ~3.4s each, and three or four seconds is not enough for a popover to open on a cold phone.
+- **The `it`s carry an explicit `TEST_TIMEOUT_IN_MILLISECONDS` (300 000), and that is load-bearing.** The
+  shared vitest config gives this project a `testTimeout` of 30s (desktop) and 60s (android). Node-side
+  waiting is only real if the test is allowed to last, so moving the waits out without raising the test
+  timeout would have swapped one invisible ceiling for another.
+
+Two shapes are kept in ONE closure on purpose, and each says so at the site: **measuring an element's rect
+and clicking its centre** (a rect handed back to Node is a snapshot, and `clickElement` takes a live
+renderer node), and **filling the popover's two fields and pressing OK** (the popover is rebuilt on
+re-render). State that cannot be re-derived — the settings component the tree walk finds, and the note the
+run created — rides a `ContextId`; the active `MarkdownView` is re-looked-up per closure instead, because
+that is one call and a carried reference can go stale.
+
+**`wasPopoverShown: false` is reached by polling for PRESENCE, never for absence.** The two
+`link-click-popover` control cases expect no popover, and they spend the whole settle budget waiting for
+one to appear before answering `false`. Polling for an absence that is already true would accept instantly,
+before the popover had a chance to open, and both control cases would pass for the wrong reason.
 
 ### Why the mobile frames do NOT raise the soft keyboard
 
