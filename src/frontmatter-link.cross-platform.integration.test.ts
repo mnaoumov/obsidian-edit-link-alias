@@ -215,46 +215,27 @@ async function runClickScenario(requestedScenario: FrontmatterScenario): Promise
 
       /*
        * A click carries real coordinates because the raw-YAML path resolves the link through
-       * `Editor.posAtMouse` — a click without them lands at the very start of the document.
+       * `Editor.posAtMouse` — a click without them lands at the very start of the document. It takes no
+       * element, only a point: the element was the dispatch target, and the dispatch is gone.
        *
-       * On desktop it is a TRUSTED click, so it reaches the editor's pointer handling the way a user's
-       * does; a dispatched `MouseEvent` is `isTrusted === false` and can be ignored outright. The trusted
-       * helpers are built on `window.electron`, which Android does not have, so the phone keeps the
-       * dispatch — this file runs on both platforms.
+       * A TRUSTED click on BOTH platforms, so it reaches the editor's pointer handling the way a user's
+       * does; a dispatched `MouseEvent` is `isTrusted === false` and can be ignored outright. `clickMouse`
+       * is an Electron `sendInputEvent` on desktop and a CDP touch injection on Android, and the `Alt`
+       * modifier rides along on either — so this file needs no platform branch.
        */
-      async function clickAt(el: HTMLElement, clientX: number, clientY: number): Promise<void> {
-        if (obsidianModule.Platform.isDesktopApp) {
-          await clickMouse({ modifiers: ['Alt'], x: clientX, y: clientY });
-          return;
-        }
-
-        // eslint-disable-next-line obsidian-dev-utils/no-untrusted-input-events -- The mobile arm of a Platform.isDesktopApp branch: the trusted helpers need window.electron, which Android does not have, and this file runs on both platforms.
-        el.dispatchEvent(
-          new MouseEvent('click', {
-            altKey: true,
-            bubbles: true,
-            button: 0,
-            cancelable: true,
-            clientX,
-            clientY
-          })
-        );
-      }
-
-      async function clickElementCentre(el: HTMLElement): Promise<void> {
-        const rect = el.getBoundingClientRect();
-        await clickAt(el, rect.left + rect.width / 2, rect.top + rect.height / 2);
+      async function altClickCentreOf(rect: DOMRect): Promise<void> {
+        await clickMouse({ modifiers: ['Alt'], x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
       }
 
       /**
-       * Finds the point where the given text is rendered inside the raw frontmatter, so the click lands on
-       * the url itself rather than merely somewhere on its line.
+       * Finds where the given text is rendered inside the raw frontmatter, so the click lands on the url
+       * itself rather than merely somewhere on its line.
        *
        * @param containerEl - The view container to search.
        * @param text - The text to locate.
-       * @returns The centre of the text's rectangle.
+       * @returns The rectangle of the element rendering the text.
        */
-      function findTextPoint(containerEl: HTMLElement, text: string): DOMRect {
+      function findTextRect(containerEl: HTMLElement, text: string): DOMRect {
         const spanEls = [...containerEl.querySelectorAll<HTMLElement>(':scope .cm-line span, :scope .cm-line')];
         const spanEl = spanEls.find((candidate) => candidate.textContent.includes(text));
         if (!spanEl) {
@@ -325,8 +306,7 @@ async function runClickScenario(requestedScenario: FrontmatterScenario): Promise
           timeoutInMilliseconds: waitTimeoutInMilliseconds
         });
 
-        const rect = findTextPoint(view.containerEl, textPropertyUrl);
-        await clickAt(view.containerEl, rect.left + rect.width / 2, rect.top + rect.height / 2);
+        await altClickCentreOf(findTextRect(view.containerEl, textPropertyUrl));
       } else {
         /*
          * The uppercase scenario queries the LOWERCASE key on purpose: that is what the panel puts in the
@@ -351,7 +331,7 @@ async function runClickScenario(requestedScenario: FrontmatterScenario): Promise
           throw new Error('The rendered property link disappeared');
         }
 
-        await clickElementCentre(linkEl);
+        await altClickCentreOf(linkEl.getBoundingClientRect());
       }
 
       let wasPopoverShown: boolean;

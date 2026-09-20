@@ -4,8 +4,8 @@
  * Shared integration suite for the Alt-click-to-edit behavior: `Alt` + clicking a rendered link opens
  * the anchored URL + alias popover instead of opening the link.
  *
- * It runs against a real Obsidian: it creates a note containing `[[target|old alias]]`, opens it, dispatches
- * a real `Alt` click on the rendered link, fills the popover and confirms, then asserts the source note was
+ * It runs against a real Obsidian: it creates a note containing `[[target|old alias]]`, opens it, lands a
+ * real `Alt` click on the rendered link, fills the popover and confirms, then asserts the source note was
  * rewritten AND that the navigation was suppressed (the source note is still the active file).
  *
  * **Every mode is covered, not just Reading view.** A Reading-view-only suite is exactly what let GH #4 ship:
@@ -280,36 +280,6 @@ async function runClickScenario(params: RunClickScenarioParams): Promise<ClickSc
         return null;
       }
 
-      /*
-       * The coordinates are what identifies the link in an editing view (`Editor.posAtMouse`), so a click
-       * without them would resolve to the very start of the document. The element's own centre is the
-       * point the user would have hit.
-       *
-       * On desktop it is a TRUSTED click, so it reaches the editor's pointer handling the way a user's
-       * does; a dispatched `MouseEvent` is `isTrusted === false` and can be ignored outright. The trusted
-       * helpers are built on `window.electron`, which Android does not have, so the phone keeps the
-       * dispatch — this file runs on both platforms.
-       */
-      async function clickLink(linkEl: HTMLElement): Promise<void> {
-        if (obsidianModule.Platform.isDesktopApp) {
-          await clickElement({ element: linkEl, modifiers: shouldUseAlt ? ['Alt'] : [] });
-          return;
-        }
-
-        const rect = linkEl.getBoundingClientRect();
-        // eslint-disable-next-line obsidian-dev-utils/no-untrusted-input-events -- The mobile arm of a Platform.isDesktopApp branch: the trusted helpers need window.electron, which Android does not have, and this file runs on both platforms.
-        linkEl.dispatchEvent(
-          new MouseEvent('click', {
-            altKey: shouldUseAlt,
-            bubbles: true,
-            button: 0,
-            cancelable: true,
-            clientX: rect.left + rect.width / 2,
-            clientY: rect.top + rect.height / 2
-          })
-        );
-      }
-
       async function trashNotes(): Promise<void> {
         for (const path of [sourcePath, targetPath]) {
           const existing = app.vault.getAbstractFileByPath(path);
@@ -437,7 +407,17 @@ async function runClickScenario(params: RunClickScenarioParams): Promise<ClickSc
         throw new Error('The rendered link disappeared');
       }
 
-      await clickLink(linkEl);
+      /*
+       * `clickElement` aims at the element's own centre — the point the user would have hit — and that
+       * point is what identifies the link in an editing view (`Editor.posAtMouse`); a click without
+       * coordinates would resolve to the very start of the document.
+       *
+       * A TRUSTED click on BOTH platforms, so it reaches the editor's pointer handling the way a user's
+       * does; a dispatched `MouseEvent` is `isTrusted === false` and can be ignored outright. It is an
+       * Electron `sendInputEvent` on desktop and a CDP touch injection on Android, and the `Alt` modifier
+       * rides along on either — so this file needs no platform branch.
+       */
+      await clickElement({ element: linkEl, modifiers: shouldUseAlt ? ['Alt'] : [] });
 
       /*
        * The popover is expected NOT to open in the control cases, so a timeout here is a legitimate
