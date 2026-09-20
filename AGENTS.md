@@ -42,8 +42,9 @@
     `menu obsidian-dev-utils edit-link-alias popover`, the OK/Cancel buttons `ok-button` / `cancel-button`,
     and EVERY field the same `text-box` class — there is no per-field class, so a test tells the alias
     field from the URL field by their order, not by a selector. **Four suites destructure that order**
-    (`const [aliasInputEl, urlInputEl] = getPopoverInputEls()` in the three `*-shared.integration.test.ts`
-    popover suites plus `undecorated-link-click-shared`), and `src/edit-link.test.ts` asserts it — so a
+    (`const [aliasInputEl, urlInputEl] = getPopoverInputEls()` in the `edit-link-alias-menu`,
+    `frontmatter-link`, `link-click-popover` and `undecorated-link-click`
+    `*.cross-platform.integration.test.ts` suites), and `src/edit-link.test.ts` asserts it — so a
     reorder is a five-file change, and getting it half-right silently swaps the url and the alias in every
     assertion.
 - **`PointerPositionComponent` exists only because the context menu has no anchor.** The `file-menu` /
@@ -173,15 +174,16 @@
     editor position. Capture-phase `click` alone is enough in **every** mode — navigation is already
     suppressed in Live Preview, so there is no need to also intercept `mousedown` (checked against a real
     Obsidian while fixing GH #4).
-  - **`link-click-popover-shared.integration.test.ts` must keep covering every mode, and the dispatched
-    `MouseEvent` must carry real `clientX`/`clientY`.** The suite was Reading-view-only, which is precisely
+  - **`link-click-popover.cross-platform.integration.test.ts` must keep covering every mode, and the click
+    must land on real `clientX`/`clientY`.** The suite was Reading-view-only, which is precisely
     why GH #4 shipped — Reading view is the one mode that works through `data-href` and so exercises none of
-    the position path. A click dispatched without coordinates makes `posAtMouse` resolve to the start of the
+    the position path. A click without coordinates makes `posAtMouse` resolve to the start of the
     document, so the test would pass or fail for the wrong reason; take them from the link element's
-    bounding-rect centre. Live Preview also needs the caret parked off the link's line, or Live Preview
+    bounding-rect centre — which is what `clickElement` aims at, and why the suite passes it the element
+    rather than a point. Live Preview also needs the caret parked off the link's line, or Live Preview
     renders that line as raw markdown instead of the decorated link — hence the two-line fixture.
-  - **The mirror-image suite, `undecorated-link-click-shared.integration.test.ts`, must FOCUS the editor and
-    not merely place the caret.** Live Preview un-decorates the caret's own line only while the editor
+  - **The mirror-image suite, `undecorated-link-click.cross-platform.integration.test.ts`, must FOCUS the
+    editor and not merely place the caret.** Live Preview un-decorates the caret's own line only while the editor
     actually holds the focus, and on Android neither `openFile` nor `revealLeaf` gives it any — the active
     element stays the `body` (measured on the emulator: `editor.hasFocus()` `false` and the line still reads
     `old alias`; after `editor.focus()`, `true` and it reads `[old alias](https://…)`). Without the explicit
