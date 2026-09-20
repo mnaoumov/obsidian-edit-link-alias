@@ -55,7 +55,7 @@ vi.mock('./edit-url-and-alias-command-handler.ts', () => ({
 const { register } = vi.hoisted(() => ({ register: vi.fn() }));
 
 interface MockLinkMenuHandler {
-  register(): void;
+  register: () => void;
 }
 
 vi.mock('./link-menu-handler.ts', () => ({

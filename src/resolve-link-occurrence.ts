@@ -75,7 +75,7 @@ export interface ResolveAndEditLinkParams {
   /**
    * Reports that the link could not be located in the source note.
    */
-  showCouldNotLocateNotice(this: void): void;
+  readonly showCouldNotLocateNotice: (this: void) => void;
 
   /**
    * Where in the source note the gesture landed, when the caller knows it. A click knows it exactly (from
@@ -93,7 +93,7 @@ interface EditLinkOccurrenceViaSourceScanParams {
   readonly app: App;
   readonly editParsedLink: EditParsedLink;
   readonly linkTarget: LinkTarget;
-  showCouldNotLocateNotice(this: void): void;
+  readonly showCouldNotLocateNotice: (this: void) => void;
   readonly sourceFile: TFile;
 }
 
@@ -107,7 +107,7 @@ interface TryEditLinkAtPositionParams {
   readonly editorPosition: EditorPosition;
   readonly editParsedLink: EditParsedLink;
   readonly linkTarget: LinkTarget;
-  showCouldNotLocateNotice(this: void): void;
+  readonly showCouldNotLocateNotice: (this: void) => void;
   readonly sourceFile: TFile;
   readonly view: MarkdownView;
 }

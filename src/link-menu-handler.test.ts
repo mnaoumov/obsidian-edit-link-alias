@@ -60,7 +60,7 @@ const LINK_CONTEXT_MENU_SOURCE = 'link-context-menu';
 
 interface CapturedMenuItem {
   icon?: string;
-  onClick?(this: void): void;
+  onClick?: (this: void) => void;
   section?: string;
   title?: string;
 }

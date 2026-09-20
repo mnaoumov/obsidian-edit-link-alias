@@ -32,7 +32,7 @@ export interface EditParsedLinkParams {
    *
    * @param newRawLink - The rebuilt raw markdown/wiki link to write in place of the original.
    */
-  applyReplacement(this: void, newRawLink: string): Promisable<void>;
+  readonly applyReplacement: (this: void, newRawLink: string) => Promisable<void>;
 
   /**
    * The parsed link being edited.
