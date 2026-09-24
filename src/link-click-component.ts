@@ -15,8 +15,8 @@
  * click's position instead ({@link LinkClickComponent.handleEditorPositionClick}), which is what covers
  * raw frontmatter YAML and the undecorated markdown Live Preview shows around the caret.
  *
- * The gesture that opens the editor is chosen by {@link LinkClickAction}; the other gesture is left
- * entirely untouched, so it keeps whatever meaning Obsidian gives it.
+ * The editor opens on a plain `Alt` click, gated by {@link PluginSettings.shouldOpenLinkEditorOnAltClick};
+ * every other gesture is left entirely untouched, so it keeps whatever meaning Obsidian gives it.
  */
 
 import type {
@@ -83,7 +83,7 @@ export interface LinkClickComponentConstructorParams {
   readonly pluginNoticeComponent: PluginNoticeComponent;
 
   /**
-   * The settings component holding the configured {@link LinkClickAction}.
+   * The settings component holding {@link PluginSettings.shouldOpenLinkEditorOnAltClick}.
    */
   readonly pluginSettingsComponent: PluginSettingsComponentBase<PluginSettings>;
 }
