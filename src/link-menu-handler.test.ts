@@ -234,10 +234,11 @@ function createHandler(): LinkMenuHandler {
 function createLeafWithMarkdownView(mode: 'preview' | 'source'): WorkspaceLeaf {
   const view = castTo<MarkdownView>(Object.create(MarkdownView.prototype));
   Object.assign(view, {
-    editor: createMockEditor(),
     file: strictProxy<TFile>({ path: 'source.md' }),
     getMode: () => mode
   });
+  // `MarkdownView.editor` is a prototype getter, so a plain assignment throws; shadow it with an own property.
+  Object.defineProperty(view, 'editor', { value: createMockEditor() });
   return castTo<WorkspaceLeaf>({ view });
 }
 

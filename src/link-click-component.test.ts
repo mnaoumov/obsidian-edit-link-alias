@@ -178,14 +178,17 @@ beforeEach(() => {
   const view = castTo<MarkdownViewType>(Object.create(MarkdownView.prototype));
   Object.assign(view, {
     containerEl,
-    editor: strictProxy<Editor>({
+    file: strictProxy<TFile>({ path: SOURCE_PATH }),
+    getMode: () => viewMode
+  });
+  // `MarkdownView.editor` is a prototype getter, so a plain assignment throws; shadow it with an own property.
+  Object.defineProperty(view, 'editor', {
+    value: strictProxy<Editor>({
       getDoc: vi.fn().mockImplementation(() => strictProxy({ getLine: (line: number) => editorContent.split('\n')[line] ?? '' })),
       getValue: () => editorContent,
       posAtMouse: castTo<Editor['posAtMouse']>(posAtMouse),
       posToOffset: (position: EditorPosition) => toOffset(editorContent, position)
-    }),
-    file: strictProxy<TFile>({ path: SOURCE_PATH }),
-    getMode: () => viewMode
+    })
   });
   app.workspace.iterateAllLeaves = vi.fn((callback: (leaf: WorkspaceLeaf) => unknown) => {
     callback(castTo<WorkspaceLeaf>({ view }));
