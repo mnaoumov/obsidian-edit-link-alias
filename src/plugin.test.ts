@@ -104,7 +104,7 @@ interface ComponentChildrenHolder {
 let app: AppOriginal;
 
 // `registerCommandHandlers` takes a factory since obsidian-dev-utils 89.0.0, and the base registers its
-// Own handlers through the same spy — so pick the plugin's own factory by what it builds.
+// own handlers through the same spy — so pick the plugin's own factory by what it builds.
 function buildPluginCommandHandlers(): unknown[] {
   const commandHandlerBatches = registerCommandHandlers.mock.calls
     .map(([commandHandlerFactory]) => castTo<() => unknown[]>(commandHandlerFactory)());

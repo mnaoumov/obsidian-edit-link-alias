@@ -111,7 +111,7 @@ beforeAll(async () => {
       });
 
       // Nothing but the note matters in these shots: the file explorer and an
-      // Empty right dock would otherwise take a third of a 1200x800 frame.
+      // empty right dock would otherwise take a third of a 1200x800 frame.
       app.workspace.leftSplit.collapse();
       const rightSplit: unknown = app.workspace.rightSplit;
       (rightSplit as ResizableSideDock).setSize(0);
@@ -150,8 +150,8 @@ describe('desktop store screenshots', () => {
   it('4 - the two-field editor for target and label together', async () => {
     await openNote('source');
     // The link shot 3 just aliased, so BOTH fields carry a value. Pointed at a
-    // Bare wikilink instead, the popover opens with an empty alias box and is
-    // Hard to tell from shot 5 at listing size — same control, same emptiness.
+    // bare wikilink instead, the popover opens with an empty alias box and is
+    // hard to tell from shot 5 at listing size — same control, same emptiness.
     await openLinkPopover(URL_LINK_POSITION);
     await shoot(4, 'Or edit the target and the label together');
   });
@@ -197,9 +197,9 @@ async function altClickRenderedLink(): Promise<void> {
 
       // The coordinates are what identifies the link in an editing view
       // (`Editor.posAtMouse`), so a click without them resolves to the very start
-      // Of the document. `clickElement` aims at the element's own centre, which is
-      // The point the user would have hit — and it is a TRUSTED click, so it also
-      // Gets past the `isTrusted` guards Obsidian puts on editor pointer input.
+      // of the document. `clickElement` aims at the element's own centre, which is
+      // the point the user would have hit — and it is a TRUSTED click, so it also
+      // gets past the `isTrusted` guards Obsidian puts on editor pointer input.
       await clickElement({ element: linkEl, modifiers: ['Alt'] });
 
       await waitUntil({
@@ -243,12 +243,12 @@ async function dismissPopover(): Promise<void> {
       const SETTLE_DELAY_IN_MILLISECONDS = 600;
 
       // A popover is not a modal: Escape does not close it, and there is no
-      // Close button to click. It closes on an interaction OUTSIDE itself, so
-      // That is what this performs — as a real trusted gesture, which is the only
-      // Kind the popover's own document-level listener acts on.
+      // close button to click. It closes on an interaction OUTSIDE itself, so
+      // that is what this performs — as a real trusted gesture, which is the only
+      // kind the popover's own document-level listener acts on.
       // The gesture lands on a scratch overlay rather than on whatever piece of the
-      // Note happens to sit there, so dismissing the popover cannot also click a
-      // Link and change what the next shot photographs.
+      // note happens to sit there, so dismissing the popover cannot also click a
+      // link and change what the next shot photographs.
       const overlayEl = document.body.createDiv();
       overlayEl.setCssStyles({
         bottom: '0',
@@ -259,8 +259,8 @@ async function dismissPopover(): Promise<void> {
         zIndex: '1'
       });
       // The overlay has to outlive the click: a trusted gesture is delivered on a
-      // Later task, so detaching it straight away would leave the click to land on
-      // Whatever was underneath.
+      // later task, so detaching it straight away would leave the click to land on
+      // whatever was underneath.
       try {
         await clickElement({ element: overlayEl });
 
@@ -295,7 +295,7 @@ async function openAliasPrompt(position: LinkPosition): Promise<void> {
       view?.editor.setCursor(cursor.line, cursor.characterIndex);
 
       // Deliberately NOT awaited: the command opens a prompt and resolves only
-      // Once it is answered, so awaiting here would hang the whole closure.
+      // once it is answered, so awaiting here would hang the whole closure.
       app.commands.executeCommandById(`${pluginId}:edit-link-alias`);
 
       await waitUntil({
@@ -325,8 +325,8 @@ async function openLinkPopover(position: LinkPosition): Promise<void> {
       const RESIZE_SETTLE_DELAY_IN_MILLISECONDS = 2000;
 
       // Let the previous shot's capture settle first. `captureObsidianScreenshot`
-      // Overrides the device metrics and clears them again, and the re-layout
-      // That lands afterwards tears down anything opened too soon after it.
+      // overrides the device metrics and clears them again, and the re-layout
+      // that lands afterwards tears down anything opened too soon after it.
       await sleep(RESIZE_SETTLE_DELAY_IN_MILLISECONDS);
 
       const view = app.workspace.getActiveViewOfType(obsidianModule.MarkdownView);
@@ -367,7 +367,7 @@ async function openNote(mode: string): Promise<void> {
       const leaf = app.workspace.getLeaf(false);
       await leaf.openFile(file);
       // `source: true` forces RAW Markdown rather than live preview, which is
-      // What makes the link syntax visible at all.
+      // what makes the link syntax visible at all.
       await leaf.setViewState({
         state: { file: subjectNotePath, mode: viewMode, source: viewMode === 'source' },
         type: 'markdown'
@@ -418,8 +418,8 @@ async function submitAliasPrompt(newAlias: string): Promise<void> {
       const RESIZE_SETTLE_DELAY_IN_MILLISECONDS = 2000;
 
       // See `openLinkPopover`: the previous shot's capture closes a dialog
-      // Opened too soon after it, and this one has to fill in the dialog that
-      // Shot photographed.
+      // opened too soon after it, and this one has to fill in the dialog that
+      // shot photographed.
       await sleep(RESIZE_SETTLE_DELAY_IN_MILLISECONDS);
 
       const input = document.querySelector('.modal input');
