@@ -9,7 +9,7 @@ const PLAYGROUND_NOTE_PATH = `${PLAYGROUND_FOLDER_PATH}/Link playground.md`;
 
 // Every link form the plugin handles, in one scratch note.
 // The walkthroughs used to have the reader rewrite links inside the documentation notes, which meant
-// The vault degraded as it was read and could not be tried twice.
+// the vault degraded as it was read and could not be tried twice.
 const PLAYGROUND_CONTENT = [
   '---',
   'related:',

@@ -112,8 +112,8 @@ beforeAll(async () => {
   setupDiagnostics = await evalInObsidian({
     async callback({ app, fontSizeInPixels, lib: { waitUntil }, subjectNotePath }) {
       // A closure runs inside ONE Appium `execute/sync` call, which WebDriver
-      // Caps around 30s. A longer wait in here dies as an opaque `script
-      // Timeout` rather than a readable failure, so keep every wait under it.
+      // caps around 30s. A longer wait in here dies as an opaque `script
+      // timeout` rather than a readable failure, so keep every wait under it.
       const SETTLE_TIMEOUT_IN_MILLISECONDS = 20_000;
       const SETTLE_DELAY_IN_MILLISECONDS = 1500;
 
@@ -145,8 +145,8 @@ beforeAll(async () => {
 describe('mobile store screenshots', () => {
   it('stages the note the shots are framed on', () => {
     // Surfaced as an assertion because vitest swallows console output from an
-    // Integration worker, and a silently-wrong layout produces five bad images
-    // Without a single failure.
+    // integration worker, and a silently-wrong layout produces five bad images
+    // without a single failure.
     expect(setupDiagnostics).toMatchObject({ isNoteStaged: true });
   });
 
@@ -207,22 +207,22 @@ async function dismissPopover(): Promise<void> {
       const SETTLE_DELAY_IN_MILLISECONDS = 600;
 
       // A popover is not a modal: Escape does not close it, and there is no
-      // Close button to click. It closes on an interaction OUTSIDE itself, so
-      // That is what this performs — as a real trusted gesture, which is the only
-      // Kind the popover's own document-level listener acts on.
+      // close button to click. It closes on an interaction OUTSIDE itself, so
+      // that is what this performs — as a real trusted gesture, which is the only
+      // kind the popover's own document-level listener acts on.
       // The gesture lands on a scratch overlay rather than on whatever piece of the
-      // Note happens to sit there, so dismissing the popover cannot also tap a
-      // Link and change what the next shot photographs.
+      // note happens to sit there, so dismissing the popover cannot also tap a
+      // link and change what the next shot photographs.
       // The overlay sits ABOVE the popover rather than beside it, which is where this
-      // Differs from the desktop twin. Measured on the 450dp screenshot AVD: the overlay's
-      // Bottom-right corner is at 315,560 135x240 and the popover at 41,628 405x172, so the
-      // Overlay's centre falls INSIDE the popover. At `zIndex: 1` the popover wins the hit
-      // Test and the tap lands on the popover's own text box, dismissing nothing. A
-      // Synthetic click never noticed, because it is delivered to the element it names
-      // Rather than to whatever occupies the point.
+      // differs from the desktop twin. Measured on the 450dp screenshot AVD: the overlay's
+      // bottom-right corner is at 315,560 135x240 and the popover at 41,628 405x172, so the
+      // overlay's centre falls INSIDE the popover. At `zIndex: 1` the popover wins the hit
+      // test and the tap lands on the popover's own text box, dismissing nothing. A
+      // synthetic click never noticed, because it is delivered to the element it names
+      // rather than to whatever occupies the point.
       //
       // Above it, the tap's target is the overlay, which is still OUTSIDE the popover — so
-      // The popover's document-level listener closes it exactly as an outside tap should.
+      // the popover's document-level listener closes it exactly as an outside tap should.
       const overlayEl = document.body.createDiv();
       overlayEl.setCssStyles({
         bottom: '0',
@@ -233,8 +233,8 @@ async function dismissPopover(): Promise<void> {
         zIndex: '9999'
       });
       // The overlay has to outlive the tap: a trusted gesture is delivered on a
-      // Later task, so detaching it straight away would leave the tap to land on
-      // Whatever was underneath.
+      // later task, so detaching it straight away would leave the tap to land on
+      // whatever was underneath.
       try {
         await clickElement({ element: overlayEl });
 
@@ -269,7 +269,7 @@ async function openAliasPrompt(position: LinkPosition): Promise<void> {
       view?.editor.setCursor(cursor.line, cursor.characterIndex);
 
       // Deliberately NOT awaited: the command opens a prompt and resolves only
-      // Once it is answered, so awaiting here would hang the whole closure.
+      // once it is answered, so awaiting here would hang the whole closure.
       app.commands.executeCommandById(`${pluginId}:edit-link-alias`);
 
       await waitUntil({
@@ -317,8 +317,8 @@ async function openLinkMenu(): Promise<void> {
 
       // Obsidian raises the link menu from a `contextmenu` event, which is what
       // A long press produces on a touch screen — and `button: 'right'` is exactly
-      // That long press. So this is now the real gesture rather than an imitation
-      // Of its event, and Obsidian's isTrusted-gated handling sees it.
+      // that long press. So this is now the real gesture rather than an imitation
+      // of its event, and Obsidian's isTrusted-gated handling sees it.
       await clickElement({ button: 'right', element: linkEl });
 
       await waitUntil({
@@ -383,7 +383,7 @@ async function openNote(mode: string): Promise<void> {
       const leaf = app.workspace.getLeaf(false);
       await leaf.openFile(file);
       // `source: true` forces RAW Markdown rather than live preview, which is
-      // What makes the link syntax visible at all.
+      // what makes the link syntax visible at all.
       await leaf.setViewState({
         state: { file: subjectNotePath, mode: viewMode, source: viewMode === 'source' },
         type: 'markdown'
@@ -407,15 +407,15 @@ async function shoot(index: number, caption: string): Promise<void> {
   const captured = await captureObsidianScreenshot({ vaultPath: vaultPath() });
 
   // The AVD is 900x1600, so the device frame IS the store's size. Asserting it
-  // Here is what keeps that true: run this against any other AVD and it fails
-  // Loudly instead of quietly shipping an off-spec image.
+  // here is what keeps that true: run this against any other AVD and it fails
+  // loudly instead of quietly shipping an off-spec image.
   expect(readPngDimensions(captured)).toStrictEqual({
     heightInPixels: HEIGHT_IN_PIXELS,
     widthInPixels: WIDTH_IN_PIXELS
   });
 
   // Captioned AFTER capture, so the frame stays an untouched device screenshot
-  // And rewording a label needs no re-shoot.
+  // and rewording a label needs no re-shoot.
   const labeled = await labelScreenshot(captured, { text: caption });
 
   mkdirSync(IMAGES_DIRECTORY, { recursive: true });
