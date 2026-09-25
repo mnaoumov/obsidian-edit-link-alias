@@ -165,10 +165,7 @@ export class LinkMenuHandler {
   }
 
   private getSourceView(leaf?: WorkspaceLeaf): MarkdownView | null {
-    if (leaf?.view instanceof MarkdownView) {
-      return leaf.view;
-    }
-    return this.app.workspace.getActiveViewOfType(MarkdownView);
+    return leaf?.view instanceof MarkdownView ? leaf.view : this.app.workspace.getActiveViewOfType(MarkdownView);
   }
 
   private handleFileMenu(menu: Menu, file: TAbstractFile, source: string, leaf?: WorkspaceLeaf): void {
@@ -199,11 +196,7 @@ export class LinkMenuHandler {
     }
 
     const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-    if (!view) {
-      return false;
-    }
-
-    if (view.getMode() !== 'source') {
+    if (view?.getMode() !== 'source') {
       return false;
     }
 

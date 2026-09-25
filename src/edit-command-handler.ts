@@ -51,11 +51,7 @@ export class EditCommandHandler extends EditorCommandHandler {
   }
 
   protected override canExecuteEditor(editor: Editor, context: MarkdownFileInfo): boolean {
-    if (!super.canExecuteEditor(editor, context)) {
-      return false;
-    }
-
-    return checkIsCursorOnEditableLink(editor);
+    return super.canExecuteEditor(editor, context) && checkIsCursorOnEditableLink(editor);
   }
 
   protected override async executeEditor(editor: Editor, context: MarkdownFileInfo): Promise<void> {
