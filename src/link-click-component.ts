@@ -339,11 +339,7 @@ export class LinkClickComponent extends AllWindowsEventComponent {
   }
 
   private shouldOpenEditor($event: MouseEvent): boolean {
-    if ($event.button !== PRIMARY_MOUSE_BUTTON) {
-      return false;
-    }
-
-    if (!this.pluginSettingsComponent.settings.shouldOpenLinkEditorOnAltClick) {
+    if ($event.button !== PRIMARY_MOUSE_BUTTON || !this.pluginSettingsComponent.settings.shouldOpenLinkEditorOnAltClick) {
       return false;
     }
 
@@ -354,20 +350,13 @@ export class LinkClickComponent extends AllWindowsEventComponent {
      * Requiring that no OTHER modifier is held keeps every gesture Obsidian does assign a meaning to —
      * Ctrl/Cmd, Shift, and their combinations with Alt — reaching Obsidian untouched.
      */
-    if (Keymap.isModifier($event, 'Mod') || Keymap.isModifier($event, 'Shift')) {
-      return false;
-    }
-
-    return Keymap.isModifier($event, 'Alt');
+    return !Keymap.isModifier($event, 'Mod') && !Keymap.isModifier($event, 'Shift') && Keymap.isModifier($event, 'Alt');
   }
 }
 
 function getClickedLinkEl($event: MouseEvent): HTMLElement | null {
   const { target } = $event;
-  if (!(target instanceof HTMLElement)) {
-    return null;
-  }
-  return target.closest<HTMLElement>(LINK_SELECTOR);
+  return target instanceof HTMLElement ? target.closest<HTMLElement>(LINK_SELECTOR) : null;
 }
 
 /**

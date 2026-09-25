@@ -506,10 +506,7 @@ describe('LinkMenuHandler', () => {
         if (text === '[[target|a]]') {
           return [first];
         }
-        if (text === '[[target|b]]') {
-          return [second];
-        }
-        return [];
+        return text === '[[target|b]]' ? [second] : [];
       });
       getFirstLinkpathDestination.mockReturnValue(strictProxy<TFile>({ path: 'target.md' }));
       const chosen = { line: 1, parsedLink: second };
@@ -640,10 +637,7 @@ describe('LinkMenuHandler', () => {
             url: 'https://x.com'
           })];
         }
-        if (text.includes('[[target')) {
-          return [parsedLink()];
-        }
-        return [];
+        return text.includes('[[target') ? [parsedLink()] : [];
       });
       getFirstLinkpathDestination.mockReturnValue(strictProxy<TFile>({ path: 'target.md' }));
       mockEditApplies('[[target|new]]');
@@ -765,7 +759,7 @@ describe('LinkMenuHandler', () => {
        */
       const view = mockActiveView('source', createMockEditor({ line: '[[other|old]]' }));
       sourceContent = '[[other|old]]\n[[target|old]]';
-      mockParseLinks.mockImplementation((text: string) => text.includes('[[target') ? [parsedLink()] : [parsedLink({ raw: '[[other|old]]', url: 'other' })]);
+      mockParseLinks.mockImplementation((text: string) => [text.includes('[[target') ? parsedLink() : parsedLink({ raw: '[[other|old]]', url: 'other' })]);
       getFirstLinkpathDestination.mockImplementation((linkpath: string) => linkpath === 'target' ? strictProxy<TFile>({ path: 'target.md' }) : null);
       mockEditApplies('[[target|new]]');
 

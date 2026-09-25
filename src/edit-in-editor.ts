@@ -65,11 +65,7 @@ export interface EditLinkAtEditorCursorParams {
  */
 export function checkIsCursorOnEditableLink(editor: Editor): boolean {
   const clickableTokenType = editor.getClickableTokenAt(editor.getCursor())?.type;
-  if (clickableTokenType === 'internal-link' || clickableTokenType === 'external-link') {
-    return true;
-  }
-
-  return findFrontmatterLinkAtEditorCursor(editor) !== null;
+  return clickableTokenType === 'internal-link' || clickableTokenType === 'external-link' || findFrontmatterLinkAtEditorCursor(editor) !== null;
 }
 
 /**
