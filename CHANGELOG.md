@@ -1,5 +1,35 @@
 # CHANGELOG
 
+## 1.5.6
+
+- chore(screenshots): merge the applyObsidianTheme move for the desktop capture
+- chore(deps): merge the obsidian-integration-testing 17 float
+- docs(link-click): merge the pointed again LinkClickAction links
+- chore(deps): merge the obsidian-test-mocks 7 upgrade
+- style(comments): stop capitalizing the middle of a wrapped comment
+- docs(agents): merge the corrected raiseSoftKeyboard reasoning
+- fix(test): merge the headless demo-vault toolkit install
+- fix(deps): restore the lockfile's missing resolved and integrity fields
+- build(markdownlint): forbid hard-wrapped markdown paragraphs
+- test: move three cross-platform suites' waiting to Node, under the transport cap
+- test: drive the three cross-platform click suites with trusted input on mobile too
+- fix(deps): float devalue to 5.9.4, clearing GHSA-9rgm-9g3h-6x36
+- chore(deps): drop the dead @eslint/config-helpers override
+- chore(deps): drop the dead markdown-it override
+- chore(deps): drop the dead js-yaml override
+- docs: replace the private rule-id citations with what they assert
+- docs(changelog): name obsidian-dev-utils by its package name
+- docs: replace the private tracker references with what they pointed at
+- docs: record why the mobile frames do not raise the soft keyboard
+- test: bring three in-closure wait ceilings under the transport's per-eval cap
+- refactor(android): drive the popover, link menu and prompt with trusted input
+- chore: adopt the npm run gate branch gate
+- test: bring the in-closure wait ceiling under the transport's per-eval cap
+- docs: name the unversioned demo-vault asset and the folder it unzips into
+- chore: make the LICENSE copyright line checkable by the linter and guard it against the year roll-over
+- test(test-mocks): await the trusted-input helpers, and drop the app.plugins stub
+- fix(build): wire build:compile to buildCompile and drop the duplicate leaf script
+
 ## 1.5.5
 
 - chore(deps): sweep caret-ranged dependencies to latest
