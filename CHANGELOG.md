@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 1.5.7
+
+- fix: merge editing a link shown in a Bases table cell
+
 ## 1.5.6
 
 - chore(screenshots): merge the applyObsidianTheme move for the desktop capture
