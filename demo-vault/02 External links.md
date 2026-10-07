@@ -28,3 +28,10 @@ Or work on the examples below:
 - A project link: [obsidian-dev-utils on GitHub](https://github.com/mnaoumov/obsidian-dev-utils)
 
 The URL itself is never touched - only the text shown in the note changes.
+
+## Links without `https://`
+
+Obsidian also links an address written without a scheme, such as `www.obsidian.md` or `<www.obsidian.md>`, and opens it as `http://www.obsidian.md`. These work too. The edited link keeps the `http://` that Obsidian opens, because `[label](www.obsidian.md)` would be a link to a note, not to the website.
+
+<!-- markdownlint-disable-next-line MD034 -- The scheme-less address is the example itself. -->
+- Give this one a label: www.obsidian.md

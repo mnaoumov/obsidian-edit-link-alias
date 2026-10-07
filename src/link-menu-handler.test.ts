@@ -942,6 +942,60 @@ describe('LinkMenuHandler', () => {
       expect(mockEditParsedLinkAlias).toHaveBeenCalledOnce();
       expect(mockEditParsedLinkAlias.mock.calls[0]?.[0].parsedLink.url).toBe('https://ex.com/a b');
     });
+
+    /* eslint-disable unicorn/prefer-https -- A scheme-less `www.` link opens as `http://`, which is what parseLinks reports. */
+    it('should match a bracketed www. literal by the url Obsidian renders with the swallowed closing bracket', async () => {
+      mockActiveView('preview');
+      sourceContent = '<www.example.com>';
+      mockParseLinks.mockImplementation((text: string) =>
+        text === '<www.example.com>'
+          ? [parsedLink({
+            encodedUrl: 'http://www.example.com',
+            endOffset: 17,
+            hasAngleBrackets: true,
+            isExternal: true,
+            isWikilink: false,
+            raw: '<www.example.com>',
+            url: 'http://www.example.com'
+          })]
+          : []
+      );
+      mockEditApplies('[new](<http://www.example.com>)');
+
+      await clickExternalLinkMenuItem(EDIT_ALIAS_ITEM_INDEX, 'http://www.example.com%3E');
+
+      expect(mockEditParsedLinkAlias).toHaveBeenCalledOnce();
+      expect(mockEditParsedLinkAlias.mock.calls[0]?.[0].parsedLink.raw).toBe('<www.example.com>');
+    });
+
+    it('should not accept the swallowed closing bracket for a link not written inside angle brackets', async () => {
+      const view = mockActiveView('preview');
+      sourceContent = 'www.example.com';
+      mockParseLinks.mockImplementation((text: string) =>
+        text === 'www.example.com'
+          ? [parsedLink({
+            encodedUrl: 'http://www.example.com',
+            endOffset: 15,
+            isExternal: true,
+            isWikilink: false,
+            raw: 'www.example.com',
+            url: 'http://www.example.com'
+          })]
+          : []
+      );
+
+      await resolveAndEditLink({
+        app,
+        editParsedLink: editParsedLinkAlias,
+        linkTarget: { externalUrl: 'http://www.example.com%3E' },
+        showCouldNotLocateNotice: castTo<(this: void) => void>(showNotice),
+        view
+      });
+
+      expect(showNotice).toHaveBeenCalledOnce();
+      expect(mockEditParsedLinkAlias).not.toHaveBeenCalled();
+    });
+    /* eslint-enable unicorn/prefer-https -- The scheme-less cases end here. */
   });
 
   describe('Bases table cells', () => {
