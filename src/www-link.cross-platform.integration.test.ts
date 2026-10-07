@@ -141,8 +141,8 @@ async function runScenario(shape: LinkShape, gesture: Gesture): Promise<Scenario
 
   try {
     /*
-     * Turn the Alt-click setting on: the other suites share this Obsidian, and `link-click-popover`'s last case
-     * leaves it off.
+     * Turn the Alt-click setting on rather than trust the default: the other suites share this Obsidian, and
+     * `link-click-popover` turns it off for one case (restoring it afterwards).
      */
     await pollInObsidian({
       contextId,

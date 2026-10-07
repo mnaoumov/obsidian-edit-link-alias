@@ -33,8 +33,9 @@
  * expect NO popover, and both reach that answer by polling for the popover's PRESENCE until the settle
  * budget is spent, never by asking whether it is absent right now.
  *
- * State that cannot be re-derived rides a {@link ContextId} — the settings component a tree walk finds, and
- * the note this run created. The active view is re-looked-up in each closure instead, because it is one call
+ * State that cannot be re-derived rides a {@link ContextId} — the settings component a tree walk finds, the
+ * Alt-click setting as the scenario found it (restored in the `finally`, since every later suite shares this
+ * Obsidian instance), and the note this run created. The active view is re-looked-up in each closure instead, because it is one call
  * and a carried reference could go stale.
  */
 
@@ -116,10 +117,16 @@ interface ClickScenarioResult {
 }
 
 /**
- * What one scenario keeps alive between closures: neither value survives serialization, and neither is worth
- * re-deriving in every call that needs it.
+ * What one scenario keeps alive between closures: the component and the note do not survive serialization,
+ * and none of the three is worth re-deriving in every call that needs it.
  */
 interface ClickSuiteContext {
+  /**
+   * The Alt-click setting as the scenario found it, written back when the scenario ends. The suites share one
+   * Obsidian instance, so a scenario that leaves the setting off makes `Alt` clicks in every later suite
+   * do nothing.
+   */
+  previousAltClickSetting?: boolean;
   settingsComponent?: SettingsHolder;
   sourceFile?: TFile;
 }
@@ -518,6 +525,10 @@ async function runClickScenario(params: RunClickScenarioParams): Promise<ClickSc
         if (!settingsComponent) {
           throw new Error('Could not find the plugin settings component');
         }
+        const previousAltClickSetting = settingsComponent.settings[altClickSettingName];
+        if (typeof previousAltClickSetting === 'boolean') {
+          context.previousAltClickSetting = previousAltClickSetting;
+        }
         await settingsComponent.setProperty(altClickSettingName, shouldOpenLinkEditorOnAltClick);
         await settingsComponent.saveToFile(null);
       },
@@ -631,6 +642,19 @@ async function runClickScenario(params: RunClickScenarioParams): Promise<ClickSc
       wasPopoverShown
     };
   } finally {
+    await evalInObsidian({
+      async callback({ altClickSettingName, context }): Promise<void> {
+        const { previousAltClickSetting, settingsComponent } = context;
+        if (!settingsComponent || previousAltClickSetting === undefined) {
+          return;
+        }
+        await settingsComponent.setProperty(altClickSettingName, previousAltClickSetting);
+        await settingsComponent.saveToFile(null);
+      },
+      contextId,
+      input: { altClickSettingName: ALT_CLICK_SETTING_NAME },
+      vaultPath: getTemporaryVault().path
+    });
     await contextId.dispose(getTemporaryVault().path);
   }
 }
