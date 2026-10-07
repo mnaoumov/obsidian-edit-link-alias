@@ -78,6 +78,12 @@ export interface ResolveAndEditLinkParams {
   readonly showCouldNotLocateNotice: (this: void) => void;
 
   /**
+   * The note holding the link, when it is not the note open in {@link view}. A Bases table cell renders
+   * another note's property, so its caller passes that note together with {@link propertyKey}.
+   */
+  readonly sourceFile?: TFile;
+
+  /**
    * Where in the source note the gesture landed, when the caller knows it. A click knows it exactly (from
    * its own coordinates); a context menu does not, and leaves it unset so the caret is used instead.
    */
@@ -133,8 +139,8 @@ export async function resolveAndEditLink(params: ResolveAndEditLinkParams): Prom
     view
   } = params;
 
-  const sourceFile = view?.file ?? null;
-  if (!view || !sourceFile) {
+  const sourceFile = params.sourceFile ?? view?.file ?? null;
+  if (!sourceFile) {
     showCouldNotLocateNotice();
     return;
   }
@@ -160,7 +166,7 @@ export async function resolveAndEditLink(params: ResolveAndEditLinkParams): Prom
   }
 
   // `source` covers Live Preview and raw Source mode alike; only Reading view has no editor to ask.
-  if (view.getMode() === 'source') {
+  if (view?.getMode() === 'source' && view.file === sourceFile) {
     const wasEditedAtPosition = await didEditLinkAtPosition({
       app,
       editorPosition: sourcePosition ?? view.editor.getCursor(),

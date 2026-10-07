@@ -14,12 +14,16 @@ import {
   Platform
 } from 'obsidian';
 import { convertAsyncToSync } from 'obsidian-dev-utils/async';
+import { normalizeOptionalProperties } from 'obsidian-dev-utils/object-utils';
 import { isFile } from 'obsidian-dev-utils/obsidian/file-system';
 import { createAnchorFromDocumentCenter } from 'obsidian-dev-utils/obsidian/popovers/popover-anchor';
 
+import type { BasesLinkOccurrence } from './bases-link-occurrence.ts';
 import type { EditParsedLink } from './edit-link.ts';
 import type { LinkTarget } from './link-target.ts';
+import type { ResolveAndEditLinkParams } from './resolve-link-occurrence.ts';
 
+import { getBasesLinkOccurrence } from './bases-link-occurrence.ts';
 import {
   createEditParsedLinkUrlAndAliasInPopover,
   editParsedLinkAlias
@@ -93,6 +97,13 @@ export interface LinkMenuHandlerConstructorParams {
   readonly pointerPositionComponent: PointerPositionComponent;
 }
 
+interface LinkMenuHandlerResolveAndEditParams {
+  readonly basesLinkOccurrence: BasesLinkOccurrence | null;
+  readonly editParsedLink: EditParsedLink;
+  readonly leaf?: undefined | WorkspaceLeaf;
+  readonly linkTarget: LinkTarget;
+}
+
 /**
  * Surfaces the "Edit link alias" and "Edit link (URL and alias)" actions on the link long-press / context
  * menus that Obsidian raises outside the editor menu.
@@ -138,7 +149,7 @@ export class LinkMenuHandler {
     );
   }
 
-  private addMenuItems(menu: Menu, linkTarget: LinkTarget, leaf?: WorkspaceLeaf): void {
+  private addMenuItems(menu: Menu, linkTarget: LinkTarget, basesLinkOccurrence: BasesLinkOccurrence | null, leaf?: WorkspaceLeaf): void {
     for (const descriptor of MENU_ITEM_DESCRIPTORS) {
       menu.addItem((item) => {
         item
@@ -146,10 +157,27 @@ export class LinkMenuHandler {
           .setIcon(descriptor.icon)
           .setSection(MENU_ITEM_SECTION)
           .onClick(convertAsyncToSync(async () => {
-            await this.resolveAndEdit(descriptor.createEditParsedLink(this.getMenuAnchor()), linkTarget, leaf);
+            await this.resolveAndEdit({
+              basesLinkOccurrence,
+              editParsedLink: descriptor.createEditParsedLink(this.getMenuAnchor()),
+              leaf,
+              linkTarget
+            });
           }));
       });
     }
+  }
+
+  /**
+   * Finds the Bases table cell under the gesture that raised the menu. It has to be read while the menu is
+   * being built: once the menu shows, it covers the point.
+   *
+   * @returns The occurrence, or `null` when the gesture did not land on a Bases note property cell.
+   */
+  private getBasesLinkOccurrenceUnderPointer(): BasesLinkOccurrence | null {
+    const anchor = this.pointerPositionComponent.getLastPointerAnchor();
+    const el = anchor?.doc.elementFromPoint(anchor.left, anchor.bottom);
+    return el ? getBasesLinkOccurrence(this.app, el) : null;
   }
 
   /**
@@ -169,17 +197,22 @@ export class LinkMenuHandler {
   }
 
   private handleFileMenu(menu: Menu, file: TAbstractFile, source: string, leaf?: WorkspaceLeaf): void {
-    if (source !== LINK_CONTEXT_MENU_SOURCE || !isFile(file) || this.isHandledByEditorMenu()) {
+    if (source !== LINK_CONTEXT_MENU_SOURCE || !isFile(file)) {
       return;
     }
-    this.addMenuItems(menu, { target: file }, leaf);
+    const basesLinkOccurrence = this.getBasesLinkOccurrenceUnderPointer();
+    if (!basesLinkOccurrence && this.isHandledByEditorMenu()) {
+      return;
+    }
+    this.addMenuItems(menu, { target: file }, basesLinkOccurrence, leaf);
   }
 
   private handleUrlMenu(menu: Menu, url: string): void {
-    if (this.isHandledByEditorMenu()) {
+    const basesLinkOccurrence = this.getBasesLinkOccurrenceUnderPointer();
+    if (!basesLinkOccurrence && this.isHandledByEditorMenu()) {
       return;
     }
-    this.addMenuItems(menu, { externalUrl: url });
+    this.addMenuItems(menu, { externalUrl: url }, basesLinkOccurrence);
   }
 
   /**
@@ -204,7 +237,13 @@ export class LinkMenuHandler {
     return clickableTokenType === 'internal-link' || clickableTokenType === 'external-link';
   }
 
-  private async resolveAndEdit(editParsedLink: EditParsedLink, linkTarget: LinkTarget, leaf?: WorkspaceLeaf): Promise<void> {
+  private async resolveAndEdit(params: LinkMenuHandlerResolveAndEditParams): Promise<void> {
+    const {
+      basesLinkOccurrence,
+      editParsedLink,
+      leaf,
+      linkTarget
+    } = params;
     await resolveAndEditLink({
       app: this.app,
       editParsedLink,
@@ -212,7 +251,11 @@ export class LinkMenuHandler {
       showCouldNotLocateNotice: () => {
         this.showCouldNotLocateNotice();
       },
-      view: this.getSourceView(leaf)
+      view: this.getSourceView(leaf),
+      ...normalizeOptionalProperties<Pick<ResolveAndEditLinkParams, 'propertyKey' | 'sourceFile'>>({
+        propertyKey: basesLinkOccurrence?.propertyKey,
+        sourceFile: basesLinkOccurrence?.sourceFile
+      })
     });
   }
 
