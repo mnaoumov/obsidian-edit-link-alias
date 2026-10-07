@@ -9,9 +9,9 @@
  * the table view pairs each row element with the entry it renders, whose file is the note to edit.
  */
 
+import type { BasesTableView } from '@obsidian-typings/obsidian-public-latest';
 import type {
   App,
-  BasesEntry,
   Component,
   TFile
 } from 'obsidian';
@@ -34,21 +34,6 @@ export interface BasesLinkOccurrence {
    * The note the cell's row renders.
    */
   readonly sourceFile: TFile;
-}
-
-/**
- * One rendered row of a Bases table view.
- */
-interface BasesTableRow {
-  readonly el: HTMLElement;
-  readonly entry: BasesEntry;
-}
-
-/**
- * The part of the Bases table view this module reads.
- */
-interface BasesTableView {
-  readonly rows: readonly BasesTableRow[];
 }
 
 /**
@@ -118,8 +103,14 @@ function findRowFileInComponent(component: Component, rowEl: Element): null | TF
   return null;
 }
 
-// TODO: Replace with the typed Bases table view once obsidian-typings models its `rows`.
-function isBasesTableView(component: Component): component is BasesTableView & Component {
+/**
+ * Tells a Bases table view apart from any other component. Obsidian exports no class or discriminator for it, so
+ * the test is the one member this module reads: `rows`, each pairing a row element with its entry.
+ *
+ * @param component - The component to test.
+ * @returns Whether the component is a Bases table view.
+ */
+function isBasesTableView(component: Component): component is BasesTableView {
   const rows: unknown = Reflect.get(component, 'rows');
   return Array.isArray(rows) && rows.every((row: unknown) => row instanceof Object && Reflect.get(row, 'el') instanceof HTMLElement);
 }
