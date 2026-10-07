@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 1.5.8
+
+- test: merge restoring the Alt-click setting after link-click-popover
+- fix: merge editing a link written without a scheme
+
 ## 1.5.7
 
 - fix: merge editing a link shown in a Bases table cell
