@@ -57,6 +57,26 @@ The `links` list works the same way, one item at a time: only the item you click
 
 The `Homepage` property above is spelled with a capital letter on purpose. Obsidian shows every property name in lowercase but stores it exactly as the note wrote it, so the two have to be matched case-insensitively - `Alt` + click that link and it opens like any other.
 
+## Links shown in a Base
+
+A **Base** shows every matching note's properties in a table, so a link in it belongs to the note in its **row** - not to the note the Base is embedded in, and not to a `.base` file, which has no properties of its own. `Alt` + click (or right-click) a link in the table below and the plugin edits that row's note:
+
+```base
+filters:
+  or:
+    - file.hasProperty("note")
+    - file.hasProperty("related")
+views:
+  - type: table
+    name: Link properties
+    order:
+      - file.name
+      - note
+      - related
+```
+
+The `related` row appears once the link playground exists - press the button above. Only note properties can be edited this way: a formula column is computed, so it has nothing to write back to.
+
 ## Good to know
 
 - **The frontmatter block is re-serialized on such an edit.** Its links and values are preserved, but comments and hand formatting inside the block are normalized - the same thing happens when any plugin writes a property through Obsidian's own API.

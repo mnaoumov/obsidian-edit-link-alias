@@ -21,7 +21,8 @@
 
 import type {
   App,
-  EditorPosition
+  EditorPosition,
+  TFile
 } from 'obsidian';
 import type { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/components/plugin-notice-component';
 import type { PluginSettingsComponentBase } from 'obsidian-dev-utils/obsidian/components/plugin-settings-component';
@@ -45,6 +46,7 @@ import type { LinkTarget } from './link-target.ts';
 import type { PluginSettings } from './plugin-settings.ts';
 import type { ResolveAndEditLinkParams } from './resolve-link-occurrence.ts';
 
+import { getBasesLinkOccurrence } from './bases-link-occurrence.ts';
 import { createEditParsedLinkUrlAndAliasInPopover } from './edit-link.ts';
 import { COULD_NOT_LOCATE_LINK_NOTICE } from './notices.ts';
 import { resolveAndEditLink } from './resolve-link-occurrence.ts';
@@ -114,6 +116,11 @@ interface LinkClickComponentInterceptAndEditParams {
   readonly propertyKey: null | string;
 
   /**
+   * The note holding the link, when it is not the note open in {@link view} (a Bases table cell).
+   */
+  readonly sourceFile?: TFile;
+
+  /**
    * The source position the click resolves to, when there is one.
    */
   readonly sourcePosition?: EditorPosition;
@@ -163,10 +170,10 @@ export class LinkClickComponent extends AllWindowsEventComponent {
    * which is resolved against the note it was clicked in; an external one carries its url in `href`.
    *
    * @param linkEl - The clicked link element.
-   * @param view - The view the link was clicked in, used to resolve the link path.
+   * @param sourcePath - The path of the note holding the link, used to resolve the link path.
    * @returns The link target, or `null` when the element points nowhere resolvable.
    */
-  private getLinkTarget(linkEl: HTMLElement, view: MarkdownView | null): LinkTarget | null {
+  private getLinkTarget(linkEl: HTMLElement, sourcePath: string | undefined): LinkTarget | null {
     const dataHref = linkEl.dataset['href'];
     const href = linkEl.getAttribute('href');
 
@@ -180,7 +187,6 @@ export class LinkClickComponent extends AllWindowsEventComponent {
     }
 
     const linkText = dataHref ?? href;
-    const sourcePath = view?.file?.path;
     if (linkText === null || sourcePath === undefined) {
       /*
        * Live Preview and Source mode render links as plain editor text with no href at all, so there is
@@ -221,12 +227,14 @@ export class LinkClickComponent extends AllWindowsEventComponent {
     }
 
     const view = this.getViewContaining(linkEl);
-    const linkTarget = this.getLinkTarget(linkEl, view);
+    const basesLinkOccurrence = getBasesLinkOccurrence(this.app, linkEl);
+    const sourceFile = basesLinkOccurrence?.sourceFile ?? view?.file ?? null;
+    const linkTarget = this.getLinkTarget(linkEl, sourceFile?.path);
     if (!linkTarget) {
       return;
     }
 
-    const propertyKey = getClickedPropertyKey(linkEl);
+    const propertyKey = basesLinkOccurrence?.propertyKey ?? getClickedPropertyKey(linkEl);
 
     /*
      * The click's own coordinates are the exact identity of the clicked link — the ONLY one in Live
@@ -246,7 +254,10 @@ export class LinkClickComponent extends AllWindowsEventComponent {
       linkTarget,
       propertyKey,
       view,
-      ...normalizeOptionalProperties<Pick<LinkClickComponentInterceptAndEditParams, 'sourcePosition'>>({ sourcePosition })
+      ...normalizeOptionalProperties<Pick<LinkClickComponentInterceptAndEditParams, 'sourceFile' | 'sourcePosition'>>({
+        sourceFile: basesLinkOccurrence?.sourceFile,
+        sourcePosition
+      })
     });
   }
 
@@ -313,6 +324,7 @@ export class LinkClickComponent extends AllWindowsEventComponent {
       anchor,
       linkTarget,
       propertyKey,
+      sourceFile,
       sourcePosition,
       view
     } = params;
@@ -330,8 +342,9 @@ export class LinkClickComponent extends AllWindowsEventComponent {
           this.pluginNoticeComponent.showNotice(COULD_NOT_LOCATE_LINK_NOTICE);
         },
         view,
-        ...normalizeOptionalProperties<Pick<ResolveAndEditLinkParams, 'propertyKey' | 'sourcePosition'>>({
+        ...normalizeOptionalProperties<Pick<ResolveAndEditLinkParams, 'propertyKey' | 'sourceFile' | 'sourcePosition'>>({
           propertyKey: propertyKey ?? undefined,
+          sourceFile,
           sourcePosition
         })
       });

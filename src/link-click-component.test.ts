@@ -1,5 +1,6 @@
 import type {
   App as AppOriginal,
+  Component,
   Editor,
   EditorPosition,
   MarkdownView as MarkdownViewType,
@@ -74,6 +75,7 @@ let app: AppOriginal;
 let component: LinkClickComponent;
 let containerEl: HTMLElement;
 let getFirstLinkpathDestination: ReturnType<typeof vi.fn>;
+let hostView: MarkdownViewType;
 let posAtMouse: ReturnType<typeof vi.fn>;
 let showNotice: ReturnType<typeof vi.fn>;
 let viewMode: 'preview' | 'source';
@@ -176,7 +178,9 @@ beforeEach(() => {
 
   containerEl = document.body.createDiv();
   const view = castTo<MarkdownViewType>(Object.create(MarkdownView.prototype));
+  hostView = view;
   Object.assign(view, {
+    _children: [],
     containerEl,
     file: strictProxy<TFile>({ path: SOURCE_PATH }),
     getMode: () => viewMode
@@ -303,6 +307,28 @@ describe('LinkClickComponent', () => {
     await waitForAllAsyncOperations();
 
     expect(mockResolveAndEditLink).not.toHaveBeenCalled();
+  });
+
+  describe('Bases table cells', () => {
+    it('should edit the property of the row note rather than the note hosting the Base', async () => {
+      loadComponent();
+      const rowFile = strictProxy<TFile>({ path: 'row.md' });
+      const rowEl = containerEl.createDiv({ cls: 'bases-tr' });
+      const cellEl = rowEl.createDiv({ attr: { 'data-property': 'note.related' }, cls: 'bases-td' });
+      const valueEl = cellEl.createDiv({ cls: 'bases-table-cell metadata-property-value' });
+      const linkEl = valueEl.createDiv({ attr: { 'data-href': 'target' }, cls: 'metadata-link-inner internal-link' });
+      hostView._children.push(castTo<Component>({ _children: [], rows: [{ el: rowEl, entry: { file: rowFile } }] }));
+
+      click(linkEl);
+      await waitForAllAsyncOperations();
+
+      const params = mockResolveAndEditLink.mock.calls[0]?.[0];
+      expect(params?.propertyKey).toBe('related');
+      expect(params?.sourceFile).toBe(rowFile);
+      expect(params?.sourcePosition).toBeUndefined();
+      // The link is resolved against the note that holds it.
+      expect(getFirstLinkpathDestination).toHaveBeenCalledWith('target', 'row.md');
+    });
   });
 
   describe('frontmatter links', () => {

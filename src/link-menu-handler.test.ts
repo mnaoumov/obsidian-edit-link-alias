@@ -35,6 +35,7 @@ import {
 
 import type { EditParsedLink } from './edit-link.ts';
 
+import { getBasesLinkOccurrence } from './bases-link-occurrence.ts';
 import {
   createEditParsedLinkUrlAndAliasInPopover,
   editParsedLinkAlias
@@ -42,11 +43,13 @@ import {
 import { LinkMenuHandler } from './link-menu-handler.ts';
 import { resolveAndEditLink } from './resolve-link-occurrence.ts';
 
+vi.mock('./bases-link-occurrence.ts', () => ({ getBasesLinkOccurrence: vi.fn() }));
 vi.mock('./edit-link.ts', () => ({ createEditParsedLinkUrlAndAliasInPopover: vi.fn(), editParsedLinkAlias: vi.fn() }));
 vi.mock('obsidian-dev-utils/obsidian/parse-link', () => ({ parseLinks: vi.fn() }));
 vi.mock('obsidian-dev-utils/obsidian/modals/select-item', () => ({ selectItem: vi.fn() }));
 vi.mock('obsidian-dev-utils/obsidian/file-system', () => ({ isFile: vi.fn() }));
 
+const mockGetBasesLinkOccurrence = vi.mocked(getBasesLinkOccurrence);
 const mockEditParsedLinkAlias = vi.mocked(editParsedLinkAlias);
 const mockCreateEditParsedLinkUrlAndAliasInPopover = vi.mocked(createEditParsedLinkUrlAndAliasInPopover);
 const mockEditParsedLinkUrlAndAlias = vi.fn<EditParsedLink>();
@@ -160,6 +163,7 @@ let registerEvent: ReturnType<typeof vi.fn>;
 let on: ReturnType<typeof vi.fn>;
 let handler: LinkMenuHandler;
 let lastPointerAnchor: null | PopoverAnchor;
+let elementFromPoint: ReturnType<typeof vi.fn>;
 
 /**
  * Opens the `url-menu` for the given url and clicks one of the items the handler added to it.
@@ -293,6 +297,10 @@ beforeEach(() => {
     doc: document,
     left: 40
   };
+  // The test DOM implements no layout, so it has no `elementFromPoint` of its own to spy on.
+  elementFromPoint = vi.fn().mockReturnValue(null);
+  Object.defineProperty(document, 'elementFromPoint', { configurable: true, value: elementFromPoint });
+  mockGetBasesLinkOccurrence.mockReset().mockReturnValue(null);
   handler = createHandler();
   handler.register();
   Platform.isDesktop = true;
@@ -933,6 +941,47 @@ describe('LinkMenuHandler', () => {
 
       expect(mockEditParsedLinkAlias).toHaveBeenCalledOnce();
       expect(mockEditParsedLinkAlias.mock.calls[0]?.[0].parsedLink.url).toBe('https://ex.com/a b');
+    });
+  });
+
+  describe('Bases table cells', () => {
+    const rowFile = strictProxy<TFile>({ path: 'row.md' });
+
+    beforeEach(() => {
+      const cellLinkEl = document.body.createDiv();
+      elementFromPoint.mockReturnValue(cellLinkEl);
+      mockGetBasesLinkOccurrence.mockImplementation((_app, el) => el === cellLinkEl ? { propertyKey: 'related', sourceFile: rowFile } : null);
+      // An editing view whose caret sits on a link: without the Bases cell, the editor menu would own this gesture.
+      mockActiveView('source', createMockEditor({ clickableTokenType: 'internal-link' }));
+    });
+
+    it('should read the cell under the gesture while the menu is built', () => {
+      triggerUrlMenu(createMockMenu().menu, 'https://example.com');
+
+      expect(elementFromPoint).toHaveBeenCalledWith(40, 100);
+    });
+
+    it('should edit the link in the row note\'s frontmatter from the file-menu', async () => {
+      await clickInternalLinkMenuItem(EDIT_ALIAS_ITEM_INDEX, strictProxy<TFile>({ path: 'target.md' }));
+
+      expect(vi.mocked(app.metadataCache.getFileCache)).toHaveBeenCalledWith(rowFile);
+      expect(read).not.toHaveBeenCalled();
+    });
+
+    it('should edit the link in the row note\'s frontmatter from the url-menu', async () => {
+      await clickExternalLinkMenuItem(EDIT_URL_AND_ALIAS_ITEM_INDEX, 'https://example.com');
+
+      expect(vi.mocked(app.metadataCache.getFileCache)).toHaveBeenCalledWith(rowFile);
+      expect(read).not.toHaveBeenCalled();
+    });
+
+    it('should not look for a cell when no pointer gesture has been seen', () => {
+      lastPointerAnchor = null;
+      const { items, menu } = createMockMenu();
+      triggerUrlMenu(menu, 'https://example.com');
+
+      expect(mockGetBasesLinkOccurrence).not.toHaveBeenCalled();
+      expect(items).toHaveLength(0);
     });
   });
 

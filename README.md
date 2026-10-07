@@ -47,7 +47,7 @@ A copy of the vault ships with every release. You can access it via any of the f
 - **Edit the target and the text together**, in one two-field pop-up. [03 Edit link URL and alias](<./demo-vault/03 Edit link URL and alias.md>)
 - **`Alt` + click a link to edit it** — in Reading view, Live Preview and source mode, on desktop and mobile. It opens on the alias with the text selected, since that is the more common edit, and `Tab` moves to the URL. `Alt` + click is used because Obsidian gives it no meaning on a link, so nothing you already do changes. [04 Alt click a link to edit it](<./demo-vault/04 Alt click a link to edit it.md>)
 - **External links** work the same way. [02 External links](<./demo-vault/02 External links.md>)
-- **Links in properties** are editable too, written back through the frontmatter so the value stays valid YAML — with the two consequences that follow from that. [05 Frontmatter links](<./demo-vault/05 Frontmatter links.md>)
+- **Links in properties** are editable too, written back through the frontmatter so the value stays valid YAML — with the two consequences that follow from that. That includes a link shown in a **Base**, which is written to the note in its row. [05 Frontmatter links](<./demo-vault/05 Frontmatter links.md>)
 
 ## Installation
 
