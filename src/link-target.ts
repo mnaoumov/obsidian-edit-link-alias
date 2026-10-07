@@ -18,6 +18,8 @@ import type { ParseLinkResult } from 'obsidian-dev-utils/obsidian/parse-link';
 
 import { getLinkpath } from 'obsidian';
 
+const ENCODED_CLOSING_ANGLE_BRACKET = '%3E';
+
 /**
  * Parameters for {@link doesLinkMatchTarget}.
  */
@@ -90,7 +92,7 @@ export function doesLinkMatchTarget(params: DoesLinkMatchTargetParams): boolean 
   } = linkTarget;
 
   if (externalUrl !== undefined) {
-    return parsedLink.isExternal && (parsedLink.url === externalUrl || parsedLink.encodedUrl === externalUrl);
+    return parsedLink.isExternal && getRenderedExternalUrls(parsedLink).includes(externalUrl);
   }
 
   if (parsedLink.isExternal) {
@@ -126,4 +128,23 @@ export function doesLinkMatchTarget(params: DoesLinkMatchTargetParams): boolean 
  */
 export function isTargetKnown(linkTarget: LinkTarget): boolean {
   return linkTarget.externalUrl !== undefined || linkTarget.linkPath !== undefined || Boolean(linkTarget.target);
+}
+
+/**
+ * Lists the urls Obsidian may render an external link with: its url, decoded and encoded.
+ *
+ * A scheme-less `<www.example.com>` adds one more. It is not an autolink, so Obsidian links the `www.` literal
+ * inside it and swallows the closing `>` into that link: the rendered anchor, and the url the `url-menu` event
+ * carries, both read `http://www.example.com%3E` (measured against Obsidian 1.13.7, GH #11). The parsed link
+ * stops before the `>`, so that url is accepted for a link written inside angle brackets.
+ *
+ * @param parsedLink - The external link.
+ * @returns The urls that identify the link.
+ */
+function getRenderedExternalUrls(parsedLink: ParseLinkResult): string[] {
+  const urls = [parsedLink.url, parsedLink.encodedUrl ?? parsedLink.url];
+  if (parsedLink.raw.startsWith('<')) {
+    urls.push(...urls.map((url) => `${url}${ENCODED_CLOSING_ANGLE_BRACKET}`));
+  }
+  return urls;
 }
