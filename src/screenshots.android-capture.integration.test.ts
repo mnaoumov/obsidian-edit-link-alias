@@ -41,21 +41,6 @@ import {
 } from 'vitest';
 
 /**
- * `App`, reduced to the font-size applier that `obsidian-typings` does not
- * declare. Setting `baseFontSize` alone changes nothing on screen.
- */
-interface FontSizeApp {
-  updateFontSize: (this: void) => void;
-}
-
-/**
- * `App`, reduced to the inline-title applier, likewise undeclared.
- */
-interface InlineTitleApp {
-  updateInlineTitleDisplay: (this: void) => void;
-}
-
-/**
  * Where a link sits in the staged note, as a zero-based cursor position.
  */
 interface LinkPosition {
@@ -126,12 +111,11 @@ beforeAll(async () => {
       });
 
       app.vault.setConfig('baseFontSize', fontSizeInPixels);
-      const fontApp: unknown = app;
-      (fontApp as FontSizeApp).updateFontSize();
+      app.updateFontSize();
 
       // The note opens with its own `# H1`, so the inline title doubles it.
       app.vault.setConfig('showInlineTitle', false);
-      (fontApp as InlineTitleApp).updateInlineTitleDisplay();
+      app.updateInlineTitleDisplay();
 
       await sleep(SETTLE_DELAY_IN_MILLISECONDS);
 
