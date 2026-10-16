@@ -1,9 +1,9 @@
-import { OpenDemoVaultCommandHandler } from 'obsidian-dev-utils/obsidian/command-handlers/open-demo-vault-command-handler';
-import { PluginSettingsComponentBase } from 'obsidian-dev-utils/obsidian/components/plugin-settings-component';
-import { PluginSettingsTabComponent } from 'obsidian-dev-utils/obsidian/components/plugin-settings-tab-component';
-import { PointerPositionComponent } from 'obsidian-dev-utils/obsidian/components/pointer-position-component';
-import { PluginDataHandler } from 'obsidian-dev-utils/obsidian/data-handler';
-import { PluginBase } from 'obsidian-dev-utils/obsidian/plugin/plugin';
+import { OpenDemoVaultCommandHandler } from '@mnaoumov/obsidian-lib/command-handlers/open-demo-vault-command-handler';
+import { PluginSettingsComponentBase } from '@mnaoumov/obsidian-lib/components/plugin-settings-component';
+import { PluginSettingsTabComponent } from '@mnaoumov/obsidian-lib/components/plugin-settings-tab-component';
+import { PointerPositionComponent } from '@mnaoumov/obsidian-lib/components/pointer-position-component';
+import { PluginDataHandler } from '@mnaoumov/obsidian-lib/data-handler';
+import { PluginBase } from '@mnaoumov/obsidian-lib/plugin/plugin';
 
 import { EditCommandHandler } from './edit-command-handler.ts';
 import { EditUrlAndAliasCommandHandler } from './edit-url-and-alias-command-handler.ts';

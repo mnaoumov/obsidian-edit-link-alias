@@ -1,11 +1,11 @@
+import type { ParseLinkResult } from '@mnaoumov/obsidian-lib/parse-link';
+import type { PopoverAnchor } from '@mnaoumov/obsidian-lib/popovers/popover-anchor';
 import type { App } from 'obsidian';
-import type { ParseLinkResult } from 'obsidian-dev-utils/obsidian/parse-link';
-import type { PopoverAnchor } from 'obsidian-dev-utils/obsidian/popovers/popover-anchor';
 
-import { generateRawMarkdownLink } from 'obsidian-dev-utils/obsidian/link';
-import { prompt } from 'obsidian-dev-utils/obsidian/modals/prompt';
-import { editFieldsInPopover } from 'obsidian-dev-utils/obsidian/popovers/field-popover';
-import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
+import { generateRawMarkdownLink } from '@mnaoumov/obsidian-lib/link';
+import { prompt } from '@mnaoumov/obsidian-lib/modals/prompt';
+import { editFieldsInPopover } from '@mnaoumov/obsidian-lib/popovers/field-popover';
+import { strictProxy } from '@mnaoumov/typescript-test-toolkit/strict-proxy';
 import {
   afterEach,
   beforeEach,
@@ -20,15 +20,15 @@ import {
   editParsedLinkAlias
 } from './edit-link.ts';
 
-vi.mock('obsidian-dev-utils/obsidian/link', () => ({
+vi.mock('@mnaoumov/obsidian-lib/link', () => ({
   generateRawMarkdownLink: vi.fn()
 }));
 
-vi.mock('obsidian-dev-utils/obsidian/modals/prompt', () => ({
+vi.mock('@mnaoumov/obsidian-lib/modals/prompt', () => ({
   prompt: vi.fn()
 }));
 
-vi.mock('obsidian-dev-utils/obsidian/popovers/field-popover', () => ({
+vi.mock('@mnaoumov/obsidian-lib/popovers/field-popover', () => ({
   editFieldsInPopover: vi.fn()
 }));
 

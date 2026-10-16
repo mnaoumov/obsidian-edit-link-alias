@@ -19,28 +19,28 @@
  * every other gesture is left entirely untouched, so it keeps whatever meaning Obsidian gives it.
  */
 
+import type { PluginNoticeComponent } from '@mnaoumov/obsidian-lib/components/plugin-notice-component';
+import type { PluginSettingsComponentBase } from '@mnaoumov/obsidian-lib/components/plugin-settings-component';
+import type { PopoverAnchor } from '@mnaoumov/obsidian-lib/popovers/popover-anchor';
 import type {
   App,
   EditorPosition,
   TFile
 } from 'obsidian';
-import type { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/components/plugin-notice-component';
-import type { PluginSettingsComponentBase } from 'obsidian-dev-utils/obsidian/components/plugin-settings-component';
-import type { PopoverAnchor } from 'obsidian-dev-utils/obsidian/popovers/popover-anchor';
 
+import { AllWindowsEventComponent } from '@mnaoumov/obsidian-lib/components/all-windows-event-component';
+import { parseLinks } from '@mnaoumov/obsidian-lib/parse-link';
+import {
+  createAnchorFromElement,
+  createAnchorFromPoint
+} from '@mnaoumov/obsidian-lib/popovers/popover-anchor';
+import { invokeAsyncSafely } from '@mnaoumov/typescript-lib/async';
+import { normalizeOptionalProperties } from '@mnaoumov/typescript-lib/object-utils';
 import {
   getLinkpath,
   Keymap,
   MarkdownView
 } from 'obsidian';
-import { invokeAsyncSafely } from 'obsidian-dev-utils/async';
-import { normalizeOptionalProperties } from 'obsidian-dev-utils/object-utils';
-import { AllWindowsEventComponent } from 'obsidian-dev-utils/obsidian/components/all-windows-event-component';
-import { parseLinks } from 'obsidian-dev-utils/obsidian/parse-link';
-import {
-  createAnchorFromElement,
-  createAnchorFromPoint
-} from 'obsidian-dev-utils/obsidian/popovers/popover-anchor';
 
 import type { LinkTarget } from './link-target.ts';
 import type { PluginSettings } from './plugin-settings.ts';
@@ -145,7 +145,7 @@ export class LinkClickComponent extends AllWindowsEventComponent {
    * @param app - The Obsidian app instance.
    * @param options - The remaining collaborators.
    */
-  // eslint-disable-next-line obsidian-dev-utils/params-options-name-match -- The base class takes the app as its sole positional argument, so this bag is supplementary.
+  // eslint-disable-next-line typescript-dev-toolkit/params-options-name-match -- The base class takes the app as its sole positional argument, so this bag is supplementary.
   public constructor(app: App, options: LinkClickComponentConstructorParams) {
     super(app);
     this.pluginNoticeComponent = options.pluginNoticeComponent;

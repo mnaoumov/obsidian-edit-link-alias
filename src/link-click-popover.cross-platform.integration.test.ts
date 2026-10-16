@@ -82,7 +82,7 @@ const EDITING_MODE_LINK_SELECTOR = '.cm-hmd-internal-link';
 const ALT_CLICK_SETTING_NAME = 'shouldOpenLinkEditorOnAltClick';
 
 /**
- * The popover `obsidian-dev-utils` builds for this plugin. Every field carries the same `text-box` class, so
+ * The popover `@mnaoumov/obsidian-lib` builds for this plugin. Every field carries the same `text-box` class, so
  * the fields are told apart by their order — the order they were handed to `editFieldsInPopover`: alias
  * first, URL second (the alias leads so the popover focuses it — GH #7).
  */

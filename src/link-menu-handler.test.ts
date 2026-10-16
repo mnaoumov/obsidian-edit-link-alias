@@ -1,3 +1,7 @@
+import type { PluginNoticeComponent } from '@mnaoumov/obsidian-lib/components/plugin-notice-component';
+import type { PointerPositionComponent } from '@mnaoumov/obsidian-lib/components/pointer-position-component';
+import type { ParseLinkResult } from '@mnaoumov/obsidian-lib/parse-link';
+import type { PopoverAnchor } from '@mnaoumov/obsidian-lib/popovers/popover-anchor';
 import type {
   App,
   Editor,
@@ -9,21 +13,17 @@ import type {
   TFile,
   WorkspaceLeaf
 } from 'obsidian';
-import type { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/components/plugin-notice-component';
-import type { PointerPositionComponent } from 'obsidian-dev-utils/obsidian/components/pointer-position-component';
-import type { ParseLinkResult } from 'obsidian-dev-utils/obsidian/parse-link';
-import type { PopoverAnchor } from 'obsidian-dev-utils/obsidian/popovers/popover-anchor';
 
+import { isFile } from '@mnaoumov/obsidian-lib/file-system';
+import { selectItem } from '@mnaoumov/obsidian-lib/modals/select-item';
+import { parseLinks } from '@mnaoumov/obsidian-lib/parse-link';
+import { castTo } from '@mnaoumov/typescript-lib/object-utils';
+import { waitForAllAsyncOperations } from '@mnaoumov/typescript-test-toolkit/async-operation-tracking';
+import { strictProxy } from '@mnaoumov/typescript-test-toolkit/strict-proxy';
 import {
   MarkdownView,
   Platform
 } from 'obsidian';
-import { waitForAllAsyncOperations } from 'obsidian-dev-utils/async';
-import { castTo } from 'obsidian-dev-utils/object-utils';
-import { isFile } from 'obsidian-dev-utils/obsidian/file-system';
-import { selectItem } from 'obsidian-dev-utils/obsidian/modals/select-item';
-import { parseLinks } from 'obsidian-dev-utils/obsidian/parse-link';
-import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
 import {
   afterEach,
   beforeEach,
@@ -45,9 +45,9 @@ import { resolveAndEditLink } from './resolve-link-occurrence.ts';
 
 vi.mock('./bases-link-occurrence.ts', () => ({ getBasesLinkOccurrence: vi.fn() }));
 vi.mock('./edit-link.ts', () => ({ createEditParsedLinkUrlAndAliasInPopover: vi.fn(), editParsedLinkAlias: vi.fn() }));
-vi.mock('obsidian-dev-utils/obsidian/parse-link', () => ({ parseLinks: vi.fn() }));
-vi.mock('obsidian-dev-utils/obsidian/modals/select-item', () => ({ selectItem: vi.fn() }));
-vi.mock('obsidian-dev-utils/obsidian/file-system', () => ({ isFile: vi.fn() }));
+vi.mock('@mnaoumov/obsidian-lib/parse-link', () => ({ parseLinks: vi.fn() }));
+vi.mock('@mnaoumov/obsidian-lib/modals/select-item', () => ({ selectItem: vi.fn() }));
+vi.mock('@mnaoumov/obsidian-lib/file-system', () => ({ isFile: vi.fn() }));
 
 const mockGetBasesLinkOccurrence = vi.mocked(getBasesLinkOccurrence);
 const mockEditParsedLinkAlias = vi.mocked(editParsedLinkAlias);

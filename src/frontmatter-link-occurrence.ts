@@ -19,24 +19,24 @@
  * under the pointer. Neither knows an offset into the frontmatter object, which is what the write needs.
  */
 
+import type { FileChange } from '@mnaoumov/obsidian-lib/file-change';
+import type { ParseLinkResult } from '@mnaoumov/obsidian-lib/parse-link';
 import type {
   App,
   FrontmatterLinkCache,
   TFile
 } from 'obsidian';
-import type { FileChange } from 'obsidian-dev-utils/obsidian/file-change';
-import type { ParseLinkResult } from 'obsidian-dev-utils/obsidian/parse-link';
 
-import { getFrontMatterInfo } from 'obsidian';
-import { normalizeOptionalProperties } from 'obsidian-dev-utils/object-utils';
-import { applyFileChanges } from 'obsidian-dev-utils/obsidian/file-change';
-import { isFrontmatterLinkCacheWithOffsets } from 'obsidian-dev-utils/obsidian/frontmatter-link-cache-with-offsets';
-import { selectItem } from 'obsidian-dev-utils/obsidian/modals/select-item';
+import { applyFileChanges } from '@mnaoumov/obsidian-lib/file-change';
+import { isFrontmatterLinkCacheWithOffsets } from '@mnaoumov/obsidian-lib/frontmatter-link-cache-with-offsets';
+import { selectItem } from '@mnaoumov/obsidian-lib/modals/select-item';
 import {
   isParseLinkFrontmatterReference,
   parseFrontmatterLinks,
   parseLink
-} from 'obsidian-dev-utils/obsidian/parse-link';
+} from '@mnaoumov/obsidian-lib/parse-link';
+import { normalizeOptionalProperties } from '@mnaoumov/typescript-lib/object-utils';
+import { getFrontMatterInfo } from 'obsidian';
 
 import type { EditParsedLink } from './edit-link.ts';
 import type { LinkTarget } from './link-target.ts';

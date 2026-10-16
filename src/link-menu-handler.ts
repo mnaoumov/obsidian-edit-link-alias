@@ -1,3 +1,6 @@
+import type { PluginNoticeComponent } from '@mnaoumov/obsidian-lib/components/plugin-notice-component';
+import type { PointerPositionComponent } from '@mnaoumov/obsidian-lib/components/pointer-position-component';
+import type { PopoverAnchor } from '@mnaoumov/obsidian-lib/popovers/popover-anchor';
 import type {
   App,
   Menu,
@@ -5,18 +8,15 @@ import type {
   TAbstractFile,
   WorkspaceLeaf
 } from 'obsidian';
-import type { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/components/plugin-notice-component';
-import type { PointerPositionComponent } from 'obsidian-dev-utils/obsidian/components/pointer-position-component';
-import type { PopoverAnchor } from 'obsidian-dev-utils/obsidian/popovers/popover-anchor';
 
+import { isFile } from '@mnaoumov/obsidian-lib/file-system';
+import { createAnchorFromDocumentCenter } from '@mnaoumov/obsidian-lib/popovers/popover-anchor';
+import { convertAsyncToSync } from '@mnaoumov/typescript-lib/async';
+import { normalizeOptionalProperties } from '@mnaoumov/typescript-lib/object-utils';
 import {
   MarkdownView,
   Platform
 } from 'obsidian';
-import { convertAsyncToSync } from 'obsidian-dev-utils/async';
-import { normalizeOptionalProperties } from 'obsidian-dev-utils/object-utils';
-import { isFile } from 'obsidian-dev-utils/obsidian/file-system';
-import { createAnchorFromDocumentCenter } from 'obsidian-dev-utils/obsidian/popovers/popover-anchor';
 
 import type { BasesLinkOccurrence } from './bases-link-occurrence.ts';
 import type { EditParsedLink } from './edit-link.ts';

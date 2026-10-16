@@ -1,19 +1,19 @@
+import type { ParseLinkResult } from '@mnaoumov/obsidian-lib/parse-link';
 import type {
   App as AppOriginal,
   TFile
 } from 'obsidian';
-import type { ParseLinkResult } from 'obsidian-dev-utils/obsidian/parse-link';
 
+import { selectItem } from '@mnaoumov/obsidian-lib/modals/select-item';
+import {
+  parseFrontmatterLinks,
+  parseLink
+} from '@mnaoumov/obsidian-lib/parse-link';
+import { castTo } from '@mnaoumov/typescript-lib/object-utils';
 import {
   getFrontMatterInfo,
   parseYaml
 } from 'obsidian';
-import { castTo } from 'obsidian-dev-utils/object-utils';
-import { selectItem } from 'obsidian-dev-utils/obsidian/modals/select-item';
-import {
-  parseFrontmatterLinks,
-  parseLink
-} from 'obsidian-dev-utils/obsidian/parse-link';
 import { App } from 'obsidian-test-mocks/obsidian';
 import {
   beforeEach,
@@ -31,10 +31,10 @@ import {
   isOffsetInFrontmatter
 } from './frontmatter-link-occurrence.ts';
 
-vi.mock('obsidian-dev-utils/obsidian/modals/select-item', () => ({ selectItem: vi.fn() }));
+vi.mock('@mnaoumov/obsidian-lib/modals/select-item', () => ({ selectItem: vi.fn() }));
 
-vi.mock('obsidian-dev-utils/obsidian/parse-link', async (importOriginal) => {
-  const original = await importOriginal<typeof import('obsidian-dev-utils/obsidian/parse-link')>();
+vi.mock('@mnaoumov/obsidian-lib/parse-link', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@mnaoumov/obsidian-lib/parse-link')>();
   return {
     ...original,
     parseFrontmatterLinks: vi.fn(original.parseFrontmatterLinks),

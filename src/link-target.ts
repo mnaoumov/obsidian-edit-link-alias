@@ -10,11 +10,11 @@
  * modules import each other.
  */
 
+import type { ParseLinkResult } from '@mnaoumov/obsidian-lib/parse-link';
 import type {
   App,
   TFile
 } from 'obsidian';
-import type { ParseLinkResult } from 'obsidian-dev-utils/obsidian/parse-link';
 
 import { getLinkpath } from 'obsidian';
 
