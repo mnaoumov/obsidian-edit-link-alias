@@ -17,6 +17,8 @@
  * prompt, the two-field URL + alias popover, and Alt-clicking the link itself.
  */
 
+import type { WorkspaceSidedock } from 'obsidian';
+
 import {
   mkdirSync,
   writeFileSync
@@ -39,26 +41,11 @@ import {
 } from 'vitest';
 
 /**
- * `App`, reduced to the inline-title toggle that `obsidian-typings` does not
- * declare. Setting the config alone changes nothing on screen.
- */
-interface InlineTitleApp {
-  updateInlineTitleDisplay: (this: void) => void;
-}
-
-/**
  * Where a link sits in the staged note, as a zero-based cursor position.
  */
 interface LinkPosition {
   readonly characterIndex: number;
   readonly line: number;
-}
-
-/**
- * The desktop side dock, reduced to the resize call.
- */
-interface ResizableSideDock {
-  setSize: (this: void, size: number) => void;
 }
 
 const PLUGIN_ID = 'edit-link-alias';
@@ -117,14 +104,12 @@ beforeAll(async () => {
       // Nothing but the note matters in these shots: the file explorer and an
       // empty right dock would otherwise take a third of a 1200x800 frame.
       app.workspace.leftSplit.collapse();
-      const rightSplit: unknown = app.workspace.rightSplit;
-      (rightSplit as ResizableSideDock).setSize(0);
+      (app.workspace.rightSplit as WorkspaceSidedock).setSize(0);
       app.workspace.rightSplit.collapse();
 
       // The note opens with its own `# H1`, so the inline title doubles it.
       app.vault.setConfig('showInlineTitle', false);
-      const inlineTitleApp: unknown = app;
-      (inlineTitleApp as InlineTitleApp).updateInlineTitleDisplay();
+      app.updateInlineTitleDisplay();
 
       await sleep(SETTLE_DELAY_IN_MILLISECONDS);
     },
