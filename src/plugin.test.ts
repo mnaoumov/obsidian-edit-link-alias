@@ -3,9 +3,9 @@ import type {
   PluginManifest
 } from 'obsidian';
 
+import { castTo } from '@mnaoumov/typescript-lib/object-utils';
+import { strictProxy } from '@mnaoumov/typescript-test-toolkit/strict-proxy';
 import { Component } from 'obsidian';
-import { castTo } from 'obsidian-dev-utils/object-utils';
-import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
 import { App } from 'obsidian-test-mocks/obsidian';
 import {
   beforeEach,
@@ -18,29 +18,29 @@ import {
 // The shared command handler component is now constructed and registered by PluginBase itself, so the mock exposes the registerCommandHandlers spy the base (and the plugin) call at load.
 const { registerCommandHandlers } = vi.hoisted(() => ({ registerCommandHandlers: vi.fn() }));
 
-vi.mock('obsidian-dev-utils/obsidian/command-handlers/command-handler-component', () => ({
+vi.mock('@mnaoumov/obsidian-lib/command-handlers/command-handler-component', () => ({
   // eslint-disable-next-line prefer-arrow-callback, func-names -- mock must be constructable with `new` and return a loadable Component exposing registerCommandHandlers.
   CommandHandlerComponent: vi.fn(function (): Component {
     return Object.assign(new Component(), { registerCommandHandlers });
   })
 }));
 
-vi.mock('obsidian-dev-utils/obsidian/components/menu-event-registrar-component', () => ({
+vi.mock('@mnaoumov/obsidian-lib/components/menu-event-registrar-component', () => ({
   // eslint-disable-next-line prefer-arrow-callback, func-names -- mock must be constructable with `new` and return a loadable Component.
   MenuEventRegistrarComponent: vi.fn(function (): Component {
     return new Component();
   })
 }));
 
-vi.mock('obsidian-dev-utils/obsidian/active-file-provider', () => ({
+vi.mock('@mnaoumov/obsidian-lib/active-file-provider', () => ({
   AppActiveFileProvider: vi.fn()
 }));
 
-vi.mock('obsidian-dev-utils/obsidian/command-registrar', () => ({
+vi.mock('@mnaoumov/obsidian-lib/command-registrar', () => ({
   PluginCommandRegistrar: vi.fn()
 }));
 
-vi.mock('obsidian-dev-utils/obsidian/command-handlers/open-demo-vault-command-handler', () => ({
+vi.mock('@mnaoumov/obsidian-lib/command-handlers/open-demo-vault-command-handler', () => ({
   OpenDemoVaultCommandHandler: vi.fn()
 }));
 
@@ -66,11 +66,11 @@ vi.mock('./link-menu-handler.ts', () => ({
 }));
 
 // eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
-import { OpenDemoVaultCommandHandler } from 'obsidian-dev-utils/obsidian/command-handlers/open-demo-vault-command-handler';
+import { OpenDemoVaultCommandHandler } from '@mnaoumov/obsidian-lib/command-handlers/open-demo-vault-command-handler';
 // eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
-import { PluginSettingsComponentBase } from 'obsidian-dev-utils/obsidian/components/plugin-settings-component';
+import { PluginSettingsComponentBase } from '@mnaoumov/obsidian-lib/components/plugin-settings-component';
 // eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
-import { PluginSettingsTabComponent } from 'obsidian-dev-utils/obsidian/components/plugin-settings-tab-component';
+import { PluginSettingsTabComponent } from '@mnaoumov/obsidian-lib/components/plugin-settings-tab-component';
 
 // eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
 import { EditCommandHandler } from './edit-command-handler.ts';

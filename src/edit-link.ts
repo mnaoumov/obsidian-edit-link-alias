@@ -1,11 +1,11 @@
+import type { ParseLinkResult } from '@mnaoumov/obsidian-lib/parse-link';
+import type { PopoverAnchor } from '@mnaoumov/obsidian-lib/popovers/popover-anchor';
 import type { App } from 'obsidian';
-import type { ParseLinkResult } from 'obsidian-dev-utils/obsidian/parse-link';
-import type { PopoverAnchor } from 'obsidian-dev-utils/obsidian/popovers/popover-anchor';
 import type { Promisable } from 'type-fest';
 
-import { generateRawMarkdownLink } from 'obsidian-dev-utils/obsidian/link';
-import { prompt } from 'obsidian-dev-utils/obsidian/modals/prompt';
-import { editFieldsInPopover } from 'obsidian-dev-utils/obsidian/popovers/field-popover';
+import { generateRawMarkdownLink } from '@mnaoumov/obsidian-lib/link';
+import { prompt } from '@mnaoumov/obsidian-lib/modals/prompt';
+import { editFieldsInPopover } from '@mnaoumov/obsidian-lib/popovers/field-popover';
 
 /**
  * A function that edits a parsed link and applies the replacement. Both {@link editParsedLinkAlias} and
@@ -95,7 +95,7 @@ export function createEditParsedLinkUrlAndAliasInPopover(anchor: PopoverAnchor):
  *
  * @param params - The parameters for editing the alias.
  */
-// eslint-disable-next-line obsidian-dev-utils/params-options-name-match -- Conforms to the exported EditParsedLink callback signature, so it shares its param type.
+// eslint-disable-next-line typescript-dev-toolkit/params-options-name-match -- Conforms to the exported EditParsedLink callback signature, so it shares its param type.
 export async function editParsedLinkAlias(params: EditParsedLinkParams): Promise<void> {
   const {
     app,

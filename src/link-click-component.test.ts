@@ -1,3 +1,5 @@
+import type { PluginNoticeComponent } from '@mnaoumov/obsidian-lib/components/plugin-notice-component';
+import type { PluginSettingsComponentBase } from '@mnaoumov/obsidian-lib/components/plugin-settings-component';
 import type {
   App as AppOriginal,
   Component,
@@ -7,17 +9,15 @@ import type {
   TFile,
   WorkspaceLeaf
 } from 'obsidian';
-import type { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/components/plugin-notice-component';
-import type { PluginSettingsComponentBase } from 'obsidian-dev-utils/obsidian/components/plugin-settings-component';
 
+import { castTo } from '@mnaoumov/typescript-lib/object-utils';
+import { EMPTY } from '@mnaoumov/typescript-lib/string';
+import { waitForAllAsyncOperations } from '@mnaoumov/typescript-test-toolkit/async-operation-tracking';
+import { strictProxy } from '@mnaoumov/typescript-test-toolkit/strict-proxy';
 import {
   MarkdownView,
   Platform
 } from 'obsidian';
-import { waitForAllAsyncOperations } from 'obsidian-dev-utils/async';
-import { castTo } from 'obsidian-dev-utils/object-utils';
-import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
-import { EMPTY } from 'obsidian-dev-utils/string';
 import { App } from 'obsidian-test-mocks/obsidian';
 import {
   afterEach,

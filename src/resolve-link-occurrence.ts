@@ -22,16 +22,16 @@
  * interception) so the scan, the match rules, and the shifted-offset write-back live in one place.
  */
 
+import type { ParseLinkResult } from '@mnaoumov/obsidian-lib/parse-link';
 import type {
   App,
   EditorPosition,
   MarkdownView,
   TFile
 } from 'obsidian';
-import type { ParseLinkResult } from 'obsidian-dev-utils/obsidian/parse-link';
 
-import { selectItem } from 'obsidian-dev-utils/obsidian/modals/select-item';
-import { parseLinks } from 'obsidian-dev-utils/obsidian/parse-link';
+import { selectItem } from '@mnaoumov/obsidian-lib/modals/select-item';
+import { parseLinks } from '@mnaoumov/obsidian-lib/parse-link';
 
 import type { EditParsedLink } from './edit-link.ts';
 import type { LinkTarget } from './link-target.ts';

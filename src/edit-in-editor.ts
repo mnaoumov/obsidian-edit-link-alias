@@ -6,14 +6,14 @@
  * cursor-resolution + `replaceRange` logic lives in one place.
  */
 
+import type { ParseLinkResult } from '@mnaoumov/obsidian-lib/parse-link';
 import type {
   App,
   Editor,
   TFile
 } from 'obsidian';
-import type { ParseLinkResult } from 'obsidian-dev-utils/obsidian/parse-link';
 
-import { parseLinks } from 'obsidian-dev-utils/obsidian/parse-link';
+import { parseLinks } from '@mnaoumov/obsidian-lib/parse-link';
 
 import type { EditParsedLink } from './edit-link.ts';
 

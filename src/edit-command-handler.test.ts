@@ -1,16 +1,16 @@
+import type { PluginNoticeComponent } from '@mnaoumov/obsidian-lib/components/plugin-notice-component';
 import type {
   Editor,
   EditorPosition,
   MarkdownFileInfo
 } from 'obsidian';
-import type { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/components/plugin-notice-component';
 
-import { castTo } from 'obsidian-dev-utils/object-utils';
-import { EditorCommandHandler } from 'obsidian-dev-utils/obsidian/command-handlers/editor-command-handler';
-import { generateRawMarkdownLink } from 'obsidian-dev-utils/obsidian/link';
-import { prompt } from 'obsidian-dev-utils/obsidian/modals/prompt';
-import { parseLinks } from 'obsidian-dev-utils/obsidian/parse-link';
-import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
+import { EditorCommandHandler } from '@mnaoumov/obsidian-lib/command-handlers/editor-command-handler';
+import { generateRawMarkdownLink } from '@mnaoumov/obsidian-lib/link';
+import { prompt } from '@mnaoumov/obsidian-lib/modals/prompt';
+import { parseLinks } from '@mnaoumov/obsidian-lib/parse-link';
+import { castTo } from '@mnaoumov/typescript-lib/object-utils';
+import { strictProxy } from '@mnaoumov/typescript-test-toolkit/strict-proxy';
 import {
   afterEach,
   beforeEach,
@@ -22,15 +22,15 @@ import {
 
 import { EditCommandHandler } from './edit-command-handler.ts';
 
-vi.mock('obsidian-dev-utils/obsidian/link', () => ({
+vi.mock('@mnaoumov/obsidian-lib/link', () => ({
   generateRawMarkdownLink: vi.fn()
 }));
 
-vi.mock('obsidian-dev-utils/obsidian/modals/prompt', () => ({
+vi.mock('@mnaoumov/obsidian-lib/modals/prompt', () => ({
   prompt: vi.fn()
 }));
 
-vi.mock('obsidian-dev-utils/obsidian/parse-link', () => ({
+vi.mock('@mnaoumov/obsidian-lib/parse-link', () => ({
   parseLinks: vi.fn()
 }));
 
