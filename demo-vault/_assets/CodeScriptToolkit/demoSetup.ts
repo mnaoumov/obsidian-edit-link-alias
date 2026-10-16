@@ -102,7 +102,7 @@ export async function editLinkOnLine(app: App, marker: string, commandId: string
  * Turns `Alt` + click link editing on or off.
  *
  * Manual equivalent: toggle **Should open link editor on alt click** in **Settings -> Community
- * plugins -> Edit Link Alias**.
+ * plugins ->** `Edit Link Alias`.
  */
 export async function setAltClickEditing(app: App, shouldOpenLinkEditorOnAltClick: boolean): Promise<void> {
   await configureCommunityPlugin({ app, pluginId: PLUGIN_ID, settings: { shouldOpenLinkEditorOnAltClick } });

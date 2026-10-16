@@ -69,7 +69,7 @@ caption: Alt + click opens the link editor again (the default)
 await require('/demoSetup.ts').setAltClickEditing(app, true);
 ```
 
-Manual equivalent: toggle **Should open link editor on alt click** in **Settings -> Community plugins -> Edit Link Alias**.
+Manual equivalent: toggle **Should open link editor on alt click** in **Settings -> Community plugins ->** `Edit Link Alias`.
 
 Try things on the scratch note rather than on this one:
 
