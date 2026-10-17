@@ -14,11 +14,22 @@ The **alias** is the field the pop-up opens on, already selected - changing the 
 
 ## Try it
 
-1. `Alt` + click one of the links below - in Reading view, in Live Preview, or in source mode.
+The click itself has to be yours - a button cannot hold `Alt` for you - but everything around it is one click:
+
+```code-button
+---
+caption: Turn Alt + click on and open the link playground
+---
+await require('/demoSetup.ts').prepareAltClickPlayground(app);
+```
+
+Manual equivalent: turn on **Should open link editor on alt click** in **Settings -> Community plugins ->** `Edit Link Alias`, then open `Materials/01 Edit link alias/Link playground.md`.
+
+1. `Alt` + click one of the playground's links (or one of the links below) - in Reading view, in Live Preview, or in source mode.
 2. The pop-up appears at the link, pre-filled with its target and display text. Edit either field and press **OK**.
 3. The link is rewritten in place. `Esc`, the **Cancel** button, or a click anywhere outside dismisses it without changing anything.
 
-Then try a plain click on the same link: it still opens the note, untouched.
+Then try a plain click on the same link: it still opens the note, untouched. Run the button again to put the playground back as it started.
 
 ## Internal wikilinks
 

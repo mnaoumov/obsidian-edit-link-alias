@@ -108,3 +108,15 @@ export async function setAltClickEditing(app: App, shouldOpenLinkEditorOnAltClic
   await configureCommunityPlugin({ app, pluginId: PLUGIN_ID, settings: { shouldOpenLinkEditorOnAltClick } });
   new Notice(shouldOpenLinkEditorOnAltClick ? 'Alt + click now opens the link editor.' : 'Alt + click left alone again.');
 }
+
+/**
+ * Prepares everything around an `Alt` + click: turns the gesture on and opens a fresh link playground.
+ * The click itself stays the reader's, since no button can hold a modifier key on their behalf.
+ *
+ * Manual equivalent: turn on **Should open link editor on alt click** in **Settings -> Community
+ * plugins ->** `Edit Link Alias`, then open `Materials/01 Edit link alias/Link playground.md`.
+ */
+export async function prepareAltClickPlayground(app: App): Promise<void> {
+  await setAltClickEditing(app, true);
+  await resetLinkPlayground(app);
+}
