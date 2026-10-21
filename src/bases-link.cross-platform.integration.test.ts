@@ -64,7 +64,7 @@ const CELL_LINK_SELECTOR = `.bases-td[data-property="note.${PROPERTY_KEY}"] .int
 const MENU_ITEM_TITLE = 'Edit link alias';
 const PROMPT_INPUT_SELECTOR = '.prompt-modal input.text-box';
 const PROMPT_OK_BUTTON_SELECTOR = '.prompt-modal .ok-button';
-const POPOVER_SELECTOR = `.obsidian-dev-utils.${PLUGIN_ID}.popover`;
+const POPOVER_SELECTOR = `.obsidian-lib.${PLUGIN_ID}.popover`;
 const ALT_CLICK_SETTING_NAME = 'shouldOpenLinkEditorOnAltClick';
 
 const WAIT_TIMEOUT_IN_MILLISECONDS = 20_000;

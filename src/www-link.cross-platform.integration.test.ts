@@ -57,7 +57,7 @@ const READING_VIEW_LINK_SELECTOR = 'a.external-link';
  */
 const LIVE_PREVIEW_LINK_SELECTOR = '.cm-url';
 
-const POPOVER_SELECTOR = `.obsidian-dev-utils.${PLUGIN_ID}.popover`;
+const POPOVER_SELECTOR = `.obsidian-lib.${PLUGIN_ID}.popover`;
 const POPOVER_FIELD_COUNT = 2;
 const URL_AND_ALIAS_MENU_ITEM_TITLE = 'Edit link (URL and alias)';
 const ALT_CLICK_SETTING_NAME = 'shouldOpenLinkEditorOnAltClick';

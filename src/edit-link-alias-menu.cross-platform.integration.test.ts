@@ -191,7 +191,7 @@ describe('Edit link URL and alias via link context menu', () => {
          * URL second (the alias leads so the popover focuses it — GH #7).
          */
         function getPopoverEl(): HTMLElement | null {
-          return document.body.querySelector<HTMLElement>(`.obsidian-dev-utils.${pluginId}.popover`);
+          return document.body.querySelector<HTMLElement>(`.obsidian-lib.${pluginId}.popover`);
         }
 
         function getPopoverInputEls(): HTMLInputElement[] {

@@ -25,7 +25,7 @@ Or work on the examples below:
 
 - Give this one a friendly label: [https://obsidian.md](https://obsidian.md)
 - Rename this label: [Obsidian Help](https://help.obsidian.md)
-- A project link: [obsidian-dev-utils on GitHub](https://github.com/mnaoumov/obsidian-dev-utils)
+- A project link: [obsidian-lib on GitHub](https://github.com/mnaoumov/obsidian-lib)
 
 The URL itself is never touched - only the text shown in the note changes.
 

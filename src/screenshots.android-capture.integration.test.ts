@@ -224,7 +224,7 @@ async function dismissPopover(): Promise<void> {
 
         await waitUntil({
           message: 'the link editor popover to close',
-          predicate: () => !document.body.querySelector(`.obsidian-dev-utils.${pluginId}.popover`),
+          predicate: () => !document.body.querySelector(`.obsidian-lib.${pluginId}.popover`),
           timeoutInMilliseconds: POPOVER_TIMEOUT_IN_MILLISECONDS
         });
       } finally {
@@ -337,7 +337,7 @@ async function openLinkPopover(position: LinkPosition): Promise<void> {
       await waitUntil({
         message: 'the link editor popover to open',
         predicate: () =>
-          (document.body.querySelector(`.obsidian-dev-utils.${pluginId}.popover`)?.querySelectorAll('input').length ?? 0)
+          (document.body.querySelector(`.obsidian-lib.${pluginId}.popover`)?.querySelectorAll('input').length ?? 0)
             === POPOVER_FIELD_COUNT,
         timeoutInMilliseconds: POPOVER_TIMEOUT_IN_MILLISECONDS
       });
