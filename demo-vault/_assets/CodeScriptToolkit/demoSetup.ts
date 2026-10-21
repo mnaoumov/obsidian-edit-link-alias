@@ -1,7 +1,7 @@
 import type { App } from 'obsidian';
 
 import { Notice } from 'obsidian';
-import { configureCommunityPlugin } from 'obsidian-dev-utils/obsidian/community-plugins';
+import { configureCommunityPlugin } from '@mnaoumov/obsidian-lib/community-plugins';
 
 const PLUGIN_ID = 'edit-link-alias';
 const PLAYGROUND_FOLDER_PATH = 'Materials/01 Edit link alias';

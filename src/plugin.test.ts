@@ -103,7 +103,7 @@ interface ComponentChildrenHolder {
 
 let app: AppOriginal;
 
-// `registerCommandHandlers` takes a factory since obsidian-dev-utils 89.0.0, and the base registers its
+// `registerCommandHandlers` takes a factory, and the base registers its
 // own handlers through the same spy — so pick the plugin's own factory by what it builds.
 function buildPluginCommandHandlers(): unknown[] {
   const commandHandlerBatches = registerCommandHandlers.mock.calls
@@ -117,7 +117,7 @@ function buildPluginCommandHandlers(): unknown[] {
 
 async function createLoadedPlugin(): Promise<Plugin> {
   const plugin = new Plugin(app, manifest);
-  // PluginBase.onload is async; driving the real async load path directly (as the obsidian-dev-utils reference test does) runs every universal component plus onloadImpl.
+  // PluginBase.onload is async; driving the real async load path directly (as the `@mnaoumov/obsidian-lib` reference test does) runs every universal component plus onloadImpl.
   await plugin.onload();
   return plugin;
 }

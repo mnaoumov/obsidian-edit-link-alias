@@ -72,7 +72,7 @@ const ALT_CLICK_SETTING_NAME = 'shouldOpenLinkEditorOnAltClick';
  * the fields are told apart by their order — the order they were handed to `editFieldsInPopover`: alias
  * first, URL second (the alias leads so the popover focuses it — GH #7).
  */
-const POPOVER_SELECTOR = `.obsidian-dev-utils.${PLUGIN_ID}.popover`;
+const POPOVER_SELECTOR = `.obsidian-lib.${PLUGIN_ID}.popover`;
 
 const WAIT_TIMEOUT_IN_MILLISECONDS = 20_000;
 const POPOVER_SETTLE_TIMEOUT_IN_MILLISECONDS = 5000;
