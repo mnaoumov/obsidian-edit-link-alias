@@ -7,7 +7,7 @@
 
 ## 1.5.7
 
-- fix: merge editing a link shown in a Bases table cell (re #10 - \[BUG\] Can't Edit Link Alias in a Base)
+- fix: merge editing a link shown in a Bases table cell (re #10 - \[BUG\] Can't `Edit Link Alias` in a Base)
 
 ## 1.5.6
 

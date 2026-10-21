@@ -1,5 +1,5 @@
 ---
-obsidian-dev-utils:
+obsidian-dev-toolkit:
   demo-vault-validation:
     allow-wikilinks: The wikilink property values are the fixtures this note edits.
 url: https://help.obsidian.md
