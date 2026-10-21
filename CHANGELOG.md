@@ -3,11 +3,11 @@
 ## 1.5.8
 
 - test: merge restoring the Alt-click setting after link-click-popover
-- fix: merge editing a link written without a scheme
+- fix: merge editing a link written without a scheme (re #11 - [BUG] Bare links that don't have http or https are not recognized)
 
 ## 1.5.7
 
-- fix: merge editing a link shown in a Bases table cell
+- fix: merge editing a link shown in a Bases table cell (re #10 - [BUG] Can't Edit Link Alias in a Base)
 
 ## 1.5.6
 
