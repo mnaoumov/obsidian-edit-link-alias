@@ -87,7 +87,7 @@ export async function editLinkAtEditorCursor(params: EditLinkAtEditorCursorParam
   } = params;
 
   const cursor = editor.getCursor();
-  const line = editor.getDoc().getLine(cursor.line);
+  const line = editor.getLine(cursor.line);
   const parsedLinks = parseLinks(line);
   const parsedLink = parsedLinks.find((link) => link.startOffset <= cursor.ch && cursor.ch <= link.endOffset);
   if (!parsedLink) {
@@ -143,6 +143,6 @@ export function findFrontmatterLinkAtEditorCursor(editor: Editor): null | ParseL
     return null;
   }
 
-  const line = editor.getDoc().getLine(cursor.line);
+  const line = editor.getLine(cursor.line);
   return parseLinks(line).find((link) => link.startOffset <= cursor.ch && cursor.ch <= link.endOffset) ?? null;
 }

@@ -220,7 +220,7 @@ async function didEditLinkAtPosition(params: TryEditLinkAtPositionParams): Promi
   } = params;
 
   const { editor } = view;
-  const line = editor.getDoc().getLine(editorPosition.line);
+  const line = editor.getLine(editorPosition.line);
   const parsedLink = parseLinks(line).find((link) => link.startOffset <= editorPosition.ch && editorPosition.ch <= link.endOffset);
   if (!parsedLink) {
     return false;

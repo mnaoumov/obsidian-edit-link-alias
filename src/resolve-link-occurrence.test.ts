@@ -46,7 +46,7 @@ function createSourceView(mode: 'preview' | 'source', editorContent = ''): Markd
   return strictProxy<MarkdownView>({
     editor: strictProxy<Editor>({
       getCursor: () => CURSOR,
-      getDoc: vi.fn().mockImplementation(() => strictProxy({ getLine: (line: number) => editorContent.split('\n')[line] ?? '' })),
+      getLine: (line: number) => editorContent.split('\n')[line] ?? '',
       getValue: () => editorContent,
       posToOffset: (position: EditorPosition) => toOffset(editorContent, position),
       replaceRange: castTo<Editor['replaceRange']>(replaceRange)

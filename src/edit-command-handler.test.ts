@@ -84,12 +84,11 @@ function createMockEditor(params: CreateMockEditorParams = {}): Editor {
   } = params;
 
   const mockGetLine = vi.fn().mockReturnValue(line);
-  const mockGetDoc = vi.fn().mockReturnValue(strictProxy({ getLine: mockGetLine }));
 
   return strictProxy<Editor>({
     getClickableTokenAt: vi.fn().mockReturnValue(clickableToken),
     getCursor: vi.fn().mockReturnValue(cursor),
-    getDoc: mockGetDoc,
+    getLine: mockGetLine,
     getValue: vi.fn().mockReturnValue(line),
     posToOffset: vi.fn().mockReturnValue(0),
     replaceRange

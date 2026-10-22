@@ -185,7 +185,7 @@ describe('Edit link URL and alias via link context menu', () => {
         waitTimeoutInMilliseconds
       }) {
         /*
-         * The popover comes from `@mnaoumov/obsidian-lib`, which classes it `obsidian-dev-utils <pluginId>
+         * The popover comes from `@mnaoumov/obsidian-lib`, which classes it `obsidian-lib <pluginId>
          * popover` and gives every field the same `text-box` class. The fields are therefore told apart
          * by their order, which is the order they were handed to `editFieldsInPopover`: alias first,
          * URL second (the alias leads so the popover focuses it — GH #7).

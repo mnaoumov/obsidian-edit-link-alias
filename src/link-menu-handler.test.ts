@@ -96,7 +96,7 @@ function createMockEditor(params: CreateMockEditorParams = {}): Editor {
   return strictProxy<Editor>({
     getClickableTokenAt: vi.fn().mockReturnValue(clickableTokenType === null ? null : { type: clickableTokenType }),
     getCursor: vi.fn().mockReturnValue(cursor),
-    getDoc: vi.fn().mockReturnValue(strictProxy({ getLine })),
+    getLine,
     // A single body line: no frontmatter, so the frontmatter routing in `didEditLinkAtPosition` is not taken.
     getValue: vi.fn().mockReturnValue(line),
     posToOffset: vi.fn().mockReturnValue(0),

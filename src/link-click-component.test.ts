@@ -188,7 +188,7 @@ beforeEach(() => {
   // `MarkdownView.editor` is a prototype getter, so a plain assignment throws; shadow it with an own property.
   Object.defineProperty(view, 'editor', {
     value: strictProxy<Editor>({
-      getDoc: vi.fn().mockImplementation(() => strictProxy({ getLine: (line: number) => editorContent.split('\n')[line] ?? '' })),
+      getLine: (line: number) => editorContent.split('\n')[line] ?? '',
       getValue: () => editorContent,
       posAtMouse: castTo<Editor['posAtMouse']>(posAtMouse),
       posToOffset: (position: EditorPosition) => toOffset(editorContent, position)
