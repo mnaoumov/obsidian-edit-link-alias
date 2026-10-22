@@ -137,10 +137,10 @@ beforeEach(() => {
   });
   app = appMock.asOriginalType__();
 
-  // Seed the obsidianDevUtilsState holder on the raw target behind the strict-proxy App so the real dev-utils universal components can read/write shared state during load.
+  // Seed the obsidianDevUtilsState holder on the raw target behind the strict-proxy App so the real obsidian-lib universal components can read/write shared state during load.
   seedOnRawTarget(app, 'obsidianDevUtilsState', {});
 
-  // Expose the app as the global instance so dev-utils helpers that resolve shared state without an explicit app argument read/write the same seeded holder.
+  // Expose the app as the global instance so obsidian-lib helpers that resolve shared state without an explicit app argument read/write the same seeded holder.
   castTo<AppGlobal>(window).app = app;
 });
 
