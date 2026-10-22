@@ -295,7 +295,7 @@ export class LinkClickComponent extends AllWindowsEventComponent {
     const { editor } = view;
     const sourcePosition = editor.posAtMouse($event);
 
-    const line = editor.getDoc().getLine(sourcePosition.line);
+    const line = editor.getLine(sourcePosition.line);
     const isPointerOnLink = parseLinks(line)
       .some((parsedLink) => parsedLink.startOffset <= sourcePosition.ch && sourcePosition.ch <= parsedLink.endOffset);
     if (!isPointerOnLink) {

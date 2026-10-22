@@ -46,7 +46,7 @@ function createEditor(content: string, cursor: EditorPosition, clickableTokenTyp
   return strictProxy<Editor>({
     getClickableTokenAt: vi.fn().mockReturnValue(clickableTokenType === null ? null : { type: clickableTokenType }),
     getCursor: vi.fn().mockReturnValue(cursor),
-    getDoc: vi.fn().mockImplementation(() => strictProxy({ getLine: (line: number) => content.split('\n')[line] ?? '' })),
+    getLine: (line: number) => content.split('\n')[line] ?? '',
     getValue: vi.fn().mockReturnValue(content),
     posToOffset: vi.fn().mockImplementation((position: EditorPosition) => toOffset(content, position)),
     replaceRange: castTo<Editor['replaceRange']>(replaceRange)

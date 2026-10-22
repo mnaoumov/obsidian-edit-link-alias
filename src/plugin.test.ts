@@ -71,6 +71,8 @@ import { OpenDemoVaultCommandHandler } from '@mnaoumov/obsidian-lib/command-hand
 import { PluginSettingsComponentBase } from '@mnaoumov/obsidian-lib/components/plugin-settings-component';
 // eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
 import { PluginSettingsTabComponent } from '@mnaoumov/obsidian-lib/components/plugin-settings-tab-component';
+// eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
+import { resetObsidianLibState } from '@mnaoumov/obsidian-lib/obsidian-lib-state';
 
 // eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
 import { EditCommandHandler } from './edit-command-handler.ts';
@@ -88,8 +90,6 @@ import { Plugin } from './plugin.ts';
 interface AppGlobal {
   app: AppOriginal;
 }
-
-const STRICT_PROXY_TARGET_SYMBOL = Symbol.for('strictProxyTarget');
 
 const manifest = strictProxy<PluginManifest>({
   id: 'edit-link-alias',
@@ -122,12 +122,6 @@ async function createLoadedPlugin(): Promise<Plugin> {
   return plugin;
 }
 
-function seedOnRawTarget(strictProxiedObject: object, key: string, value: unknown): void {
-  const proxyWithTarget = castTo<Partial<Record<symbol, object>>>(strictProxiedObject);
-  const rawTarget = proxyWithTarget[STRICT_PROXY_TARGET_SYMBOL] ?? strictProxiedObject;
-  castTo<Record<string, unknown>>(rawTarget)[key] = value;
-}
-
 beforeEach(() => {
   vi.clearAllMocks();
 
@@ -137,10 +131,10 @@ beforeEach(() => {
   });
   app = appMock.asOriginalType__();
 
-  // Seed the obsidianDevUtilsState holder on the raw target behind the strict-proxy App so the real obsidian-lib universal components can read/write shared state during load.
-  seedOnRawTarget(app, 'obsidianDevUtilsState', {});
+  // Start every test from an empty obsidian-lib shared-state bag, so the real universal components loaded by one test leave nothing behind for the next.
+  resetObsidianLibState();
 
-  // Expose the app as the global instance so obsidian-lib helpers that resolve shared state without an explicit app argument read/write the same seeded holder.
+  // Expose the app as the global instance so obsidian-lib helpers that resolve the app without an explicit argument read the same one.
   castTo<AppGlobal>(window).app = app;
 });
 
