@@ -64,6 +64,14 @@ Two shapes are kept in ONE closure on purpose, and each says so at the site: **m
 
 **`wasPopoverShown: false` is reached by polling for PRESENCE, never for absence.** The two `link-click-popover` control cases expect no popover, and they spend the whole settle budget waiting for one to appear before answering `false`. Polling for an absence that is already true would accept instantly, before the popover had a chance to open, and both control cases would pass for the wrong reason.
 
+### The Bases menu scenario needs a REAL long-press, and three waits around it
+
+`bases-link`'s menu scenario cannot call `handleLinkContextMenu` the way `edit-link-alias-menu` does: the Bases resolver reads the cell at the last `pointerdown`, so only a trusted long-press exercises it. On a loaded emulator that gesture fails in three different ways, and each has its own wait:
+
+- **No menu at all.** The long-press does not register. The suite waits 6s for any `.menu` and makes the long-press again, up to 3 times. A menu WITHOUT the plugin's item is never retried: on Android `isHandledByEditorMenu` is always false, so that would be a real defect. The failure message carries the menu titles, the active view and the on-disk sizes of the row note and the `.base` file (a 0-byte file is the transport's lost write).
+- **A tap refused or misplaced while the bottom sheet slides in.** Another item's title sits under this one's centre for a while. The suite taps the `.menu-item-title`, not the `.menu-item` (the title fills the item's centre, and `clickElement` refuses a point that belongs to another element), and only once the title is on top at its centre, its menu has no running animation (`getAnimations({ subtree: true })`), and its rect is the same on two polls. **The animation check is the part that counts**: a renderer stalled between two polls reports the same rect for a sheet still moving, and that tap closed the menu with no editor open.
+- **The editor did not open.** The failure reports whether a menu is still up, the popover opened instead, the view changed, or a notice showed.
+
 ### Why the mobile frames do NOT raise the soft keyboard
 
 Two of the five mobile frames end on a focused field — the alias prompt and the two-field editor — so they look like candidates for the device-capture-with-a-keyboard treatment the command-palette frames in sibling plugins now use. **Both were implemented, run on a real device, and reverted.** Recording why, because the frames alone do not show it and the next reader would reasonably try again:
