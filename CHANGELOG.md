@@ -1,5 +1,27 @@
 # CHANGELOG
 
+## 1.5.9
+
+- test(demo-vault): floor `CodeScript Toolkit` at 15.0.0
+- build(deps): move to obsidian-lib 6 and obsidian-dev-toolkit 5
+- docs: name obsidian-lib where comments said dev-utils
+- chore(deps): move to obsidian-dev-toolkit 4 and its demo-vault directive spelling
+- docs: shorten the debugging section
+- docs(changelog): escape the issue-title tags so markdownlint and cspell pass
+- docs(changelog): name the issue each released entry resolved
+- fix(demo-vault): load the demo setup helpers from @mnaoumov/obsidian-lib
+- docs(readme): lead the Debugging section with `Advanced Debug Mode`
+- build(deps): float brace-expansion, sharp and fast-uri past their advisories
+- docs: mark plugin names as code
+- docs(demo-vault): prepare the Alt + click Try it from a button
+- chore(github): point questions to Discussions from the new-issue page
+- ci: merge attesting release assets through the toolkit's reusable workflow
+- build(deps): merge the move off obsidian-dev-utils onto the @mnaoumov packages
+- chore(cspell): accept Sidedock from the obsidian-typings sidedock declarations
+- docs: merge marking plugin names as code in comments and markdown
+- test: merge using the obsidian-typings declarations of Obsidian internals
+- refactor: merge typing the Bases table view from obsidian-typings
+
 ## 1.5.8
 
 - test: merge restoring the Alt-click setting after link-click-popover
