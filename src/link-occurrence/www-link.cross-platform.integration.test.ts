@@ -71,7 +71,7 @@ const WAIT_TIMEOUT_IN_MILLISECONDS = 20_000;
 const TEST_TIMEOUT_IN_MILLISECONDS = 300_000;
 
 interface ChildrenHolder {
-  _children?: unknown[];
+  readonly _children?: unknown[];
 }
 
 type Gesture = 'context-menu' | 'live-preview-click' | 'reading-click';
@@ -92,14 +92,17 @@ interface ScenarioResult {
  * The plugin's settings component, as the tree walk recognizes it.
  */
 interface SettingsHolder {
-  saveToFile: (context: unknown) => Promise<void>;
-  setProperty: (propertyName: string, value: unknown) => Promise<string>;
-  settings: Record<string, unknown>;
+  readonly saveToFile: (context: unknown) => Promise<void>;
+  readonly setProperty: (propertyName: string, value: unknown) => Promise<string>;
+  readonly settings: Record<string, unknown>;
 }
 
 interface WwwSuiteContext {
+  // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- Assigned during scenario setup and restored or removed during cleanup.
   originalWindowOpen?: typeof window.open;
+  // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- Assigned during scenario setup and restored or removed during cleanup.
   settingsComponent?: SettingsHolder;
+  // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- Assigned during scenario setup and restored or removed during cleanup.
   sourceFile?: TFile;
 }
 

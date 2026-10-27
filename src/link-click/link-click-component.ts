@@ -91,6 +91,7 @@ export interface LinkClickComponentConstructorParams {
 }
 
 interface ContainingViewState {
+  // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- Updated by the workspace leaf traversal when it finds the containing view.
   view: MarkdownView | null;
 }
 

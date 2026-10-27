@@ -62,9 +62,13 @@ const EDIT_URL_AND_ALIAS_ITEM_INDEX = 1;
 const LINK_CONTEXT_MENU_SOURCE = 'link-context-menu';
 
 interface CapturedMenuItem {
+  // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- Populated by the mock menu item setters while the menu is built.
   icon?: string;
+  // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- Populated by the mock menu item setters while the menu is built.
   onClick?: (this: void) => void;
+  // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- Populated by the mock menu item setters while the menu is built.
   section?: string;
+  // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- Populated by the mock menu item setters while the menu is built.
   title?: string;
 }
 

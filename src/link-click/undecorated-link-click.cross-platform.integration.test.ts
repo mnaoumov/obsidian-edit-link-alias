@@ -91,16 +91,16 @@ const TEST_TIMEOUT_IN_MILLISECONDS = 300_000;
 const POPOVER_FIELD_COUNT = 2;
 
 interface ChildrenHolder {
-  _children?: unknown[];
+  readonly _children?: unknown[];
 }
 
 /**
  * The plugin's settings component, as the tree walk below recognizes it.
  */
 interface SettingsHolder {
-  saveToFile: (context: unknown) => Promise<void>;
-  setProperty: (propertyName: string, value: unknown) => Promise<string>;
-  settings: Record<string, unknown>;
+  readonly saveToFile: (context: unknown) => Promise<void>;
+  readonly setProperty: (propertyName: string, value: unknown) => Promise<string>;
+  readonly settings: Record<string, unknown>;
 }
 
 type UndecoratedScenario = 'bare-url' | 'markdown-link-url-half';
@@ -115,7 +115,9 @@ interface UndecoratedScenarioResult {
  * re-deriving in every call that needs it.
  */
 interface UndecoratedSuiteContext {
+  // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- Assigned during scenario setup and removed during cleanup.
   settingsComponent?: SettingsHolder;
+  // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- Assigned during scenario setup and removed during cleanup.
   sourceFile?: TFile;
 }
 describe('Edit an undecorated link by Alt + clicking it', () => {

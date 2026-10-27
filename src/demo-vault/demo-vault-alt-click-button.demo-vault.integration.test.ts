@@ -23,9 +23,9 @@ describe('demo vault Alt + click button', () => {
     const result = await evalInObsidian({
       async callback({ app, lib: { waitUntil }, playgroundNotePath }): Promise<AltClickPlaygroundResult> {
         interface DemoSetup {
-          prepareAltClickPlayground: (this: void, app: unknown) => Promise<void>;
-          resetLinkPlayground: (this: void, app: unknown) => Promise<void>;
-          setAltClickEditing: (this: void, app: unknown, shouldOpenLinkEditorOnAltClick: boolean) => Promise<void>;
+          readonly prepareAltClickPlayground: (this: void, app: unknown) => Promise<void>;
+          readonly resetLinkPlayground: (this: void, app: unknown) => Promise<void>;
+          readonly setAltClickEditing: (this: void, app: unknown, shouldOpenLinkEditorOnAltClick: boolean) => Promise<void>;
         }
 
         await waitUntil({
@@ -47,7 +47,7 @@ describe('demo vault Alt + click button', () => {
         await demoSetup.prepareAltClickPlayground(app);
 
         interface PluginData {
-          shouldOpenLinkEditorOnAltClick?: boolean;
+          readonly shouldOpenLinkEditorOnAltClick?: boolean;
         }
 
         const data = await app.plugins.getPlugin('edit-link-alias')?.loadData() as null | PluginData;

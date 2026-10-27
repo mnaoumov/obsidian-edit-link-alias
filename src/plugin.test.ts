@@ -55,7 +55,7 @@ vi.mock('./link-editing/edit-url-and-alias-command-handler.ts', () => ({
 const { register } = vi.hoisted(() => ({ register: vi.fn() }));
 
 interface MockLinkMenuHandler {
-  register: () => void;
+  readonly register: () => void;
 }
 
 vi.mock('./link-menu/link-menu-handler.ts', () => ({
@@ -88,6 +88,7 @@ import { Plugin } from './plugin.ts';
 import { PluginSettings } from './settings/plugin-settings.ts';
 
 interface AppGlobal {
+  // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- Replaced with the configured app instance before each test.
   app: AppOriginal;
 }
 
