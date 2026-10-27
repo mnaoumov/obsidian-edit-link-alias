@@ -23,7 +23,7 @@ import {
   vi
 } from 'vitest';
 
-import type { EditParsedLinkParams } from './edit-link.ts';
+import type { EditParsedLinkParams } from '../link-editing/edit-link.ts';
 
 import {
   didResolveAndEditFrontmatterLink,

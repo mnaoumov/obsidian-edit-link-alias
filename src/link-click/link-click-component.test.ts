@@ -28,14 +28,14 @@ import {
   vi
 } from 'vitest';
 
-import type { PluginSettings } from './plugin-settings.ts';
+import type { PluginSettings } from '../settings/plugin-settings.ts';
 
-import { createEditParsedLinkUrlAndAliasInPopover } from './edit-link.ts';
+import { createEditParsedLinkUrlAndAliasInPopover } from '../link-editing/edit-link.ts';
+import { resolveAndEditLink } from '../link-occurrence/resolve-link-occurrence.ts';
 import { LinkClickComponent } from './link-click-component.ts';
-import { resolveAndEditLink } from './resolve-link-occurrence.ts';
 
-vi.mock('./edit-link.ts', () => ({ createEditParsedLinkUrlAndAliasInPopover: vi.fn() }));
-vi.mock('./resolve-link-occurrence.ts', () => ({ resolveAndEditLink: vi.fn() }));
+vi.mock('../link-editing/edit-link.ts', () => ({ createEditParsedLinkUrlAndAliasInPopover: vi.fn() }));
+vi.mock('../link-occurrence/resolve-link-occurrence.ts', () => ({ resolveAndEditLink: vi.fn() }));
 
 const mockCreateEditParsedLinkUrlAndAliasInPopover = vi.mocked(createEditParsedLinkUrlAndAliasInPopover);
 const mockResolveAndEditLink = vi.mocked(resolveAndEditLink);

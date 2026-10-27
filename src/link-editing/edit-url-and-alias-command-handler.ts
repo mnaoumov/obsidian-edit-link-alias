@@ -9,12 +9,12 @@ import { EditorCommandHandler } from '@mnaoumov/obsidian-lib/command-handlers/ed
 import { createAnchorFromSelection } from '@mnaoumov/obsidian-lib/popovers/popover-anchor';
 import { MarkdownView } from 'obsidian';
 
+import { COULD_NOT_LOCATE_LINK_NOTICE } from '../notices.ts';
 import {
   checkIsCursorOnEditableLink,
   editLinkAtEditorCursor
 } from './edit-in-editor.ts';
 import { createEditParsedLinkUrlAndAliasInPopover } from './edit-link.ts';
-import { COULD_NOT_LOCATE_LINK_NOTICE } from './notices.ts';
 
 /**
  * Parameters for constructing an {@link EditUrlAndAliasCommandHandler}.

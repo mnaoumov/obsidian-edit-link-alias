@@ -44,11 +44,11 @@ vi.mock('@mnaoumov/obsidian-lib/command-handlers/open-demo-vault-command-handler
   OpenDemoVaultCommandHandler: vi.fn()
 }));
 
-vi.mock('./edit-command-handler.ts', () => ({
+vi.mock('./link-editing/edit-command-handler.ts', () => ({
   EditCommandHandler: vi.fn()
 }));
 
-vi.mock('./edit-url-and-alias-command-handler.ts', () => ({
+vi.mock('./link-editing/edit-url-and-alias-command-handler.ts', () => ({
   EditUrlAndAliasCommandHandler: vi.fn()
 }));
 
@@ -58,7 +58,7 @@ interface MockLinkMenuHandler {
   register: () => void;
 }
 
-vi.mock('./link-menu-handler.ts', () => ({
+vi.mock('./link-menu/link-menu-handler.ts', () => ({
   // eslint-disable-next-line prefer-arrow-callback, func-names -- mock must be constructable with `new` and expose register.
   LinkMenuHandler: vi.fn(function (): MockLinkMenuHandler {
     return { register };
@@ -75,17 +75,17 @@ import { PluginSettingsTabComponent } from '@mnaoumov/obsidian-lib/components/pl
 import { resetObsidianLibState } from '@mnaoumov/obsidian-lib/obsidian-lib-state';
 
 // eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
-import { EditCommandHandler } from './edit-command-handler.ts';
+import { LinkClickComponent } from './link-click/link-click-component.ts';
 // eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
-import { EditUrlAndAliasCommandHandler } from './edit-url-and-alias-command-handler.ts';
+import { EditCommandHandler } from './link-editing/edit-command-handler.ts';
 // eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
-import { LinkClickComponent } from './link-click-component.ts';
+import { EditUrlAndAliasCommandHandler } from './link-editing/edit-url-and-alias-command-handler.ts';
 // eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
-import { LinkMenuHandler } from './link-menu-handler.ts';
-// eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
-import { PluginSettings } from './plugin-settings.ts';
+import { LinkMenuHandler } from './link-menu/link-menu-handler.ts';
 // eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
 import { Plugin } from './plugin.ts';
+// eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
+import { PluginSettings } from './settings/plugin-settings.ts';
 
 interface AppGlobal {
   app: AppOriginal;

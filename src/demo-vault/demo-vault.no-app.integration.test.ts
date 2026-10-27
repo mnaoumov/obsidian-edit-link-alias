@@ -13,13 +13,13 @@ import process from 'node:process';
  * interface, so `interfaces` stays empty.
  */
 registerDemoVaultCoverageSuite({
-  configInterfaces: [{ interfaceName: 'PluginSettings', sourcePath: 'src/plugin-settings.ts' }],
+  configInterfaces: [{ interfaceName: 'PluginSettings', sourcePath: 'src/settings/plugin-settings.ts' }],
   interfaces: [],
   nonTrivialGuard: {
     expectDemoNote: '04 Alt click a link to edit it.md',
     expectMember: 'shouldOpenLinkEditorOnAltClick',
     interfaceName: 'PluginSettings',
-    sourcePath: 'src/plugin-settings.ts'
+    sourcePath: 'src/settings/plugin-settings.ts'
   },
   rootFolder: getRootFolder() ?? process.cwd()
 });

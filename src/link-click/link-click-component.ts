@@ -42,14 +42,14 @@ import {
   MarkdownView
 } from 'obsidian';
 
-import type { LinkTarget } from './link-target.ts';
-import type { PluginSettings } from './plugin-settings.ts';
-import type { ResolveAndEditLinkParams } from './resolve-link-occurrence.ts';
+import type { LinkTarget } from '../link-occurrence/link-target.ts';
+import type { ResolveAndEditLinkParams } from '../link-occurrence/resolve-link-occurrence.ts';
+import type { PluginSettings } from '../settings/plugin-settings.ts';
 
-import { getBasesLinkOccurrence } from './bases-link-occurrence.ts';
-import { createEditParsedLinkUrlAndAliasInPopover } from './edit-link.ts';
-import { COULD_NOT_LOCATE_LINK_NOTICE } from './notices.ts';
-import { resolveAndEditLink } from './resolve-link-occurrence.ts';
+import { createEditParsedLinkUrlAndAliasInPopover } from '../link-editing/edit-link.ts';
+import { getBasesLinkOccurrence } from '../link-occurrence/bases-link-occurrence.ts';
+import { resolveAndEditLink } from '../link-occurrence/resolve-link-occurrence.ts';
+import { COULD_NOT_LOCATE_LINK_NOTICE } from '../notices.ts';
 
 /**
  * The rendered forms a link takes. Reading view renders real anchors; Live Preview keeps the link as

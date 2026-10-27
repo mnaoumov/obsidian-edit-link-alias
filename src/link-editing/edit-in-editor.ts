@@ -20,7 +20,7 @@ import type { EditParsedLink } from './edit-link.ts';
 import {
   didResolveAndEditFrontmatterLink,
   isOffsetInFrontmatter
-} from './frontmatter-link-occurrence.ts';
+} from '../link-occurrence/frontmatter-link-occurrence.ts';
 
 /**
  * Parameters for {@link editLinkAtEditorCursor}.
