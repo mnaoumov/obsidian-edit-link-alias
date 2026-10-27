@@ -49,12 +49,16 @@ A copy of the vault ships with every release. You can access it via any of the f
 - **External links** work the same way, including an address written without `https://`, such as `www.example.com`. [02 External links](<./demo-vault/02 External links.md>)
 - **Links in properties** are editable too, written back through the frontmatter so the value stays valid YAML — with the two consequences that follow from that. That includes a link shown in a **Base**, which is written to the note in its row. [05 Frontmatter links](<./demo-vault/05 Frontmatter links.md>)
 
-## Similar plugins
+## See also
 
-- [`Better Links`](https://community.obsidian.md/plugins/better-links) — a plain click on a link in the Markdown editor opens a pop-up for its text and target, with quick actions to open, copy or delete the link and suggestions for internal targets; this plugin keeps the plain click as navigation, opens on `Alt` + click, and also edits links in Reading view and in properties.
-- [`Better Link Clicker`](https://community.obsidian.md/plugins/better-link-clicker) — a plain click on a link in Live Preview places the cursor in the raw link text instead of following it, and asks before a click creates a missing note; this plugin edits the alias and URL through a pop-up instead of in the raw text.
-- [`MM Clean Links`](https://community.obsidian.md/plugins/mm-clean-links) — a click on a link in Live Preview places the cursor and a double-click selects the bracketed text, and it can reformat the capitalization of external link titles; this plugin edits a link through a pop-up and does no title formatting.
-- [`F2 Quick Rename`](https://community.obsidian.md/plugins/ftwo-quick-rename) — `F2` renames the current note or the embed or link under the cursor, editing an embed's alias or an external link's URL and title, and opens a panel for the note's properties; this plugin edits the display text and target of any link without renaming files.
+[My other Obsidian resources](https://github.com/mnaoumov/obsidian-resources)
+
+| Plugin | Features | How `Edit Link Alias` differs |
+| --- | --- | --- |
+| [`Better Link Clicker`](https://community.obsidian.md/plugins/better-link-clicker) | Plain click exposes raw Live Preview link; confirms missing-note creation | Alternative UI: popup for alias and target |
+| [`Better Links`](https://community.obsidian.md/plugins/better-links) | Editor link popup on plain click; open/copy/delete; internal target suggestions | Same link-editing goal; Alt-click preserves navigation; Reading view and properties too |
+| [`F2 Quick Rename`](https://community.obsidian.md/plugins/ftwo-quick-rename) | F2 file/embed/link rename; alias, URL and title edits; properties panel | Narrower focus: any link's display text and target; no file renaming |
+| [`MM Clean Links`](https://community.obsidian.md/plugins/mm-clean-links) | Live Preview click/double-click text selection; external-title capitalization | Alternative UI: popup editing; no title formatting |
 
 Last searched for similar plugins on 2026-10-26.
 
@@ -91,10 +95,6 @@ Contributions are welcome — see [CONTRIBUTING](./CONTRIBUTING.md) to get set u
 <a href="https://www.buymeacoffee.com/mnaoumov" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="60" width="217"></a>
 
 <!-- markdownlint-enable MD033 -->
-
-## My other Obsidian resources
-
-[See my other Obsidian resources](https://github.com/mnaoumov/obsidian-resources).
 
 ## License
 
