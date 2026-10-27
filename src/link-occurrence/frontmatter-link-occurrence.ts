@@ -38,7 +38,7 @@ import {
 import { normalizeOptionalProperties } from '@mnaoumov/typescript-lib/object-utils';
 import { getFrontMatterInfo } from 'obsidian';
 
-import type { EditParsedLink } from './edit-link.ts';
+import type { EditParsedLink } from '../link-editing/edit-link.ts';
 import type { LinkTarget } from './link-target.ts';
 
 import {

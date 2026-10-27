@@ -33,7 +33,7 @@ import type {
 import { selectItem } from '@mnaoumov/obsidian-lib/modals/select-item';
 import { parseLinks } from '@mnaoumov/obsidian-lib/parse-link';
 
-import type { EditParsedLink } from './edit-link.ts';
+import type { EditParsedLink } from '../link-editing/edit-link.ts';
 import type { LinkTarget } from './link-target.ts';
 
 import {

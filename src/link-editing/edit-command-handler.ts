@@ -7,12 +7,12 @@ import type {
 
 import { EditorCommandHandler } from '@mnaoumov/obsidian-lib/command-handlers/editor-command-handler';
 
+import { COULD_NOT_LOCATE_LINK_NOTICE } from '../notices.ts';
 import {
   checkIsCursorOnEditableLink,
   editLinkAtEditorCursor
 } from './edit-in-editor.ts';
 import { editParsedLinkAlias } from './edit-link.ts';
-import { COULD_NOT_LOCATE_LINK_NOTICE } from './notices.ts';
 
 /**
  * Parameters for constructing an {@link EditCommandHandler}.

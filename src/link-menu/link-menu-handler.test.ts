@@ -33,18 +33,18 @@ import {
   vi
 } from 'vitest';
 
-import type { EditParsedLink } from './edit-link.ts';
+import type { EditParsedLink } from '../link-editing/edit-link.ts';
 
-import { getBasesLinkOccurrence } from './bases-link-occurrence.ts';
 import {
   createEditParsedLinkUrlAndAliasInPopover,
   editParsedLinkAlias
-} from './edit-link.ts';
+} from '../link-editing/edit-link.ts';
+import { getBasesLinkOccurrence } from '../link-occurrence/bases-link-occurrence.ts';
+import { resolveAndEditLink } from '../link-occurrence/resolve-link-occurrence.ts';
 import { LinkMenuHandler } from './link-menu-handler.ts';
-import { resolveAndEditLink } from './resolve-link-occurrence.ts';
 
-vi.mock('./bases-link-occurrence.ts', () => ({ getBasesLinkOccurrence: vi.fn() }));
-vi.mock('./edit-link.ts', () => ({ createEditParsedLinkUrlAndAliasInPopover: vi.fn(), editParsedLinkAlias: vi.fn() }));
+vi.mock('../link-occurrence/bases-link-occurrence.ts', () => ({ getBasesLinkOccurrence: vi.fn() }));
+vi.mock('../link-editing/edit-link.ts', () => ({ createEditParsedLinkUrlAndAliasInPopover: vi.fn(), editParsedLinkAlias: vi.fn() }));
 vi.mock('@mnaoumov/obsidian-lib/parse-link', () => ({ parseLinks: vi.fn() }));
 vi.mock('@mnaoumov/obsidian-lib/modals/select-item', () => ({ selectItem: vi.fn() }));
 vi.mock('@mnaoumov/obsidian-lib/file-system', () => ({ isFile: vi.fn() }));

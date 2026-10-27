@@ -5,12 +5,12 @@ import { PointerPositionComponent } from '@mnaoumov/obsidian-lib/components/poin
 import { PluginDataHandler } from '@mnaoumov/obsidian-lib/data-handler';
 import { PluginBase } from '@mnaoumov/obsidian-lib/plugin/plugin';
 
-import { EditCommandHandler } from './edit-command-handler.ts';
-import { EditUrlAndAliasCommandHandler } from './edit-url-and-alias-command-handler.ts';
-import { LinkClickComponent } from './link-click-component.ts';
-import { LinkMenuHandler } from './link-menu-handler.ts';
-import { PluginSettingsTab } from './plugin-settings-tab.ts';
-import { PluginSettings } from './plugin-settings.ts';
+import { LinkClickComponent } from './link-click/link-click-component.ts';
+import { EditCommandHandler } from './link-editing/edit-command-handler.ts';
+import { EditUrlAndAliasCommandHandler } from './link-editing/edit-url-and-alias-command-handler.ts';
+import { LinkMenuHandler } from './link-menu/link-menu-handler.ts';
+import { PluginSettingsTab } from './settings/plugin-settings-tab.ts';
+import { PluginSettings } from './settings/plugin-settings.ts';
 
 export class Plugin extends PluginBase {
   protected override async onloadImpl(): Promise<void> {
