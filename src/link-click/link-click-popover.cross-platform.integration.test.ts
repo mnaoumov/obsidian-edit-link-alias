@@ -105,7 +105,7 @@ const TEST_TIMEOUT_IN_MILLISECONDS = 300_000;
 const POPOVER_FIELD_COUNT = 2;
 
 interface ChildrenHolder {
-  _children?: unknown[];
+  readonly _children?: unknown[];
 }
 
 interface ClickScenarioResult {
@@ -126,8 +126,11 @@ interface ClickSuiteContext {
    * Obsidian instance, so a scenario that leaves the setting off makes `Alt` clicks in every later suite
    * do nothing.
    */
+  // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- Assigned during scenario setup and restored or removed during cleanup.
   previousAltClickSetting?: boolean;
+  // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- Assigned during scenario setup and restored or removed during cleanup.
   settingsComponent?: SettingsHolder;
+  // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- Assigned during scenario setup and restored or removed during cleanup.
   sourceFile?: TFile;
 }
 
@@ -167,9 +170,9 @@ interface RunClickScenarioParams {
  * The plugin's settings component, as the tree walk below recognizes it.
  */
 interface SettingsHolder {
-  saveToFile: (context: unknown) => Promise<void>;
-  setProperty: (propertyName: string, value: unknown) => Promise<string>;
-  settings: Record<string, unknown>;
+  readonly saveToFile: (context: unknown) => Promise<void>;
+  readonly setProperty: (propertyName: string, value: unknown) => Promise<string>;
+  readonly settings: Record<string, unknown>;
 }
 describe('Edit a link by Alt + clicking it', () => {
   it('opens the popover on an Alt click in Reading view, rewrites the link, and does not open it', async () => {

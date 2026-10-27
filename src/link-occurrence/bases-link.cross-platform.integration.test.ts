@@ -89,12 +89,14 @@ interface BasesScenarioResult {
 }
 
 interface BasesSuiteContext {
+  // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- Assigned during scenario setup and removed during cleanup.
   hostFile?: TFile;
+  // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- Assigned during scenario setup and removed during cleanup.
   rowFile?: TFile;
 }
 
 interface ChildrenHolder {
-  _children?: unknown[];
+  readonly _children?: unknown[];
 }
 
 /**
@@ -125,12 +127,13 @@ interface ParsedFrontmatter {
   readonly related?: string;
 }
 interface SettingsHolder {
-  saveToFile: (context: unknown) => Promise<void>;
-  setProperty: (propertyName: string, value: unknown) => Promise<string>;
-  settings: Record<string, unknown>;
+  readonly saveToFile: (context: unknown) => Promise<void>;
+  readonly setProperty: (propertyName: string, value: unknown) => Promise<string>;
+  readonly settings: Record<string, unknown>;
 }
 
 interface SettingsSuiteContext {
+  // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- Assigned during settings setup and removed during cleanup.
   settingsComponent?: SettingsHolder;
 }
 

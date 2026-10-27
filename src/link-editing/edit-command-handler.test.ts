@@ -46,11 +46,11 @@ interface CreateMockEditorParams {
 }
 
 interface EditorCommandHandlerProtected {
-  canExecuteEditor: (editor: Editor, context: MarkdownFileInfo) => boolean;
+  readonly canExecuteEditor: (editor: Editor, context: MarkdownFileInfo) => boolean;
 }
 
 interface MockClickableToken {
-  type: string;
+  readonly type: string;
 }
 
 class TestableEditCommandHandler extends EditCommandHandler {

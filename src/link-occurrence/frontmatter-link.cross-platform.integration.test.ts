@@ -128,7 +128,7 @@ const TEST_TIMEOUT_IN_MILLISECONDS = 300_000;
 const POPOVER_FIELD_COUNT = 2;
 
 interface ChildrenHolder {
-  _children?: unknown[];
+  readonly _children?: unknown[];
 }
 
 type FrontmatterScenario = 'panel-list' | 'panel-text' | 'panel-uppercase-key' | 'raw-yaml';
@@ -143,7 +143,9 @@ interface FrontmatterScenarioResult {
  * re-deriving in every call that needs it.
  */
 interface FrontmatterSuiteContext {
+  // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- Assigned during scenario setup and removed during cleanup.
   settingsComponent?: SettingsHolder;
+  // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- Assigned during scenario setup and removed during cleanup.
   sourceFile?: TFile;
 }
 
@@ -162,9 +164,9 @@ interface ParsedFrontmatter {
  * The plugin's settings component, as the tree walk below recognizes it.
  */
 interface SettingsHolder {
-  saveToFile: (context: unknown) => Promise<void>;
-  setProperty: (propertyName: string, value: unknown) => Promise<string>;
-  settings: Record<string, unknown>;
+  readonly saveToFile: (context: unknown) => Promise<void>;
+  readonly setProperty: (propertyName: string, value: unknown) => Promise<string>;
+  readonly settings: Record<string, unknown>;
 }
 describe('Edit a link in the frontmatter', () => {
   it('opens the editor on an Alt click on a text property link and writes valid quoted YAML', async () => {
