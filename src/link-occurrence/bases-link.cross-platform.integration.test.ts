@@ -18,6 +18,7 @@
 
 import type { TFile } from 'obsidian';
 
+import dedent from 'dedent';
 import {
   ContextId,
   evalInObsidian,
@@ -42,17 +43,17 @@ const NEW_ALIAS = 'new alias';
 const ROW_CONTENT = `---\n${PROPERTY_KEY}: "[[target]]"\n---\nrow\n`;
 const EXPECTED_EDITED_VALUE = `[[target|${NEW_ALIAS}]]`;
 
-const BASE_QUERY = [
-  'filters:',
-  '  and:',
-  `    - file.inFolder("${FOLDER_PATH}")`,
-  'views:',
-  '  - type: table',
-  '    name: Table',
-  '    order:',
-  '      - file.name',
-  `      - ${PROPERTY_KEY}`
-].join('\n');
+const BASE_QUERY = dedent`
+  filters:
+    and:
+      - file.inFolder("${FOLDER_PATH}")
+  views:
+    - type: table
+      name: Table
+      order:
+        - file.name
+        - ${PROPERTY_KEY}
+`;
 
 const HOST_CONTENT = `host\n\n\`\`\`base\n${BASE_QUERY}\n\`\`\`\n`;
 
