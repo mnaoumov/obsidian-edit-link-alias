@@ -37,6 +37,7 @@ import type {
   TFile
 } from 'obsidian';
 
+import dedent from 'dedent';
 import {
   ContextId,
   evalInObsidian,
@@ -76,18 +77,17 @@ const NEW_URL = 'https://renamed.example.com';
  * Every url in the fixture is distinct on purpose: the raw-YAML path identifies the link by its text, so a
  * repeated url would legitimately raise the "which link did you mean?" picker and stall the run.
  */
-const INITIAL_SOURCE_CONTENT = [
-  '---',
-  `url: ${TEXT_PROPERTY_URL}`,
-  `${UPPERCASE_PROPERTY_KEY}: ${UPPERCASE_KEY_PROPERTY_URL}`,
-  'links:',
-  `  - ${FIRST_LIST_URL}`,
-  `  - ${SECOND_LIST_URL}`,
-  '---',
-  '',
-  '# Body',
-  ''
-].join('\n');
+const INITIAL_SOURCE_CONTENT = dedent`
+  ---
+  url: ${TEXT_PROPERTY_URL}
+  ${UPPERCASE_PROPERTY_KEY}: ${UPPERCASE_KEY_PROPERTY_URL}
+  links:
+    - ${FIRST_LIST_URL}
+    - ${SECOND_LIST_URL}
+  ---
+
+  # Body\n
+`;
 
 /**
  * The body line the caret is parked on before the raw-YAML click, so the gesture is identical to a user
