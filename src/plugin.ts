@@ -1,3 +1,4 @@
+import { OpenBugReportCommandHandler } from '@mnaoumov/obsidian-lib/command-handlers/open-bug-report-command-handler';
 import { OpenDemoVaultCommandHandler } from '@mnaoumov/obsidian-lib/command-handlers/open-demo-vault-command-handler';
 import { PluginSettingsComponentBase } from '@mnaoumov/obsidian-lib/components/plugin-settings-component';
 import { PluginSettingsTabComponent } from '@mnaoumov/obsidian-lib/components/plugin-settings-tab-component';
@@ -50,6 +51,11 @@ export class Plugin extends PluginBase {
       new EditUrlAndAliasCommandHandler({
         app: this.app,
         pluginNoticeComponent: this.pluginNoticeComponent
+      }),
+      new OpenBugReportCommandHandler({
+        app: this.app,
+        gitHubRepo: 'mnaoumov/obsidian-edit-link-alias',
+        pluginId: this.manifest.id
       }),
       new OpenDemoVaultCommandHandler({
         app: this.app,

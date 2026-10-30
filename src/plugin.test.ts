@@ -66,6 +66,8 @@ vi.mock('./link-menu/link-menu-handler.ts', () => ({
 }));
 
 // eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
+import { OpenBugReportCommandHandler } from '@mnaoumov/obsidian-lib/command-handlers/open-bug-report-command-handler';
+// eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
 import { OpenDemoVaultCommandHandler } from '@mnaoumov/obsidian-lib/command-handlers/open-demo-vault-command-handler';
 // eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
 import { PluginSettingsComponentBase } from '@mnaoumov/obsidian-lib/components/plugin-settings-component';
@@ -140,12 +142,13 @@ beforeEach(() => {
 });
 
 describe('Plugin', () => {
-  it('should register the edit, edit-url-and-alias, and open-demo-vault command handlers on the shared command handler component on load', async () => {
+  it('should register the edit, edit-url-and-alias, report-bug and open-demo-vault command handlers on the shared command handler component on load', async () => {
     await createLoadedPlugin();
 
     expect(buildPluginCommandHandlers()).toStrictEqual([
       expect.any(EditCommandHandler),
       expect.any(EditUrlAndAliasCommandHandler),
+      expect.any(OpenBugReportCommandHandler),
       expect.any(OpenDemoVaultCommandHandler)
     ]);
   });
