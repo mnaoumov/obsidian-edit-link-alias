@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## 1.6.0
+
+- docs(readme): point bug reports at the Report a bug command
+- feat: add a Report a bug command
+- docs: add issue-filing instructions for AI agents
+- chore(github): give the bug form the field ids bug-report links prefill
+- build(deps): override re2js to ^2.9.1 for GHSA-gg6h-894w-4m9c
+- build(deps): bump typescript-dev-toolkit to ^5.2.0 and apply prefer-dedent
+- build(deps): bump obsidian-dev-toolkit to ^7.1.1 and typescript-dev-toolkit to ^5.1.0
+- chore(deps): update vulnerable browser testing dependencies
+- refactor: adopt readonly interface members
+- docs(readme): combine related resources and plugin comparisons
+- refactor: group src into subject folders
+- docs(readme): add Similar plugins section
+
 ## 1.5.9
 
 - test(demo-vault): floor `CodeScript Toolkit` at 15.0.0
