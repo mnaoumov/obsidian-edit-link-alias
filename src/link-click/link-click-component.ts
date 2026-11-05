@@ -353,10 +353,6 @@ export class LinkClickComponent extends AllWindowsEventComponent {
   }
 
   private shouldOpenEditor($event: MouseEvent): boolean {
-    if ($event.button !== PRIMARY_MOUSE_BUTTON || !this.pluginSettingsComponent.settings.shouldOpenLinkEditorOnAltClick) {
-      return false;
-    }
-
     /*
      * Alt, not Mod: Ctrl/Cmd + click is already Obsidian's "open the link in a new tab", so the editor
      * must not take it over. Obsidian gives Alt + click no meaning on a link.
@@ -364,7 +360,9 @@ export class LinkClickComponent extends AllWindowsEventComponent {
      * Requiring that no OTHER modifier is held keeps every gesture Obsidian does assign a meaning to —
      * Ctrl/Cmd, Shift, and their combinations with Alt — reaching Obsidian untouched.
      */
-    return !Keymap.isModifier($event, 'Mod') && !Keymap.isModifier($event, 'Shift') && Keymap.isModifier($event, 'Alt');
+    return $event.button === PRIMARY_MOUSE_BUTTON
+      && this.pluginSettingsComponent.settings.shouldOpenLinkEditorOnAltClick
+      && !Keymap.isModifier($event, 'Mod') && !Keymap.isModifier($event, 'Shift') && Keymap.isModifier($event, 'Alt');
   }
 }
 

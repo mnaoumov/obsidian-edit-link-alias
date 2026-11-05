@@ -7,8 +7,8 @@
 - docs: add issue-filing instructions for AI agents
 - chore(github): give the bug form the field ids bug-report links prefill
 - build(deps): override re2js to ^2.9.1 for GHSA-gg6h-894w-4m9c
-- build(deps): bump typescript-dev-toolkit to ^5.2.0 and apply prefer-dedent
-- build(deps): bump obsidian-dev-toolkit to ^7.1.1 and typescript-dev-toolkit to ^5.1.0
+- build(deps): bump `typescript-dev-toolkit` to ^5.2.0 and apply prefer-dedent
+- build(deps): bump `obsidian-dev-toolkit` to ^7.1.1 and `typescript-dev-toolkit` to ^5.1.0
 - chore(deps): update vulnerable browser testing dependencies
 - refactor: adopt readonly interface members
 - docs(readme): combine related resources and plugin comparisons
@@ -18,11 +18,11 @@
 ## 1.5.9
 
 - test(demo-vault): floor `CodeScript Toolkit` at 15.0.0
-- build(deps): move to obsidian-lib 6 and obsidian-dev-toolkit 5
-- docs: name obsidian-lib where comments said dev-utils
-- chore(deps): move to obsidian-dev-toolkit 4 and its demo-vault directive spelling
+- build(deps): move to `obsidian-lib` 6 and `obsidian-dev-toolkit` 5
+- docs: name `obsidian-lib` where comments said dev-utils
+- chore(deps): move to `obsidian-dev-toolkit` 4 and its demo-vault directive spelling
 - docs: shorten the debugging section
-- docs(changelog): escape the issue-title tags so markdownlint and cspell pass
+- docs(changelog): escape the issue-title tags so `markdownlint` and `cspell` pass
 - docs(changelog): name the issue each released entry resolved
 - fix(demo-vault): load the demo setup helpers from @mnaoumov/obsidian-lib
 - docs(readme): lead the Debugging section with `Advanced Debug Mode`
@@ -31,11 +31,11 @@
 - docs(demo-vault): prepare the Alt + click Try it from a button
 - chore(github): point questions to Discussions from the new-issue page
 - ci: merge attesting release assets through the toolkit's reusable workflow
-- build(deps): merge the move off obsidian-dev-utils onto the @mnaoumov packages
-- chore(cspell): accept Sidedock from the obsidian-typings sidedock declarations
+- build(deps): merge the move off `obsidian-dev-utils` onto the @mnaoumov packages
+- chore(`cspell`): accept Sidedock from the `obsidian-typings` sidedock declarations
 - docs: merge marking plugin names as code in comments and markdown
-- test: merge using the obsidian-typings declarations of Obsidian internals
-- refactor: merge typing the Bases table view from obsidian-typings
+- test: merge using the `obsidian-typings` declarations of Obsidian internals
+- refactor: merge typing the Bases table view from `obsidian-typings`
 
 ## 1.5.8
 
@@ -49,14 +49,14 @@
 ## 1.5.6
 
 - chore(screenshots): merge the applyObsidianTheme move for the desktop capture
-- chore(deps): merge the obsidian-integration-testing 17 float
+- chore(deps): merge the `obsidian-integration-testing` 17 float
 - docs(link-click): merge the pointed again LinkClickAction links
-- chore(deps): merge the obsidian-test-mocks 7 upgrade
+- chore(deps): merge the `obsidian-test-mocks` 7 upgrade
 - style(comments): stop capitalizing the middle of a wrapped comment
 - docs(agents): merge the corrected raiseSoftKeyboard reasoning
 - fix(test): merge the headless demo-vault toolkit install
 - fix(deps): restore the lockfile's missing resolved and integrity fields
-- build(markdownlint): forbid hard-wrapped markdown paragraphs
+- build(`markdownlint`): forbid hard-wrapped markdown paragraphs
 - test: move three cross-platform suites' waiting to Node, under the transport cap
 - test: drive the three cross-platform click suites with trusted input on mobile too
 - fix(deps): float devalue to 5.9.4, clearing GHSA-9rgm-9g3h-6x36
@@ -64,12 +64,12 @@
 - chore(deps): drop the dead markdown-it override
 - chore(deps): drop the dead js-yaml override
 - docs: replace the private rule-id citations with what they assert
-- docs(changelog): name obsidian-dev-utils by its package name
+- docs(changelog): name `obsidian-dev-utils` by its package name
 - docs: replace the private tracker references with what they pointed at
 - docs: record why the mobile frames do not raise the soft keyboard
 - test: bring three in-closure wait ceilings under the transport's per-eval cap
 - refactor(android): drive the popover, link menu and prompt with trusted input
-- chore: adopt the npm run gate branch gate
+- chore: adopt the `npm` run gate branch gate
 - test: bring the in-closure wait ceiling under the transport's per-eval cap
 - docs: name the unversioned demo-vault asset and the folder it unzips into
 - chore: make the LICENSE copyright line checkable by the linter and guard it against the year roll-over
@@ -79,7 +79,7 @@
 ## 1.5.5
 
 - chore(deps): sweep caret-ranged dependencies to latest
-- fix(deps): move to obsidian-integration-testing 11 and obsidian-dev-utils 96.5.2
+- fix(deps): move to `obsidian-integration-testing` 11 and `obsidian-dev-utils` 96.5.2
 - fix(deps): drop the brace-expansion file: override that breaks a clean install
 - test(edit-link-alias): record the deliberate untrusted-input exceptions
 - test(edit-link-alias): click links with trusted input where the platform allows it
@@ -87,13 +87,13 @@
 ## 1.5.4
 
 - docs(demo-vault): unwrap the notes so Obsidian stops rendering a break per line
-- docs(readme): render the same in Obsidian's plugin page as on GitHub
+- docs(readme): render the same in Obsidian's plugin page as on `GitHub`
 - chore: update libs
-- chore: update obsidian-dev-utils to 94.6.1
-- chore: update obsidian-dev-utils to 94.6.0
+- chore: update `obsidian-dev-utils` to 94.6.1
+- chore: update `obsidian-dev-utils` to 94.6.0
 - fix: override deepmerge-ts to clear GHSA-ggr8-5vv4-36mx
 - test: gate the demo vault by clicking every code button
-- chore: teach cspell the advisory wording
+- chore: teach `cspell` the advisory wording
 - chore: update libs
 - docs(demo-vault): give the demo vault its code buttons
 - docs: capture the community-store screenshot set
@@ -101,11 +101,11 @@
 ## 1.5.3
 
 - docs: make the demo vault the documentation, in the standard layout
-- feat(demo-vault): migrate to obsidian-dev-utils 93.3.1 and adopt the authoring convention
+- feat(demo-vault): migrate to `obsidian-dev-utils` 93.3.1 and adopt the authoring convention
 
 ## 1.5.2
 
-- chore: update libs and adopt obsidian-integration-testing 10
+- chore: update libs and adopt `obsidian-integration-testing` 10
 
 ## 1.5.1
 
@@ -113,7 +113,7 @@
 - test: adopt the createNote helper in the cross-platform suites
 - refactor(test): collapse the shared integration suites into one cross-platform file each
 - chore: update libs
-- chore(vitest): adopt the shared Obsidian plugin vitest configuration
+- chore(`vitest`): adopt the shared Obsidian plugin `vitest` configuration
 
 ## 1.5.0
 
@@ -124,7 +124,7 @@
 ## 1.4.0
 
 - refactor(settings): move the settings tab onto the declarative settings API
-- chore: update libs and clear the npm audit
+- chore: update libs and clear the `npm` audit
 
 ## 1.3.2
 
@@ -137,12 +137,12 @@
 ## 1.3.0
 
 - docs: fix the demo vault download instructions
-- refactor(popover): consume the obsidian-dev-utils popover
+- refactor(popover): consume the `obsidian-dev-utils` popover
 - chore: update libs
 
 ## 1.2.0
 
-- refactor: drop the obsidian-test-mocks workarounds
+- refactor: drop the `obsidian-test-mocks` workarounds
 - chore: update libs
 - build: bump postcss to 8.5.23 for GHSA-r28c-9q8g-f849
 - build: patch the vulnerable brace-expansion behind a callable override
@@ -178,7 +178,7 @@
 ## 1.0.11
 
 - docs: standardize demo-vault README
-- docs: drop per-plugin demo-vault setup notes (bootstrap covered by the obsidian-dev-utils harness)
+- docs: drop per-plugin demo-vault setup notes (bootstrap covered by the `obsidian-dev-utils` harness)
 - docs: unnumber demo-vault setup notes
 - docs(demo-vault): number `Edit Link Alias` demo vault example notes
 - docs(demo-vault): create the `Edit Link Alias` demo vault
@@ -188,7 +188,7 @@
 ## 1.0.10
 
 - chore: update libs
-- chore: update obsidian-dev-utils to 85.0.0
+- chore: update `obsidian-dev-utils` to 85.0.0
 - build: lock typescript to 6.0.3
 - test: wire integration-testing vitest-setup into integration projects
 - chore: update libs
@@ -215,7 +215,7 @@
 - chore: update libs
 - chore: upgrade dependencies and green up all checks
 - chore: update libs
-- refactor: migrate to @obsidian-typings/obsidian-public-latest - Replace obsidian-typings with @obsidian-typings/obsidian-public-latest - Update vitest config: replace ssr.noExternal with server.deps.inline - Add DOM.Iterable to tsconfig lib - Remove obsolete overrides (@antfu/utils, boolean, dompurify) - Upgrade dependencies via npm-check-updates
+- refactor: migrate to @obsidian-typings/obsidian-public-latest - Replace `obsidian-typings` with @obsidian-typings/obsidian-public-latest - Update `vitest` config: replace ssr.noExternal with server.deps.inline - Add DOM.Iterable to tsconfig lib - Remove obsolete overrides (@antfu/utils, boolean, dompurify) - Upgrade dependencies via npm-check-updates
 - build: replace commitizen with czg
 - chore: release 1.0.5
 

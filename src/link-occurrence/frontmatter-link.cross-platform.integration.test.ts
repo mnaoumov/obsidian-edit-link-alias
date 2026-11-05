@@ -380,7 +380,7 @@ async function pollFrontmatterCached(contextId: ContextId<FrontmatterSuiteContex
     contextId,
     input: { initialSourceContent: INITIAL_SOURCE_CONTENT, sourcePath: SOURCE_PATH },
     poll({ app, context }): boolean {
-      return context.sourceFile ? Boolean(app.metadataCache.getFileCache(context.sourceFile)?.frontmatter) : false;
+      return !!context.sourceFile && Boolean(app.metadataCache.getFileCache(context.sourceFile)?.frontmatter);
     },
     async start({ app, context, initialSourceContent, lib: { createNote }, sourcePath }): Promise<void> {
       const existing = app.vault.getAbstractFileByPath(sourcePath);
