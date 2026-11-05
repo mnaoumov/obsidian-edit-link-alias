@@ -199,7 +199,7 @@ async function createFixture(contextId: ContextId<BasesSuiteContext>): Promise<v
       targetPath: TARGET_PATH
     },
     poll({ app, context }): boolean {
-      return context.rowFile ? Boolean(app.metadataCache.getFileCache(context.rowFile)?.frontmatter) : false;
+      return !!context.rowFile && Boolean(app.metadataCache.getFileCache(context.rowFile)?.frontmatter);
     },
     async start({ app, basePath, baseQuery, context, folderPath, hostContent, hostPath, lib: { createNote }, rowContent, rowPath, targetPath }): Promise<void> {
       // A scenario that failed part-way leaves its fixture behind.

@@ -55,7 +55,7 @@ const mockCreateEditParsedLinkUrlAndAliasInPopover = vi.mocked(createEditParsedL
 const mockEditParsedLinkUrlAndAlias = vi.fn<EditParsedLink>();
 const mockParseLinks = vi.mocked(parseLinks);
 const mockSelectItem = vi.mocked(selectItem);
-const mockIsFile = vi.mocked(isFile);
+const isFileMock = vi.mocked(isFile);
 
 const EDIT_ALIAS_ITEM_INDEX = 0;
 const EDIT_URL_AND_ALIAS_ITEM_INDEX = 1;
@@ -308,7 +308,7 @@ beforeEach(() => {
   handler = createHandler();
   handler.register();
   Platform.isDesktop = true;
-  mockIsFile.mockReset().mockReturnValue(true);
+  isFileMock.mockReset().mockReturnValue(true);
   mockParseLinks.mockReset().mockReturnValue([]);
   mockSelectItem.mockReset();
   mockEditParsedLinkAlias.mockReset().mockResolvedValue();
@@ -347,7 +347,7 @@ describe('LinkMenuHandler', () => {
     });
 
     it('should not add an item when the target is not a file', () => {
-      mockIsFile.mockReturnValue(false);
+      isFileMock.mockReturnValue(false);
       const { items, menu } = createMockMenu();
       triggerFileMenu(menu, strictProxy<TAbstractFile>({}), LINK_CONTEXT_MENU_SOURCE);
       expect(items).toHaveLength(0);
