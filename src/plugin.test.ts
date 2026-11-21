@@ -95,6 +95,8 @@ interface AppGlobal {
 }
 
 const manifest = strictProxy<PluginManifest>({
+  // eslint-disable-next-line unicorn/name-replacements -- Mirrors Obsidian's `PluginManifest.dir`, which the plugin load reads.
+  dir: '.obsidian/plugins/edit-link-alias',
   id: 'edit-link-alias',
   name: 'Edit Link Alias',
   version: '1.0.0'

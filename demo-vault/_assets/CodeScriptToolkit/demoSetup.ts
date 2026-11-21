@@ -1,7 +1,7 @@
 import type { App } from 'obsidian';
 
-import { Notice } from 'obsidian';
 import { configureCommunityPlugin } from '@mnaoumov/obsidian-lib/community-plugins';
+import { Notice } from 'obsidian';
 
 const PLUGIN_ID = 'edit-link-alias';
 const PLAYGROUND_FOLDER_PATH = 'Materials/01 Edit link alias';
@@ -40,32 +40,6 @@ const PLAYGROUND_CONTENT = [
 ].join('\n');
 
 /**
- * Creates (or restores) the scratch note the walkthroughs operate on, then opens it.
- *
- * Manual equivalent: undo your edits, or delete `Materials/01 Edit link alias/Link playground.md` and
- * write the sample links out again.
- */
-export async function resetLinkPlayground(app: App): Promise<void> {
-  if (!app.vault.getFolderByPath(PLAYGROUND_FOLDER_PATH)) {
-    await app.vault.createFolder(PLAYGROUND_FOLDER_PATH);
-  }
-
-  const existing = app.vault.getFileByPath(PLAYGROUND_NOTE_PATH);
-  if (existing) {
-    await app.vault.modify(existing, PLAYGROUND_CONTENT);
-  } else {
-    await app.vault.create(PLAYGROUND_NOTE_PATH, PLAYGROUND_CONTENT);
-  }
-
-  const note = app.vault.getFileByPath(PLAYGROUND_NOTE_PATH);
-  if (note) {
-    await app.workspace.getLeaf(false).openFile(note);
-  }
-
-  new Notice('Link playground restored and opened.');
-}
-
-/**
  * Opens the playground, puts the cursor inside the first link on a line containing `marker`, and runs
  * one of the plugin's commands — the fiddly part of every walkthrough, since the command acts on the
  * link under the cursor.
@@ -99,17 +73,6 @@ export async function editLinkOnLine(app: App, marker: string, commandId: string
 }
 
 /**
- * Turns `Alt` + click link editing on or off.
- *
- * Manual equivalent: toggle **Should open link editor on alt click** in **Settings -> Community
- * plugins ->** `Edit Link Alias`.
- */
-export async function setAltClickEditing(app: App, shouldOpenLinkEditorOnAltClick: boolean): Promise<void> {
-  await configureCommunityPlugin({ app, pluginId: PLUGIN_ID, settings: { shouldOpenLinkEditorOnAltClick } });
-  new Notice(shouldOpenLinkEditorOnAltClick ? 'Alt + click now opens the link editor.' : 'Alt + click left alone again.');
-}
-
-/**
  * Prepares everything around an `Alt` + click: turns the gesture on and opens a fresh link playground.
  * The click itself stays the reader's, since no button can hold a modifier key on their behalf.
  *
@@ -119,4 +82,41 @@ export async function setAltClickEditing(app: App, shouldOpenLinkEditorOnAltClic
 export async function prepareAltClickPlayground(app: App): Promise<void> {
   await setAltClickEditing(app, true);
   await resetLinkPlayground(app);
+}
+
+/**
+ * Creates (or restores) the scratch note the walkthroughs operate on, then opens it.
+ *
+ * Manual equivalent: undo your edits, or delete `Materials/01 Edit link alias/Link playground.md` and
+ * write the sample links out again.
+ */
+export async function resetLinkPlayground(app: App): Promise<void> {
+  if (!app.vault.getFolderByPath(PLAYGROUND_FOLDER_PATH)) {
+    await app.vault.createFolder(PLAYGROUND_FOLDER_PATH);
+  }
+
+  const existing = app.vault.getFileByPath(PLAYGROUND_NOTE_PATH);
+  if (existing) {
+    await app.vault.modify(existing, PLAYGROUND_CONTENT);
+  } else {
+    await app.vault.create(PLAYGROUND_NOTE_PATH, PLAYGROUND_CONTENT);
+  }
+
+  const note = app.vault.getFileByPath(PLAYGROUND_NOTE_PATH);
+  if (note) {
+    await app.workspace.getLeaf(false).openFile(note);
+  }
+
+  new Notice('Link playground restored and opened.');
+}
+
+/**
+ * Turns `Alt` + click link editing on or off.
+ *
+ * Manual equivalent: toggle **Should open link editor on alt click** in **Settings -> Community
+ * plugins ->** `Edit Link Alias`.
+ */
+export async function setAltClickEditing(app: App, shouldOpenLinkEditorOnAltClick: boolean): Promise<void> {
+  await configureCommunityPlugin({ app, pluginId: PLUGIN_ID, settings: { shouldOpenLinkEditorOnAltClick } });
+  new Notice(shouldOpenLinkEditorOnAltClick ? 'Alt + click now opens the link editor.' : 'Alt + click left alone again.');
 }
