@@ -62,7 +62,7 @@ export class EditUrlAndAliasCommandHandler extends EditorCommandHandler {
      * command only runs with the cursor inside a link, which makes the caret the right place to put
      * the editor. The document is taken from the view so a pop-out window anchors in its own window.
      */
-    const doc = context instanceof MarkdownView ? context.containerEl.doc : document;
+    const doc = context instanceof MarkdownView ? context.containerEl.doc : activeDocument;
     await editLinkAtEditorCursor({
       app: this.app,
       editor,
