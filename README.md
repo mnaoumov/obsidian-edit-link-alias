@@ -55,12 +55,13 @@ A copy of the vault ships with every release. You can access it via any of the f
 
 | Plugin | Features | How `Edit Link Alias` differs |
 | --- | --- | --- |
-| [`Better Link Clicker`](https://community.obsidian.md/plugins/better-link-clicker) | Plain click exposes raw Live Preview link; confirms missing-note creation | Alternative UI: popup for alias and target |
-| [`Better Links`](https://community.obsidian.md/plugins/better-links) | Editor link popup on plain click; open/copy/delete; internal target suggestions | Same link-editing goal; Alt-click preserves navigation; Reading view and properties too |
-| [`F2 Quick Rename`](https://community.obsidian.md/plugins/ftwo-quick-rename) | F2 file/embed/link rename; alias, URL and title edits; properties panel | Narrower focus: any link's display text and target; no file renaming |
-| [`MM Clean Links`](https://community.obsidian.md/plugins/mm-clean-links) | Live Preview click/double-click text selection; external-title capitalization | Alternative UI: popup editing; no title formatting |
+| [`Better Link Clicker`](https://community.obsidian.md/plugins/better-link-clicker) | Plain click shows a Live Preview link as raw markdown to edit in place; confirms before creating a missing note | Same goal, different UI: a pop-up for the alias and the target; plain click still navigates; also Reading view and properties |
+| [`Better Links`](https://community.obsidian.md/plugins/better-links) | Pop-up on plain click in the editor for the text and the target; open, copy and delete actions; note and heading suggestions for the target | Same goal: pop-up link editing; opens on `Alt` + click, so plain click still navigates; also Reading view, properties and Bases; no quick actions |
+| [`F2 Quick Rename`](https://community.obsidian.md/plugins/ftwo-quick-rename) | `F2` renames the note, an embed or the link under the cursor; edits an external link's URL and title; properties panel | Covers part of it: link editing only, for every link kind; no file renaming or properties panel |
+| [`MM Clean Links`](https://community.obsidian.md/plugins/mm-clean-links) | Live Preview click places the cursor, double-click selects the link text; capitalizes external link titles | Same goal, different UI: a pop-up instead of selecting raw text; no title formatting |
+| [`Smart Links and Tags`](https://community.obsidian.md/plugins/smart-links-and-tags) | Dialog for a markdown link's text and URL, from a hover button or a command, with Remove link; paste menu; `@` note mentions; tag picker | Covers part of it: also wikilinks, properties and Reading view; no paste menu, mentions or tags |
 
-Last searched for similar plugins on 2026-10-26.
+Last searched for similar plugins on 2026-11-21.
 
 ## Installation
 
