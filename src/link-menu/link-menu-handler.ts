@@ -23,6 +23,7 @@ import type { BasesLinkOccurrence } from '../link-occurrence/bases-link-occurren
 import type { LinkTarget } from '../link-occurrence/link-target.ts';
 import type { ResolveAndEditLinkParams } from '../link-occurrence/resolve-link-occurrence.ts';
 
+import { checkIsCursorOnEditableLink } from '../link-editing/edit-in-editor.ts';
 import {
   createEditParsedLinkUrlAndAliasInPopover,
   editParsedLinkAlias
@@ -229,12 +230,8 @@ export class LinkMenuHandler {
     }
 
     const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-    if (view?.getMode() !== 'source') {
-      return false;
-    }
-
-    const clickableTokenType = view.editor.getClickableTokenAt(view.editor.getCursor())?.type;
-    return clickableTokenType === 'internal-link' || clickableTokenType === 'external-link';
+    // The same check the editor-menu items are gated on, so the two menus can never both show them.
+    return view?.getMode() === 'source' && checkIsCursorOnEditableLink(view.editor);
   }
 
   private async resolveAndEdit(params: LinkMenuHandlerResolveAndEditParams): Promise<void> {

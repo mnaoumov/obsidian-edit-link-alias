@@ -6,21 +6,17 @@
  * cursor-resolution + `replaceRange` logic lives in one place.
  */
 
-import type { ParseLinkResult } from '@mnaoumov/obsidian-lib/parse-link';
 import type {
   App,
   Editor,
   TFile
 } from 'obsidian';
 
-import { parseLinks } from '@mnaoumov/obsidian-lib/parse-link';
+import { getLinkAtEditorPosition } from '@mnaoumov/obsidian-lib/link-at-position';
 
 import type { EditParsedLink } from './edit-link.ts';
 
-import {
-  didResolveAndEditFrontmatterLink,
-  isOffsetInFrontmatter
-} from '../link-occurrence/frontmatter-link-occurrence.ts';
+import { didResolveAndEditFrontmatterLink } from '../link-occurrence/frontmatter-link-occurrence.ts';
 
 /**
  * Parameters for {@link editLinkAtEditorCursor}.
@@ -56,21 +52,20 @@ export interface EditLinkAtEditorCursorParams {
 /**
  * Determines whether the cursor sits on a link this plugin can edit.
  *
- * A clickable token covers the note body. The frontmatter has none — Obsidian decorates no links inside the
- * frontmatter block — so a link there is recognized by parsing the line instead, which is what makes the
- * commands and their editor-menu items available on a raw YAML link at all.
+ * The answer comes from the same lookup {@link editLinkAtEditorCursor} edits through, so a command is
+ * available exactly where it can act. `Editor.getClickableTokenAt` is deliberately not consulted: it misses a
+ * cursor right before a link (`{cursor}[alias](url)`) and reports nothing inside the frontmatter.
  *
  * @param editor - The editor to inspect.
  * @returns Whether the cursor is on an editable link.
  */
 export function checkIsCursorOnEditableLink(editor: Editor): boolean {
-  const clickableTokenType = editor.getClickableTokenAt(editor.getCursor())?.type;
-  return clickableTokenType === 'internal-link' || clickableTokenType === 'external-link' || findFrontmatterLinkAtEditorCursor(editor) !== null;
+  return getLinkAtEditorPosition({ editor }) !== null;
 }
 
 /**
  * Resolves the link occurrence under the editor cursor and applies the given editor to it in place. Does
- * nothing when the cursor is not inside a parsed link.
+ * nothing when the cursor is not on a link.
  *
  * A cursor inside the note's frontmatter is routed to {@link didResolveAndEditFrontmatterLink} instead: the
  * `replaceRange` below would splice the rebuilt link into raw YAML and break it (GH #5).
@@ -86,15 +81,12 @@ export async function editLinkAtEditorCursor(params: EditLinkAtEditorCursorParam
     sourceFile
   } = params;
 
-  const cursor = editor.getCursor();
-  const line = editor.getLine(cursor.line);
-  const parsedLinks = parseLinks(line);
-  const parsedLink = parsedLinks.find((link) => link.startOffset <= cursor.ch && cursor.ch <= link.endOffset);
-  if (!parsedLink) {
+  const link = getLinkAtEditorPosition({ editor });
+  if (!link) {
     return;
   }
 
-  if (isOffsetInFrontmatter(editor.getValue(), editor.posToOffset(cursor))) {
+  if (link.isInFrontmatter) {
     /*
      * Without a file there is no frontmatter to write through — and `replaceRange` is not an acceptable
      * fallback here, because splicing into raw YAML is the very corruption this branch exists to prevent.
@@ -108,7 +100,7 @@ export async function editLinkAtEditorCursor(params: EditLinkAtEditorCursorParam
       app,
       editParsedLink,
       linkTarget: {},
-      rawLink: parsedLink.raw,
+      rawLink: link.parseLinkResult.raw,
       showCouldNotLocateNotice,
       sourceFile
     });
@@ -121,28 +113,8 @@ export async function editLinkAtEditorCursor(params: EditLinkAtEditorCursorParam
   await editParsedLink({
     app,
     applyReplacement: (newRawLink) => {
-      editor.replaceRange(newRawLink, { ch: parsedLink.startOffset, line: cursor.line }, { ch: parsedLink.endOffset, line: cursor.line });
+      editor.replaceRange(newRawLink, { ch: link.startCh, line: link.line }, { ch: link.endCh, line: link.line });
     },
-    parsedLink
+    parsedLink: link.parseLinkResult
   });
-}
-
-/**
- * Finds the link under the editor cursor when the cursor sits inside the note's frontmatter.
- *
- * The command handlers need this in their `canExecute` check: `Editor.getClickableTokenAt` reports nothing
- * inside the frontmatter block — Obsidian decorates no links there — so without this the commands would be
- * unavailable on exactly the links this module knows how to edit.
- *
- * @param editor - The editor to inspect.
- * @returns The link under the cursor, or `null` when the cursor is outside the frontmatter or not on a link.
- */
-export function findFrontmatterLinkAtEditorCursor(editor: Editor): null | ParseLinkResult {
-  const cursor = editor.getCursor();
-  if (!isOffsetInFrontmatter(editor.getValue(), editor.posToOffset(cursor))) {
-    return null;
-  }
-
-  const line = editor.getLine(cursor.line);
-  return parseLinks(line).find((link) => link.startOffset <= cursor.ch && cursor.ch <= link.endOffset) ?? null;
 }

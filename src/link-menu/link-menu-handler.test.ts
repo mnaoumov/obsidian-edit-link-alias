@@ -45,7 +45,11 @@ import { LinkMenuHandler } from './link-menu-handler.ts';
 
 vi.mock('../link-occurrence/bases-link-occurrence.ts', () => ({ getBasesLinkOccurrence: vi.fn() }));
 vi.mock('../link-editing/edit-link.ts', () => ({ createEditParsedLinkUrlAndAliasInPopover: vi.fn(), editParsedLinkAlias: vi.fn() }));
-vi.mock('@mnaoumov/obsidian-lib/parse-link', () => ({ parseLinks: vi.fn() }));
+// Only `parseLinks` is stubbed: the rest of the module is real, since the shared link-at-position lookup uses it too.
+vi.mock('@mnaoumov/obsidian-lib/parse-link', async (importOriginal) => ({
+  ...await importOriginal<typeof import('@mnaoumov/obsidian-lib/parse-link')>(),
+  parseLinks: vi.fn()
+}));
 vi.mock('@mnaoumov/obsidian-lib/modals/select-item', () => ({ selectItem: vi.fn() }));
 vi.mock('@mnaoumov/obsidian-lib/file-system', () => ({ isFile: vi.fn() }));
 
@@ -73,7 +77,6 @@ interface CapturedMenuItem {
 }
 
 interface CreateMockEditorParams {
-  readonly clickableTokenType?: null | string;
   readonly cursor?: EditorPosition;
   readonly line?: string;
   readonly replaceRange?: Editor['replaceRange'];
@@ -90,7 +93,6 @@ type UrlMenuCallback = (menu: Menu, url: string) => void;
 
 function createMockEditor(params: CreateMockEditorParams = {}): Editor {
   const {
-    clickableTokenType = null,
     cursor = { ch: 0, line: 0 },
     line = '',
     replaceRange = vi.fn<Editor['replaceRange']>()
@@ -98,14 +100,23 @@ function createMockEditor(params: CreateMockEditorParams = {}): Editor {
 
   const getLine = vi.fn().mockReturnValue(line);
   return strictProxy<Editor>({
-    getClickableTokenAt: vi.fn().mockReturnValue(clickableTokenType === null ? null : { type: clickableTokenType }),
     getCursor: vi.fn().mockReturnValue(cursor),
     getLine,
     // A single body line: no frontmatter, so the frontmatter routing in `didEditLinkAtPosition` is not taken.
-    getValue: vi.fn().mockReturnValue(line),
-    posToOffset: vi.fn().mockReturnValue(0),
+    lineCount: () => 1,
     replaceRange
   });
+}
+
+/**
+ * Creates an editor whose caret sits inside a link, the state in which the editor menu shows the items.
+ *
+ * @param link - The link the caret is in.
+ * @returns The editor.
+ */
+function createMockEditorOnLink(link: ParseLinkResult = parsedLink()): Editor {
+  mockParseLinks.mockReturnValue([link]);
+  return createMockEditor({ cursor: { ch: 5, line: 0 }, line: link.raw });
 }
 
 function createMockMenu(): CreateMockMenuResult {
@@ -384,35 +395,45 @@ describe('LinkMenuHandler', () => {
 
   describe('editor-menu de-duplication', () => {
     it('should not add a file-menu item on desktop when the editor already shows it for an internal link', () => {
-      mockActiveView('source', createMockEditor({ clickableTokenType: 'internal-link' }));
+      mockActiveView('source', createMockEditorOnLink());
       const { items, menu } = createMockMenu();
       triggerFileMenu(menu, strictProxy<TAbstractFile>({}), LINK_CONTEXT_MENU_SOURCE);
       expect(items).toHaveLength(0);
     });
 
     it('should not add a url-menu item on desktop when the editor already shows it for an external link', () => {
-      mockActiveView('source', createMockEditor({ clickableTokenType: 'external-link' }));
+      mockActiveView(
+        'source',
+        createMockEditorOnLink(parsedLink({
+          alias: 'click',
+          endOffset: 28,
+          isExternal: true,
+          isWikilink: false,
+          raw: '[click](https://example.com)',
+          url: 'https://example.com'
+        }))
+      );
       const { items, menu } = createMockMenu();
       triggerUrlMenu(menu, 'https://example.com');
       expect(items).toHaveLength(0);
     });
 
-    it('should add the item on desktop when the editor cursor is on a non-link token', () => {
-      mockActiveView('source', createMockEditor({ clickableTokenType: 'tag' }));
+    it('should add the item on desktop when the editor cursor is on a tag, not a link', () => {
+      mockActiveView('source', createMockEditor({ cursor: { ch: 2, line: 0 }, line: 'a #tag' }));
       const { items, menu } = createMockMenu();
       triggerFileMenu(menu, strictProxy<TAbstractFile>({}), LINK_CONTEXT_MENU_SOURCE);
       expect(items).toHaveLength(2);
     });
 
-    it('should add the item on desktop when there is no clickable token at the cursor', () => {
-      mockActiveView('source', createMockEditor({ clickableTokenType: null }));
+    it('should add the item on desktop when the editor cursor is on plain text', () => {
+      mockActiveView('source', createMockEditor({ cursor: { ch: 2, line: 0 }, line: 'plain text' }));
       const { items, menu } = createMockMenu();
       triggerFileMenu(menu, strictProxy<TAbstractFile>({}), LINK_CONTEXT_MENU_SOURCE);
       expect(items).toHaveLength(2);
     });
 
     it('should add the item on desktop in reading mode', () => {
-      mockActiveView('preview', createMockEditor({ clickableTokenType: 'internal-link' }));
+      mockActiveView('preview', createMockEditorOnLink());
       const { items, menu } = createMockMenu();
       triggerFileMenu(menu, strictProxy<TAbstractFile>({}), LINK_CONTEXT_MENU_SOURCE);
       expect(items).toHaveLength(2);
@@ -420,7 +441,7 @@ describe('LinkMenuHandler', () => {
 
     it('should add the item on mobile even in an editing view with the cursor on a link', () => {
       Platform.isDesktop = false;
-      mockActiveView('source', createMockEditor({ clickableTokenType: 'internal-link' }));
+      mockActiveView('source', createMockEditorOnLink());
       const { items, menu } = createMockMenu();
       triggerFileMenu(menu, strictProxy<TAbstractFile>({}), LINK_CONTEXT_MENU_SOURCE);
       expect(items).toHaveLength(2);
@@ -436,6 +457,8 @@ describe('LinkMenuHandler', () => {
     });
 
     it('should edit via the editor when in source mode with the cursor on the matching link', async () => {
+      // On desktop the editor menu owns this gesture; the menu path with a caret on the link is mobile's.
+      Platform.isDesktop = false;
       const replaceRange = vi.fn<Editor['replaceRange']>();
       const editor = createMockEditor({
         cursor: { ch: 5, line: 0 },
@@ -455,6 +478,8 @@ describe('LinkMenuHandler', () => {
     });
 
     it('should edit via the url-and-alias editor when that action is chosen', async () => {
+      // On desktop the editor menu owns this gesture; the menu path with a caret on the link is mobile's.
+      Platform.isDesktop = false;
       const replaceRange = vi.fn<Editor['replaceRange']>();
       const editor = createMockEditor({
         cursor: { ch: 5, line: 0 },
@@ -1010,7 +1035,7 @@ describe('LinkMenuHandler', () => {
       elementFromPoint.mockReturnValue(cellLinkEl);
       mockGetBasesLinkOccurrence.mockImplementation((_app, el) => el === cellLinkEl ? { propertyKey: 'related', sourceFile: rowFile } : null);
       // An editing view whose caret sits on a link: without the Bases cell, the editor menu would own this gesture.
-      mockActiveView('source', createMockEditor({ clickableTokenType: 'internal-link' }));
+      mockActiveView('source', createMockEditorOnLink());
     });
 
     it('should read the cell under the gesture while the menu is built', () => {

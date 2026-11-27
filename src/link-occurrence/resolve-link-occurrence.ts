@@ -30,6 +30,7 @@ import type {
   TFile
 } from 'obsidian';
 
+import { getLinkAtPosition } from '@mnaoumov/obsidian-lib/link-at-position';
 import { selectItem } from '@mnaoumov/obsidian-lib/modals/select-item';
 import { parseLinks } from '@mnaoumov/obsidian-lib/parse-link';
 
@@ -38,8 +39,7 @@ import type { LinkTarget } from './link-target.ts';
 
 import {
   didResolveAndEditFrontmatterLink,
-  isLineInFrontmatter,
-  isOffsetInFrontmatter
+  isLineInFrontmatter
 } from './frontmatter-link-occurrence.ts';
 import {
   doesLinkMatchTarget,
@@ -220,11 +220,11 @@ async function didEditLinkAtPosition(params: TryEditLinkAtPositionParams): Promi
   } = params;
 
   const { editor } = view;
-  const line = editor.getLine(editorPosition.line);
-  const parsedLink = parseLinks(line).find((link) => link.startOffset <= editorPosition.ch && editorPosition.ch <= link.endOffset);
-  if (!parsedLink) {
+  const linkAtPosition = getLinkAtPosition({ lines: editor, position: editorPosition });
+  if (!linkAtPosition) {
     return false;
   }
+  const parsedLink = linkAtPosition.parseLinkResult;
 
   /*
    * A known target always wins: it is what the gesture actually named, so a position that disagrees with
@@ -250,7 +250,7 @@ async function didEditLinkAtPosition(params: TryEditLinkAtPositionParams): Promi
    * Raw YAML in Source mode: the position is inside the frontmatter, so the edit must go through the
    * frontmatter rather than `replaceRange` — the same reason the scan skips those lines.
    */
-  if (isOffsetInFrontmatter(editor.getValue(), editor.posToOffset(editorPosition))) {
+  if (linkAtPosition.isInFrontmatter) {
     return await didResolveAndEditFrontmatterLink({
       app,
       editParsedLink,
@@ -266,8 +266,8 @@ async function didEditLinkAtPosition(params: TryEditLinkAtPositionParams): Promi
     applyReplacement: (newRawLink) => {
       editor.replaceRange(
         newRawLink,
-        { ch: parsedLink.startOffset, line: editorPosition.line },
-        { ch: parsedLink.endOffset, line: editorPosition.line }
+        { ch: linkAtPosition.startCh, line: linkAtPosition.line },
+        { ch: linkAtPosition.endCh, line: linkAtPosition.line }
       );
     },
     parsedLink

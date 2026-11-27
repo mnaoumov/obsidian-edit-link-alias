@@ -27,8 +27,7 @@ import type { EditParsedLinkParams } from '../link-editing/edit-link.ts';
 
 import {
   didResolveAndEditFrontmatterLink,
-  isLineInFrontmatter,
-  isOffsetInFrontmatter
+  isLineInFrontmatter
 } from './frontmatter-link-occurrence.ts';
 
 vi.mock('@mnaoumov/obsidian-lib/modals/select-item', () => ({ selectItem: vi.fn() }));
@@ -115,19 +114,6 @@ async function readSource(): Promise<string> {
 function setUpVault(sourceContent: string): void {
   app = App.createConfigured__({ files: { [SOURCE_PATH]: sourceContent } }).asOriginalType__();
 }
-
-describe('isOffsetInFrontmatter', () => {
-  it('should report false for a note without frontmatter', () => {
-    expect(isOffsetInFrontmatter('# Body\n', 2)).toBe(false);
-  });
-
-  it('should report true inside the frontmatter and false in the body', () => {
-    const content = `---\nurl: ${URL}\n---\n\n# Body\n`;
-    const frontmatterInfo = getFrontMatterInfo(content);
-    expect(isOffsetInFrontmatter(content, frontmatterInfo.from + 1)).toBe(true);
-    expect(isOffsetInFrontmatter(content, content.length - 1)).toBe(false);
-  });
-});
 
 describe('isLineInFrontmatter', () => {
   it('should report false for a note without frontmatter', () => {

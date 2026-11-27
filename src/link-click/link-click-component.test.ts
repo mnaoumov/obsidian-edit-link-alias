@@ -190,6 +190,7 @@ beforeEach(() => {
     value: strictProxy<Editor>({
       getLine: (line: number) => editorContent.split('\n')[line] ?? '',
       getValue: () => editorContent,
+      lineCount: () => editorContent.split('\n').length,
       posAtMouse: castTo<Editor['posAtMouse']>(posAtMouse),
       posToOffset: (position: EditorPosition) => toOffset(editorContent, position)
     })
