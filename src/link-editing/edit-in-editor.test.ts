@@ -42,13 +42,12 @@ let app: AppOriginal;
 let replaceRange: ReturnType<typeof vi.fn>;
 let showCouldNotLocateNotice: ReturnType<typeof vi.fn<(this: void) => void>>;
 
-function createEditor(content: string, cursor: EditorPosition, clickableTokenType: null | string = null): Editor {
+function createEditor(content: string, cursor: EditorPosition): Editor {
+  const lines = content.split('\n');
   return strictProxy<Editor>({
-    getClickableTokenAt: vi.fn().mockReturnValue(clickableTokenType === null ? null : { type: clickableTokenType }),
     getCursor: vi.fn().mockReturnValue(cursor),
-    getLine: (line: number) => content.split('\n')[line] ?? '',
-    getValue: vi.fn().mockReturnValue(content),
-    posToOffset: vi.fn().mockImplementation((position: EditorPosition) => toOffset(content, position)),
+    getLine: (line: number) => lines[line] ?? '',
+    lineCount: () => lines.length,
     replaceRange: castTo<Editor['replaceRange']>(replaceRange)
   });
 }
@@ -65,10 +64,6 @@ function setUpVault(sourceContent: string): void {
   app = App.createConfigured__({ files: { [SOURCE_PATH]: sourceContent } }).asOriginalType__();
 }
 
-function toOffset(content: string, position: EditorPosition): number {
-  return content.split('\n').slice(0, position.line).reduce((total, lineText) => total + lineText.length + 1, 0) + position.ch;
-}
-
 beforeEach(() => {
   replaceRange = vi.fn();
   showCouldNotLocateNotice = vi.fn();
@@ -76,20 +71,30 @@ beforeEach(() => {
 });
 
 describe('checkIsCursorOnEditableLink', () => {
-  it('should accept an internal link token', () => {
-    expect(checkIsCursorOnEditableLink(createEditor(BODY_CONTENT, { ch: 0, line: 0 }, 'internal-link'))).toBe(true);
-  });
-
-  it('should accept an external link token', () => {
-    expect(checkIsCursorOnEditableLink(createEditor(BODY_CONTENT, { ch: 0, line: 0 }, 'external-link'))).toBe(true);
-  });
-
-  it('should reject a token that is not a link', () => {
-    expect(checkIsCursorOnEditableLink(createEditor(BODY_CONTENT, { ch: 0, line: 0 }, 'tag'))).toBe(false);
+  // Each link starts at column 4 of `ab, <link> cd`, so the cursor before it is column 4 and after it its end.
+  it.each([
+    ['a markdown link', '[alias](https://example.com)'],
+    ['a wikilink with an alias', '[[note|alias]]'],
+    ['a wikilink', '[[note]]'],
+    ['an embed', '![[image.png]]'],
+    ['a bare url', 'https://example.com']
+  ])('should accept the cursor right before, inside and right after %s', (_kind, link) => {
+    const content = `ab, ${link} cd`;
+    const startCh = 4;
+    const endCh = startCh + link.length;
+    for (const ch of [startCh, startCh + 1, endCh - 1, endCh]) {
+      expect(checkIsCursorOnEditableLink(createEditor(content, { ch, line: 0 }))).toBe(true);
+    }
+    expect(checkIsCursorOnEditableLink(createEditor(content, { ch: startCh - 1, line: 0 }))).toBe(false);
+    expect(checkIsCursorOnEditableLink(createEditor(content, { ch: endCh + 1, line: 0 }))).toBe(false);
   });
 
   it('should accept a frontmatter link, which carries no clickable token at all', () => {
     expect(checkIsCursorOnEditableLink(createEditor(FRONTMATTER_CONTENT, FRONTMATTER_CURSOR))).toBe(true);
+  });
+
+  it('should accept the cursor right before a quoted frontmatter link', () => {
+    expect(checkIsCursorOnEditableLink(createEditor('---\nnote: "[[note]]"\n---\n', { ch: 6, line: 1 }))).toBe(true);
   });
 
   it('should reject a frontmatter position that is not on a link', () => {
@@ -100,7 +105,6 @@ describe('checkIsCursorOnEditableLink', () => {
     expect(checkIsCursorOnEditableLink(createEditor('plain body', { ch: 2, line: 0 }))).toBe(false);
   });
 });
-
 describe('editLinkAtEditorCursor', () => {
   it('should do nothing when the cursor is not on a link', async () => {
     const editParsedLink = vi.fn();
@@ -131,6 +135,39 @@ describe('editLinkAtEditorCursor', () => {
     });
 
     expect(replaceRange).toHaveBeenCalledWith(NEW_RAW_LINK, { ch: 6, line: 0 }, { ch: 25, line: 0 });
+  });
+
+  it('should edit a link with the cursor right before it', async () => {
+    const content = '[old](https://example.com)';
+    setUpVault(content);
+
+    await editLinkAtEditorCursor({
+      app,
+      editor: createEditor(content, { ch: 0, line: 0 }),
+      editParsedLink: async (params: EditParsedLinkParams) => {
+        await params.applyReplacement(NEW_RAW_LINK);
+      },
+      showCouldNotLocateNotice,
+      sourceFile: getSourceFile()
+    });
+
+    expect(replaceRange).toHaveBeenCalledWith(NEW_RAW_LINK, { ch: 0, line: 0 }, { ch: 26, line: 0 });
+  });
+
+  it('should edit the link the cursor is before when two links touch', async () => {
+    const content = '[a](x)[b](y)';
+    setUpVault(content);
+    const editParsedLink = vi.fn<(params: EditParsedLinkParams) => Promise<void>>();
+
+    await editLinkAtEditorCursor({
+      app,
+      editor: createEditor(content, { ch: 6, line: 0 }),
+      editParsedLink,
+      showCouldNotLocateNotice,
+      sourceFile: getSourceFile()
+    });
+
+    expect(editParsedLink.mock.calls[0]?.[0].parsedLink.raw).toBe('[b](y)');
   });
 
   it('should write a frontmatter link through the frontmatter, keeping the YAML valid', async () => {

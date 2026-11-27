@@ -8,7 +8,6 @@ import type {
 import { EditorCommandHandler } from '@mnaoumov/obsidian-lib/command-handlers/editor-command-handler';
 import { generateRawMarkdownLink } from '@mnaoumov/obsidian-lib/link';
 import { prompt } from '@mnaoumov/obsidian-lib/modals/prompt';
-import { parseLinks } from '@mnaoumov/obsidian-lib/parse-link';
 import { castTo } from '@mnaoumov/typescript-lib/object-utils';
 import { strictProxy } from '@mnaoumov/typescript-test-toolkit/strict-proxy';
 import {
@@ -30,27 +29,17 @@ vi.mock('@mnaoumov/obsidian-lib/modals/prompt', () => ({
   prompt: vi.fn()
 }));
 
-vi.mock('@mnaoumov/obsidian-lib/parse-link', () => ({
-  parseLinks: vi.fn()
-}));
-
-const mockParseLinks = vi.mocked(parseLinks);
 const mockGenerateRawMarkdownLink = vi.mocked(generateRawMarkdownLink);
 const mockPrompt = vi.mocked(prompt);
 
 interface CreateMockEditorParams {
-  readonly clickableToken?: MockClickableToken | null;
+  readonly content?: string;
   readonly cursor?: EditorPosition;
-  readonly line?: string;
   readonly replaceRange?: Editor['replaceRange'];
 }
 
 interface EditorCommandHandlerProtected {
   readonly canExecuteEditor: (editor: Editor, context: MarkdownFileInfo) => boolean;
-}
-
-interface MockClickableToken {
-  readonly type: string;
 }
 
 class TestableEditCommandHandler extends EditCommandHandler {
@@ -77,20 +66,17 @@ function createMockContext(): MarkdownFileInfo {
 
 function createMockEditor(params: CreateMockEditorParams = {}): Editor {
   const {
-    clickableToken = null,
+    content = '',
     cursor = { ch: 0, line: 0 },
-    line = '',
     replaceRange = vi.fn<Editor['replaceRange']>()
   } = params;
 
-  const mockGetLine = vi.fn().mockReturnValue(line);
+  const lines = content.split('\n');
 
   return strictProxy<Editor>({
-    getClickableTokenAt: vi.fn().mockReturnValue(clickableToken),
     getCursor: vi.fn().mockReturnValue(cursor),
-    getLine: mockGetLine,
-    getValue: vi.fn().mockReturnValue(line),
-    posToOffset: vi.fn().mockReturnValue(0),
+    getLine: (lineIndex: number) => lines[lineIndex] ?? '',
+    lineCount: () => lines.length,
     replaceRange
   });
 }
@@ -134,43 +120,41 @@ describe('EditCommandHandler', () => {
     it('should return false when super.canExecuteEditor returns false', () => {
       vi.spyOn(castTo<EditorCommandHandlerProtected>(EditorCommandHandler.prototype), 'canExecuteEditor').mockReturnValue(false);
 
-      const editor = createMockEditor({ clickableToken: { type: 'internal-link' } });
+      const editor = createMockEditor({ content: '[[target]]' });
       const isResult = handler.testCanExecuteEditor(editor, createMockContext());
 
       expect(isResult).toBe(false);
     });
 
-    it('should return false when no clickable token at cursor', () => {
-      const editor = createMockEditor({ clickableToken: null });
+    it('should return false when the cursor is not on a link', () => {
+      const editor = createMockEditor({ content: 'some #tag text', cursor: { ch: 6, line: 0 } });
       const isResult = handler.testCanExecuteEditor(editor, createMockContext());
       expect(isResult).toBe(false);
     });
 
-    it('should return false when clickable token type is not a link', () => {
-      const editor = createMockEditor({ clickableToken: { type: 'tag' } });
-      const isResult = handler.testCanExecuteEditor(editor, createMockContext());
-      expect(isResult).toBe(false);
-    });
-
-    it('should return true when clickable token is internal-link', () => {
-      const editor = createMockEditor({ clickableToken: { type: 'internal-link' } });
+    it('should return true when the cursor is right before an internal link', () => {
+      const editor = createMockEditor({ content: 'see [[target]]', cursor: { ch: 4, line: 0 } });
       const isResult = handler.testCanExecuteEditor(editor, createMockContext());
       expect(isResult).toBe(true);
     });
 
-    it('should return true when clickable token is external-link', () => {
-      const editor = createMockEditor({ clickableToken: { type: 'external-link' } });
+    it('should return true when the cursor is right before a markdown link', () => {
+      const editor = createMockEditor({ content: '[alias](https://example.com)', cursor: { ch: 0, line: 0 } });
+      const isResult = handler.testCanExecuteEditor(editor, createMockContext());
+      expect(isResult).toBe(true);
+    });
+
+    it('should return true when the cursor is right after an external link', () => {
+      const editor = createMockEditor({ content: '[alias](https://example.com)', cursor: { ch: 28, line: 0 } });
       const isResult = handler.testCanExecuteEditor(editor, createMockContext());
       expect(isResult).toBe(true);
     });
   });
-
   describe('executeEditor', () => {
     it('should return early when no parsed link found at cursor position', async () => {
-      mockParseLinks.mockReturnValue([]);
       const editor = createMockEditor({
-        cursor: { ch: 5, line: 0 },
-        line: 'some text'
+        content: 'some text',
+        cursor: { ch: 5, line: 0 }
       });
 
       await handler.testExecuteEditor(editor);
@@ -181,17 +165,6 @@ describe('EditCommandHandler', () => {
 
     it('should surface a notice when a frontmatter link cannot be located', async () => {
       const showNotice = vi.fn();
-      const frontmatterContent = '---\nurl: https://example.com\n---\n';
-      mockParseLinks.mockReturnValue([{
-        endOffset: 24,
-        isEmbed: false,
-        isExternal: true,
-        isFileUrl: false,
-        isWikilink: false,
-        raw: 'https://example.com',
-        startOffset: 5,
-        url: 'https://example.com'
-      }]);
 
       const noticeHandler = new TestableEditCommandHandler({
         // The note holds no cached frontmatter link, so the resolution finds nothing to edit.
@@ -200,11 +173,9 @@ describe('EditCommandHandler', () => {
       });
 
       const editor = createMockEditor({
-        cursor: { ch: 10, line: 1 },
-        line: 'url: https://example.com'
+        content: '---\nurl: https://example.com\n---\n',
+        cursor: { ch: 10, line: 1 }
       });
-      vi.mocked(editor.getValue).mockReturnValue(frontmatterContent);
-      vi.mocked(editor.posToOffset).mockReturnValue(frontmatterContent.indexOf('https'));
 
       await noticeHandler.testExecuteEditor(editor, strictProxy<MarkdownFileInfo>({ file: strictProxy({ path: 'source.md' }) }));
 
@@ -213,21 +184,11 @@ describe('EditCommandHandler', () => {
     });
 
     it('should return early when prompt is cancelled', async () => {
-      mockParseLinks.mockReturnValue([{
-        endOffset: 20,
-        isEmbed: false,
-        isExternal: false,
-        isFileUrl: false,
-        isWikilink: true,
-        raw: '[[target|alias]]',
-        startOffset: 0,
-        url: 'target'
-      }]);
       mockPrompt.mockResolvedValue(null);
 
       const editor = createMockEditor({
-        cursor: { ch: 5, line: 0 },
-        line: '[[target|alias]]'
+        content: '[[target|alias]]',
+        cursor: { ch: 5, line: 0 }
       });
 
       await handler.testExecuteEditor(editor);
@@ -236,24 +197,13 @@ describe('EditCommandHandler', () => {
     });
 
     it('should replace link with new alias for wikilink', async () => {
-      mockParseLinks.mockReturnValue([{
-        alias: 'old alias',
-        endOffset: 24,
-        isEmbed: false,
-        isExternal: false,
-        isFileUrl: false,
-        isWikilink: true,
-        raw: '[[target|old alias]]',
-        startOffset: 0,
-        url: 'target'
-      }]);
       mockPrompt.mockResolvedValue('new alias');
       mockGenerateRawMarkdownLink.mockReturnValue('[[target|new alias]]');
 
       const mockReplaceRange = vi.fn<Editor['replaceRange']>();
       const editor = createMockEditor({
+        content: '\n\n[[target|old alias]]',
         cursor: { ch: 5, line: 2 },
-        line: '[[target|old alias]]',
         replaceRange: mockReplaceRange
       });
 
@@ -276,27 +226,17 @@ describe('EditCommandHandler', () => {
       expect(mockReplaceRange).toHaveBeenCalledWith(
         '[[target|new alias]]',
         { ch: 0, line: 2 },
-        { ch: 24, line: 2 }
+        { ch: 20, line: 2 }
       );
     });
 
     it('should use url as default value when alias is not set', async () => {
-      mockParseLinks.mockReturnValue([{
-        endOffset: 10,
-        isEmbed: false,
-        isExternal: false,
-        isFileUrl: false,
-        isWikilink: true,
-        raw: '[[target]]',
-        startOffset: 0,
-        url: 'target'
-      }]);
       mockPrompt.mockResolvedValue('new alias');
       mockGenerateRawMarkdownLink.mockReturnValue('[[target|new alias]]');
 
       const editor = createMockEditor({
+        content: '[[target]]',
         cursor: { ch: 5, line: 0 },
-        line: '[[target]]',
         replaceRange: vi.fn<Editor['replaceRange']>()
       });
 
@@ -308,26 +248,13 @@ describe('EditCommandHandler', () => {
     });
 
     it('should handle external links', async () => {
-      mockParseLinks.mockReturnValue([{
-        alias: 'click here',
-        endOffset: 30,
-        hasAngleBrackets: false,
-        isEmbed: false,
-        isExternal: true,
-        isFileUrl: false,
-        isWikilink: false,
-        raw: '[click here](https://example.com)',
-        startOffset: 0,
-        title: 'Example',
-        url: 'https://example.com'
-      }]);
       mockPrompt.mockResolvedValue('visit site');
       mockGenerateRawMarkdownLink.mockReturnValue('[visit site](https://example.com "Example")');
 
       const mockReplaceRange = vi.fn<Editor['replaceRange']>();
       const editor = createMockEditor({
+        content: '[click here](https://example.com "Example")',
         cursor: { ch: 5, line: 0 },
-        line: '[click here](https://example.com)',
         replaceRange: mockReplaceRange
       });
 
@@ -344,23 +271,12 @@ describe('EditCommandHandler', () => {
     });
 
     it('should handle embed links', async () => {
-      mockParseLinks.mockReturnValue([{
-        alias: 'image',
-        endOffset: 20,
-        isEmbed: true,
-        isExternal: false,
-        isFileUrl: false,
-        isWikilink: true,
-        raw: '![[image.png|image]]',
-        startOffset: 0,
-        url: 'image.png'
-      }]);
       mockPrompt.mockResolvedValue('photo');
       mockGenerateRawMarkdownLink.mockReturnValue('![[image.png|photo]]');
 
       const editor = createMockEditor({
+        content: '![[image.png|image]]',
         cursor: { ch: 5, line: 0 },
-        line: '![[image.png|image]]',
         replaceRange: vi.fn<Editor['replaceRange']>()
       });
 
@@ -372,24 +288,12 @@ describe('EditCommandHandler', () => {
     });
 
     it('should handle links with angle brackets', async () => {
-      mockParseLinks.mockReturnValue([{
-        alias: 'link',
-        endOffset: 25,
-        hasAngleBrackets: true,
-        isEmbed: false,
-        isExternal: true,
-        isFileUrl: false,
-        isWikilink: false,
-        raw: '[link](<https://example.com>)',
-        startOffset: 0,
-        url: 'https://example.com'
-      }]);
       mockPrompt.mockResolvedValue('updated');
       mockGenerateRawMarkdownLink.mockReturnValue('[updated](<https://example.com>)');
 
       const editor = createMockEditor({
+        content: '[link](<https://example.com>)',
         cursor: { ch: 5, line: 0 },
-        line: '[link](<https://example.com>)',
         replaceRange: vi.fn<Editor['replaceRange']>()
       });
 
@@ -401,37 +305,13 @@ describe('EditCommandHandler', () => {
     });
 
     it('should find the correct link when multiple links are on the same line', async () => {
-      mockParseLinks.mockReturnValue([
-        {
-          alias: 'first',
-          endOffset: 15,
-          isEmbed: false,
-          isExternal: false,
-          isFileUrl: false,
-          isWikilink: true,
-          raw: '[[page1|first]]',
-          startOffset: 0,
-          url: 'page1'
-        },
-        {
-          alias: 'second',
-          endOffset: 40,
-          isEmbed: false,
-          isExternal: false,
-          isFileUrl: false,
-          isWikilink: true,
-          raw: '[[page2|second]]',
-          startOffset: 20,
-          url: 'page2'
-        }
-      ]);
       mockPrompt.mockResolvedValue('updated second');
       mockGenerateRawMarkdownLink.mockReturnValue('[[page2|updated second]]');
 
       const mockReplaceRange = vi.fn<Editor['replaceRange']>();
       const editor = createMockEditor({
+        content: '[[page1|first]]     [[page2|second]]',
         cursor: { ch: 25, line: 0 },
-        line: '[[page1|first]]     [[page2|second]]',
         replaceRange: mockReplaceRange
       });
 
@@ -443,7 +323,7 @@ describe('EditCommandHandler', () => {
       expect(mockReplaceRange).toHaveBeenCalledWith(
         '[[page2|updated second]]',
         { ch: 20, line: 0 },
-        { ch: 40, line: 0 }
+        { ch: 36, line: 0 }
       );
     });
   });

@@ -29,7 +29,7 @@ import type {
 } from 'obsidian';
 
 import { AllWindowsEventComponent } from '@mnaoumov/obsidian-lib/components/all-windows-event-component';
-import { parseLinks } from '@mnaoumov/obsidian-lib/parse-link';
+import { getLinkAtPosition } from '@mnaoumov/obsidian-lib/link-at-position';
 import {
   createAnchorFromElement,
   createAnchorFromPoint
@@ -296,10 +296,7 @@ export class LinkClickComponent extends AllWindowsEventComponent {
     const { editor } = view;
     const sourcePosition = editor.posAtMouse($event);
 
-    const line = editor.getLine(sourcePosition.line);
-    const isPointerOnLink = parseLinks(line)
-      .some((parsedLink) => parsedLink.startOffset <= sourcePosition.ch && sourcePosition.ch <= parsedLink.endOffset);
-    if (!isPointerOnLink) {
+    if (!getLinkAtPosition({ lines: editor, position: sourcePosition })) {
       return;
     }
 

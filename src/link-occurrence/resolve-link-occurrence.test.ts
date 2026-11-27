@@ -48,6 +48,7 @@ function createSourceView(mode: 'preview' | 'source', editorContent = ''): Markd
       getCursor: () => CURSOR,
       getLine: (line: number) => editorContent.split('\n')[line] ?? '',
       getValue: () => editorContent,
+      lineCount: () => editorContent.split('\n').length,
       posToOffset: (position: EditorPosition) => toOffset(editorContent, position),
       replaceRange: castTo<Editor['replaceRange']>(replaceRange)
     }),

@@ -197,18 +197,6 @@ export function isLineInFrontmatter(content: string, line: number): boolean {
 }
 
 /**
- * Determines whether an offset into the given content lies inside its frontmatter block.
- *
- * @param content - The note content.
- * @param offset - The character offset.
- * @returns Whether the offset is inside the frontmatter.
- */
-export function isOffsetInFrontmatter(content: string, offset: number): boolean {
-  const frontmatterInfo = getFrontMatterInfo(content);
-  return frontmatterInfo.exists && frontmatterInfo.from <= offset && offset <= frontmatterInfo.to;
-}
-
-/**
  * Collects every link in the note's frontmatter, from the two sources that each hold half of them.
  *
  * Obsidian natively caches only the INTERNAL links whose whole property value is the link

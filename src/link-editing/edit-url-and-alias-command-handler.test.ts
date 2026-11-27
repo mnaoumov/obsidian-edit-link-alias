@@ -38,17 +38,12 @@ const mockEditLinkAtEditorCursor = vi.mocked(editLinkAtEditorCursor);
 const mockCreateEditParsedLinkUrlAndAliasInPopover = vi.mocked(createEditParsedLinkUrlAndAliasInPopover);
 
 interface CreateMockEditorParams {
-  readonly clickableToken?: MockClickableToken | null;
+  readonly content?: string;
   readonly cursor?: EditorPosition;
-  readonly line?: string;
 }
 
 interface EditorCommandHandlerProtected {
   readonly canExecuteEditor: (editor: Editor, context: MarkdownFileInfo) => boolean;
-}
-
-interface MockClickableToken {
-  readonly type: string;
 }
 
 class TestableEditUrlAndAliasCommandHandler extends EditUrlAndAliasCommandHandler {
@@ -75,17 +70,16 @@ function createMockContext(): MarkdownFileInfo {
 
 function createMockEditor(params: CreateMockEditorParams = {}): Editor {
   const {
-    clickableToken = null,
-    cursor = { ch: 0, line: 0 },
-    line = ''
+    content = '',
+    cursor = { ch: 0, line: 0 }
   } = params;
 
+  const lines = content.split('\n');
+
   return strictProxy<Editor>({
-    getClickableTokenAt: vi.fn().mockReturnValue(clickableToken),
     getCursor: vi.fn().mockReturnValue(cursor),
-    getLine: vi.fn().mockReturnValue(line),
-    getValue: vi.fn().mockReturnValue(line),
-    posToOffset: vi.fn().mockReturnValue(0)
+    getLine: (lineIndex: number) => lines[lineIndex] ?? '',
+    lineCount: () => lines.length
   });
 }
 
@@ -128,31 +122,30 @@ describe('EditUrlAndAliasCommandHandler', () => {
     it('should return false when super.canExecuteEditor returns false', () => {
       vi.spyOn(castTo<EditorCommandHandlerProtected>(EditorCommandHandler.prototype), 'canExecuteEditor').mockReturnValue(false);
 
-      const editor = createMockEditor({ clickableToken: { type: 'internal-link' } });
+      const editor = createMockEditor({ content: '[[target]]' });
       expect(handler.testCanExecuteEditor(editor, createMockContext())).toBe(false);
     });
 
-    it('should return false when no clickable token at cursor', () => {
-      const editor = createMockEditor({ clickableToken: null });
+    it('should return false when the cursor is not on a link', () => {
+      const editor = createMockEditor({ content: 'some #tag text', cursor: { ch: 6, line: 0 } });
       expect(handler.testCanExecuteEditor(editor, createMockContext())).toBe(false);
     });
 
-    it('should return false when clickable token type is not a link', () => {
-      const editor = createMockEditor({ clickableToken: { type: 'tag' } });
-      expect(handler.testCanExecuteEditor(editor, createMockContext())).toBe(false);
-    });
-
-    it('should return true when clickable token is internal-link', () => {
-      const editor = createMockEditor({ clickableToken: { type: 'internal-link' } });
+    it('should return true when the cursor is right before a markdown link', () => {
+      const editor = createMockEditor({ content: '[alias](https://example.com)', cursor: { ch: 0, line: 0 } });
       expect(handler.testCanExecuteEditor(editor, createMockContext())).toBe(true);
     });
 
-    it('should return true when clickable token is external-link', () => {
-      const editor = createMockEditor({ clickableToken: { type: 'external-link' } });
+    it('should return true when the cursor is inside an internal link', () => {
+      const editor = createMockEditor({ content: '[[target|alias]]', cursor: { ch: 5, line: 0 } });
+      expect(handler.testCanExecuteEditor(editor, createMockContext())).toBe(true);
+    });
+
+    it('should return true when the cursor is right after an external link', () => {
+      const editor = createMockEditor({ content: '[alias](https://example.com)', cursor: { ch: 28, line: 0 } });
       expect(handler.testCanExecuteEditor(editor, createMockContext())).toBe(true);
     });
   });
-
   describe('executeEditor', () => {
     it('should delegate to editLinkAtEditorCursor with the popover editor anchored at the caret', async () => {
       const editor = createMockEditor();
